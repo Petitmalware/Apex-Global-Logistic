@@ -1,0 +1,9 @@
+/var/log/nginx/apex-global-logistics.*.log /opt/apex-global-logistics/logs/*.log {
+  daily
+  rotate 14
+  compress
+  delaycompress
+  missingok
+  notifempty
+  copytruncate
+}

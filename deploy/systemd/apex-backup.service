@@ -1,0 +1,12 @@
+[Unit]
+Description=Apex Global Logistics automated backup
+Wants=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/apex-global-logistics
+EnvironmentFile=/opt/apex-global-logistics/.env.production
+ExecStart=/opt/apex-global-logistics/deploy/scripts/backup.sh
+User=deploy
+Group=deploy

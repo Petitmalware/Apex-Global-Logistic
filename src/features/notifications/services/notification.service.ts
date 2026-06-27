@@ -1,0 +1,481 @@
+import "server-only";
+
+import {
+  ActivityAction,
+  EmailTemplateCategory,
+  EmailTemplateStatus,
+  NotificationChannel,
+  NotificationStatus,
+  Prisma,
+  SettingScope,
+} from "@prisma/client";
+
+import type { AuthSessionUser } from "@/features/auth/services/auth.service";
+import {
+  notificationPreferencesSchema,
+  notificationToneSchema,
+  notificationTopicSchema,
+  updateNotificationPreferencesSchema,
+  type NotificationPreferencesInput,
+  type NotificationToneInput,
+  type NotificationTopicInput,
+} from "@/features/notifications/schemas/notification.schemas";
+import { publishNotificationUpdate } from "@/features/notifications/services/notification-realtime.service";
+import type { NotificationPreferences } from "@/features/notifications/types";
+import { sendSystemTemplateEmail } from "@/features/emails/services/email.service";
+import { AuthError } from "@/lib/auth/errors";
+import { prisma } from "@/lib/db";
+
+const NOTIFICATION_PREFERENCES_KEY = "notifications.preferences";
+
+export const defaultNotificationPreferences = notificationPreferencesSchema.parse({});
+
+type SupportedNotificationChannel = keyof NotificationPreferences["channels"];
+
+type CreateUserNotificationInput = {
+  actionUrl?: string;
+  body?: string;
+  channels?: SupportedNotificationChannel[];
+  invoiceId?: string;
+  organizationId?: string | null;
+  scheduledAt?: Date;
+  shipmentId?: string;
+  templateKey?: string;
+  templateVariables?: Record<string, string | number | boolean | null>;
+  title: string;
+  tone?: NotificationToneInput;
+  topic?: NotificationTopicInput;
+  userId: string;
+};
+
+type EmailDispatchResult = {
+  failed: number;
+  sent: number;
+};
+
+const defaultNotificationChannels = ["inApp", "email"] satisfies SupportedNotificationChannel[];
+
+function toJsonValue(value: unknown): Prisma.InputJsonValue {
+  return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+}
+
+function unique<T>(items: T[]) {
+  return [...new Set(items)];
+}
+
+function renderTemplate(
+  value: string,
+  variables: Record<string, string | number | boolean | null>,
+) {
+  return Object.entries(variables).reduce(
+    (rendered, [key, variable]) => rendered.replaceAll(`{{${key}}}`, String(variable ?? "")),
+    value,
+  );
+}
+
+function parseNotificationPreferences(value: Prisma.JsonValue | null): NotificationPreferences {
+  const parsed = notificationPreferencesSchema.safeParse(value);
+
+  return parsed.success ? parsed.data : defaultNotificationPreferences;
+}
+
+function getPrismaNotificationChannel(channel: SupportedNotificationChannel) {
+  const channelMap = {
+    email: NotificationChannel.EMAIL,
+    inApp: NotificationChannel.IN_APP,
+    sms: NotificationChannel.SMS,
+    whatsapp: NotificationChannel.WHATSAPP,
+  } satisfies Record<SupportedNotificationChannel, NotificationChannel>;
+
+  return channelMap[channel];
+}
+
+async function findActiveTemplate({
+  key,
+  organizationId,
+}: {
+  key: string;
+  organizationId?: string | null;
+}) {
+  return prisma.emailTemplate.findFirst({
+    orderBy: {
+      version: "desc",
+    },
+    where: {
+      key,
+      organizationId: organizationId ?? null,
+      status: EmailTemplateStatus.ACTIVE,
+    },
+  });
+}
+
+async function logNotificationActivity({
+  action,
+  actorId,
+  entityId,
+  metadata,
+  organizationId,
+}: {
+  action: ActivityAction;
+  actorId?: string;
+  entityId?: string;
+  metadata?: Prisma.InputJsonValue;
+  organizationId?: string | null;
+}) {
+  await prisma.activityLog.create({
+    data: {
+      action,
+      actorId,
+      entityId,
+      entityType: "notification",
+      metadata,
+      organizationId,
+    },
+  });
+}
+
+export async function getNotificationPreferencesForUser(
+  user: Pick<AuthSessionUser, "id">,
+): Promise<NotificationPreferences> {
+  const setting = await prisma.setting.findFirst({
+    select: {
+      value: true,
+    },
+    where: {
+      key: NOTIFICATION_PREFERENCES_KEY,
+      scope: SettingScope.USER,
+      userId: user.id,
+    },
+  });
+
+  return parseNotificationPreferences(setting?.value ?? null);
+}
+
+export async function updateNotificationPreferencesForUser(
+  user: AuthSessionUser,
+  input: NotificationPreferencesInput,
+) {
+  const preferences = updateNotificationPreferencesSchema.parse(input);
+  const existingSetting = await prisma.setting.findFirst({
+    select: {
+      id: true,
+    },
+    where: {
+      key: NOTIFICATION_PREFERENCES_KEY,
+      scope: SettingScope.USER,
+      userId: user.id,
+    },
+  });
+
+  if (existingSetting) {
+    await prisma.setting.update({
+      data: {
+        updatedById: user.id,
+        value: toJsonValue(preferences),
+      },
+      where: {
+        id: existingSetting.id,
+      },
+    });
+  } else {
+    await prisma.setting.create({
+      data: {
+        key: NOTIFICATION_PREFERENCES_KEY,
+        scope: SettingScope.USER,
+        updatedById: user.id,
+        userId: user.id,
+        value: toJsonValue(preferences),
+      },
+    });
+  }
+
+  await logNotificationActivity({
+    action: ActivityAction.UPDATE,
+    actorId: user.id,
+    metadata: {
+      key: NOTIFICATION_PREFERENCES_KEY,
+    },
+    organizationId: user.organizationId,
+  });
+  await publishNotificationUpdate(user.id);
+
+  return preferences;
+}
+
+export async function createUserNotification(input: CreateUserNotificationInput) {
+  const preferences = await getNotificationPreferencesForUser({ id: input.userId });
+  const topic = notificationTopicSchema.parse(input.topic ?? "system");
+  const tone = notificationToneSchema.parse(input.tone ?? "info");
+
+  if (!preferences.topics[topic]) {
+    return [];
+  }
+
+  const requestedChannels = unique(input.channels ?? defaultNotificationChannels);
+  const enabledChannels = requestedChannels.filter((channel) => preferences.channels[channel]);
+
+  if (enabledChannels.length === 0) {
+    return [];
+  }
+
+  const template =
+    input.templateKey && enabledChannels.includes("email")
+      ? await findActiveTemplate({
+          key: input.templateKey,
+          organizationId: input.organizationId,
+        })
+      : null;
+  const templateVariables = input.templateVariables ?? {};
+  const emailTitle = template ? renderTemplate(template.subject, templateVariables) : input.title;
+  const emailBody = template?.bodyText
+    ? renderTemplate(template.bodyText, templateVariables)
+    : input.body;
+  const notifications = await prisma.$transaction(
+    enabledChannels.map((channel) => {
+      const metadata = {
+        deliveryProvider: channel === "email" ? "queued" : undefined,
+        templateKey: input.templateKey,
+        templateVariables,
+        tone,
+        topic,
+      };
+
+      return prisma.notification.create({
+        data: {
+          actionUrl: input.actionUrl,
+          body: channel === "email" ? emailBody : input.body,
+          channel: getPrismaNotificationChannel(channel),
+          emailTemplateId: channel === "email" ? template?.id : undefined,
+          invoiceId: input.invoiceId,
+          metadata: toJsonValue(metadata),
+          organizationId: input.organizationId,
+          scheduledAt: input.scheduledAt,
+          shipmentId: input.shipmentId,
+          status: channel === "inApp" ? NotificationStatus.SENT : NotificationStatus.PENDING,
+          title: channel === "email" ? emailTitle : input.title,
+          userId: input.userId,
+        },
+      });
+    }),
+  );
+
+  await publishNotificationUpdate(input.userId);
+
+  return notifications;
+}
+
+export async function setNotificationReadState({
+  notificationId,
+  read,
+  user,
+}: {
+  notificationId: string;
+  read: boolean;
+  user: AuthSessionUser;
+}) {
+  const notification = await prisma.notification.findFirst({
+    select: {
+      id: true,
+      organizationId: true,
+      userId: true,
+    },
+    where: {
+      id: notificationId,
+      userId: user.id,
+    },
+  });
+
+  if (!notification) {
+    throw new AuthError("Notification not found.", 404, "NOTIFICATION_NOT_FOUND");
+  }
+
+  await prisma.notification.update({
+    data: {
+      readAt: read ? new Date() : null,
+      status: read ? NotificationStatus.READ : NotificationStatus.SENT,
+    },
+    where: {
+      id: notification.id,
+    },
+  });
+  await logNotificationActivity({
+    action: ActivityAction.UPDATE,
+    actorId: user.id,
+    entityId: notification.id,
+    metadata: {
+      read,
+    },
+    organizationId: notification.organizationId,
+  });
+  await publishNotificationUpdate(user.id);
+}
+
+export async function markAllNotificationsRead(user: AuthSessionUser) {
+  await prisma.notification.updateMany({
+    data: {
+      readAt: new Date(),
+      status: NotificationStatus.READ,
+    },
+    where: {
+      channel: NotificationChannel.IN_APP,
+      readAt: null,
+      userId: user.id,
+    },
+  });
+  await logNotificationActivity({
+    action: ActivityAction.UPDATE,
+    actorId: user.id,
+    metadata: {
+      readAll: true,
+    },
+    organizationId: user.organizationId,
+  });
+  await publishNotificationUpdate(user.id);
+}
+
+export async function dispatchPendingEmailNotifications(take = 25): Promise<EmailDispatchResult> {
+  const pendingNotifications = await prisma.notification.findMany({
+    orderBy: {
+      createdAt: "asc",
+    },
+    take,
+    where: {
+      channel: NotificationChannel.EMAIL,
+      OR: [
+        {
+          scheduledAt: null,
+        },
+        {
+          scheduledAt: {
+            lte: new Date(),
+          },
+        },
+      ],
+      status: NotificationStatus.PENDING,
+    },
+  });
+
+  let sent = 0;
+  let failed = 0;
+
+  for (const notification of pendingNotifications) {
+    try {
+      await prisma.notification.update({
+        data: {
+          metadata: {
+            ...(notification.metadata &&
+            typeof notification.metadata === "object" &&
+            !Array.isArray(notification.metadata)
+              ? notification.metadata
+              : {}),
+            deliveryProvider: "console",
+          },
+          providerMessageId: `console-${notification.id}`,
+          sentAt: new Date(),
+          status: NotificationStatus.SENT,
+        },
+        where: {
+          id: notification.id,
+        },
+      });
+      sent += 1;
+
+      if (notification.userId) {
+        await publishNotificationUpdate(notification.userId);
+      }
+    } catch {
+      failed += 1;
+    }
+  }
+
+  return {
+    failed,
+    sent,
+  };
+}
+
+export async function notifyShipmentStatusChanged({
+  customerId,
+  createdById,
+  message,
+  organizationId,
+  shipmentId,
+  shipmentNumber,
+  status,
+}: {
+  customerId: string | null;
+  createdById: string | null;
+  message?: string | null;
+  organizationId: string;
+  shipmentId: string;
+  shipmentNumber: string;
+  status: string;
+}) {
+  const recipientIds = unique([customerId, createdById].filter(Boolean) as string[]);
+  const recipients = recipientIds.length
+    ? await prisma.user.findMany({
+        select: {
+          email: true,
+          id: true,
+          name: true,
+        },
+        where: {
+          id: {
+            in: recipientIds,
+          },
+        },
+      })
+    : [];
+  const templateKey =
+    status === "DELIVERED"
+      ? "delivered"
+      : status === "OUT_FOR_DELIVERY"
+        ? "out-for-delivery"
+        : status === "HELD"
+          ? "customs-hold"
+          : status === "IN_TRANSIT"
+            ? "shipment-in-transit"
+            : "shipment-created";
+
+  await Promise.all(
+    recipientIds.map((userId) =>
+      createUserNotification({
+        actionUrl: `/shipments/${shipmentId}`,
+        body: message ?? `Shipment ${shipmentNumber} moved to ${status.replaceAll("_", " ")}.`,
+        channels: ["inApp"],
+        organizationId,
+        shipmentId,
+        templateKey: "shipment-status-updated",
+        templateVariables: {
+          message: message ?? "",
+          shipmentNumber,
+          status: status.replaceAll("_", " "),
+        },
+        title: `Shipment ${shipmentNumber} updated`,
+        tone: status === "DELIVERED" ? "success" : status === "HELD" ? "warning" : "info",
+        topic: "shipment_updates",
+        userId,
+      }),
+    ),
+  );
+  await Promise.all(
+    recipients.map((recipient) =>
+      sendSystemTemplateEmail({
+        bodyHtml: message ?? `<p>Your shipment {{trackingNumber}} moved to {{shipmentStatus}}.</p>`,
+        category: EmailTemplateCategory.SHIPMENT,
+        organizationId,
+        recipientEmail: recipient.email,
+        recipientName: recipient.name,
+        relatedUserId: recipient.id,
+        shipmentId,
+        templateKey,
+        trackingNumber: shipmentNumber,
+        variables: {
+          customerName: recipient.name,
+          shipmentStatus: status.replaceAll("_", " "),
+          trackingNumber: shipmentNumber,
+        },
+      }),
+    ),
+  );
+}

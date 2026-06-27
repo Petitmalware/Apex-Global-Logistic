@@ -1,0 +1,352 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import type { Route } from "next";
+
+import {
+  packagePhotoSchema,
+  parcelBookingOptionsSchema,
+  shipmentDocumentSchema,
+  shipmentFormSchema,
+  shipmentStatusUpdateSchema,
+} from "@/features/shipments/schemas/shipment.schemas";
+import {
+  createParcelBooking,
+  createShipment,
+  updateShipment,
+  updateShipmentStatus,
+  uploadPackagePhoto,
+  uploadShipmentDocument,
+} from "@/features/shipments/services/shipment.service";
+import type { ShipmentActionState } from "@/features/shipments/types";
+import { PERMISSIONS } from "@/lib/auth/rbac";
+import { AuthError } from "@/lib/auth/errors";
+import { requireAuthenticatedUser, requirePermission } from "@/lib/auth/session";
+
+function getString(formData: FormData, key: string) {
+  const value = formData.get(key);
+
+  return typeof value === "string" ? value : "";
+}
+
+function getBoolean(formData: FormData, key: string) {
+  return formData.get(key) === "on";
+}
+
+function hasOptionalPackageData(formData: FormData, index: number) {
+  const keys = [
+    "id",
+    "packageNumber",
+    "barcode",
+    "weightKg",
+    "lengthCm",
+    "widthCm",
+    "heightCm",
+    "declaredValue",
+    "description",
+  ];
+
+  return keys.some((key) => getString(formData, `packages.${index}.${key}`).trim().length > 0);
+}
+
+function parseShipmentFormData(formData: FormData) {
+  const packages = [0, 1, 2]
+    .filter((index) => index === 0 || hasOptionalPackageData(formData, index))
+    .map((index) => ({
+      barcode: getString(formData, `packages.${index}.barcode`),
+      currency: getString(formData, `packages.${index}.currency`) || "USD",
+      declaredValue: getString(formData, `packages.${index}.declaredValue`),
+      description: getString(formData, `packages.${index}.description`),
+      fragile: getBoolean(formData, `packages.${index}.fragile`),
+      hazardous: getBoolean(formData, `packages.${index}.hazardous`),
+      heightCm: getString(formData, `packages.${index}.heightCm`),
+      id: getString(formData, `packages.${index}.id`),
+      lengthCm: getString(formData, `packages.${index}.lengthCm`),
+      packageNumber: getString(formData, `packages.${index}.packageNumber`),
+      status: getString(formData, `packages.${index}.status`) || "PENDING",
+      type: getString(formData, `packages.${index}.type`) || "BOX",
+      weightKg: getString(formData, `packages.${index}.weightKg`),
+      widthCm: getString(formData, `packages.${index}.widthCm`),
+    }));
+
+  return shipmentFormSchema.safeParse({
+    deliveryWindowEnd: getString(formData, "deliveryWindowEnd"),
+    deliveryWindowStart: getString(formData, "deliveryWindowStart"),
+    destination: {
+      city: getString(formData, "destination.city"),
+      countryCode: getString(formData, "destination.countryCode"),
+      line1: getString(formData, "destination.line1"),
+      line2: getString(formData, "destination.line2"),
+      name: getString(formData, "destination.name"),
+      postalCode: getString(formData, "destination.postalCode"),
+      state: getString(formData, "destination.state"),
+    },
+    mode: getString(formData, "mode") || "ROAD",
+    notes: getString(formData, "notes"),
+    origin: {
+      city: getString(formData, "origin.city"),
+      countryCode: getString(formData, "origin.countryCode"),
+      line1: getString(formData, "origin.line1"),
+      line2: getString(formData, "origin.line2"),
+      name: getString(formData, "origin.name"),
+      postalCode: getString(formData, "origin.postalCode"),
+      state: getString(formData, "origin.state"),
+    },
+    packages,
+    pickupWindowEnd: getString(formData, "pickupWindowEnd"),
+    pickupWindowStart: getString(formData, "pickupWindowStart"),
+    priority: getString(formData, "priority") || "STANDARD",
+    referenceNumber: getString(formData, "referenceNumber"),
+    serviceLevel: getString(formData, "serviceLevel"),
+    status: getString(formData, "status") || "DRAFT",
+  });
+}
+
+function errorState(error: unknown): ShipmentActionState {
+  if (error instanceof AuthError) {
+    return {
+      message: error.message,
+      status: "error",
+    };
+  }
+
+  return {
+    message: "Something went wrong. Please review the form and try again.",
+    status: "error",
+  };
+}
+
+export async function createShipmentAction(
+  _previousState: ShipmentActionState,
+  formData: FormData,
+): Promise<ShipmentActionState> {
+  const user = await requirePermission(PERMISSIONS.SHIPMENTS_CREATE);
+  const parsed = parseShipmentFormData(formData);
+
+  if (!parsed.success) {
+    return {
+      fieldErrors: parsed.error.flatten().fieldErrors,
+      message: "Please fix the highlighted shipment details.",
+      status: "error",
+    };
+  }
+
+  let shipmentId = "";
+
+  try {
+    const shipment = await createShipment(parsed.data, user);
+    shipmentId = shipment.id;
+  } catch (error) {
+    return errorState(error);
+  }
+
+  revalidatePath("/shipments");
+  redirect(`/shipments/${shipmentId}` as Route);
+}
+
+export async function createParcelBookingAction(
+  _previousState: ShipmentActionState,
+  formData: FormData,
+): Promise<ShipmentActionState> {
+  const user = await requirePermission(PERMISSIONS.SHIPMENTS_CREATE);
+  const parsed = parseShipmentFormData(formData);
+  const parsedOptions = parcelBookingOptionsSchema.safeParse({
+    insuranceRequested: getBoolean(formData, "insuranceRequested"),
+    receiptEmail: getString(formData, "receiptEmail"),
+    signatureRequired: getBoolean(formData, "signatureRequired"),
+  });
+
+  if (!parsed.success) {
+    return {
+      fieldErrors: parsed.error.flatten().fieldErrors,
+      message: "Please fix the highlighted parcel details.",
+      status: "error",
+    };
+  }
+
+  if (!parsedOptions.success) {
+    return {
+      fieldErrors: parsedOptions.error.flatten().fieldErrors,
+      message: "Please review the parcel service options.",
+      status: "error",
+    };
+  }
+
+  let shipmentId = "";
+
+  try {
+    const shipment = await createParcelBooking({
+      input: parsed.data,
+      options: parsedOptions.data,
+      user,
+    });
+    shipmentId = shipment.id;
+  } catch (error) {
+    return errorState(error);
+  }
+
+  revalidatePath("/shipments");
+  redirect(`/shipments/${shipmentId}` as Route);
+}
+
+export async function updateShipmentAction(
+  shipmentId: string,
+  _previousState: ShipmentActionState,
+  formData: FormData,
+): Promise<ShipmentActionState> {
+  const user = await requireAuthenticatedUser();
+  const parsed = parseShipmentFormData(formData);
+
+  if (!parsed.success) {
+    return {
+      fieldErrors: parsed.error.flatten().fieldErrors,
+      message: "Please fix the highlighted shipment details.",
+      status: "error",
+    };
+  }
+
+  try {
+    await updateShipment(shipmentId, parsed.data, user);
+  } catch (error) {
+    return errorState(error);
+  }
+
+  revalidatePath("/shipments");
+  revalidatePath(`/shipments/${shipmentId}`);
+  redirect(`/shipments/${shipmentId}` as Route);
+}
+
+export async function updateShipmentStatusAction(
+  shipmentId: string,
+  _previousState: ShipmentActionState,
+  formData: FormData,
+): Promise<ShipmentActionState> {
+  const user = await requireAuthenticatedUser();
+  const parsed = shipmentStatusUpdateSchema.safeParse({
+    eventType: getString(formData, "eventType"),
+    message: getString(formData, "message"),
+    occurredAt: getString(formData, "occurredAt"),
+    status: getString(formData, "status"),
+  });
+
+  if (!parsed.success) {
+    return {
+      fieldErrors: parsed.error.flatten().fieldErrors,
+      message: "Please add a valid status update.",
+      status: "error",
+    };
+  }
+
+  try {
+    await updateShipmentStatus(shipmentId, parsed.data, user);
+  } catch (error) {
+    return errorState(error);
+  }
+
+  revalidatePath("/shipments");
+  revalidatePath(`/shipments/${shipmentId}`);
+
+  return {
+    message: "Shipment status updated.",
+    status: "success",
+  };
+}
+
+export async function uploadShipmentDocumentAction(
+  shipmentId: string,
+  _previousState: ShipmentActionState,
+  formData: FormData,
+): Promise<ShipmentActionState> {
+  const user = await requireAuthenticatedUser();
+  const file = formData.get("file");
+  const parsed = shipmentDocumentSchema.safeParse({
+    documentType: getString(formData, "documentType"),
+    notes: getString(formData, "notes"),
+  });
+
+  if (!parsed.success) {
+    return {
+      fieldErrors: parsed.error.flatten().fieldErrors,
+      message: "Please add valid document metadata.",
+      status: "error",
+    };
+  }
+
+  if (!(file instanceof File) || file.size === 0) {
+    return {
+      fieldErrors: {
+        file: ["Choose a document to upload."],
+      },
+      message: "Choose a document to upload.",
+      status: "error",
+    };
+  }
+
+  try {
+    await uploadShipmentDocument({
+      document: parsed.data,
+      file,
+      shipmentId,
+      user,
+    });
+  } catch (error) {
+    return errorState(error);
+  }
+
+  revalidatePath(`/shipments/${shipmentId}`);
+
+  return {
+    message: "Document uploaded.",
+    status: "success",
+  };
+}
+
+export async function uploadPackagePhotoAction(
+  shipmentId: string,
+  _previousState: ShipmentActionState,
+  formData: FormData,
+): Promise<ShipmentActionState> {
+  const user = await requireAuthenticatedUser();
+  const file = formData.get("file");
+  const parsed = packagePhotoSchema.safeParse({
+    caption: getString(formData, "caption"),
+    packageId: getString(formData, "packageId"),
+  });
+
+  if (!parsed.success) {
+    return {
+      fieldErrors: parsed.error.flatten().fieldErrors,
+      message: "Please choose a package and add valid photo metadata.",
+      status: "error",
+    };
+  }
+
+  if (!(file instanceof File) || file.size === 0) {
+    return {
+      fieldErrors: {
+        file: ["Choose a package photo to upload."],
+      },
+      message: "Choose a package photo to upload.",
+      status: "error",
+    };
+  }
+
+  try {
+    await uploadPackagePhoto({
+      file,
+      photo: parsed.data,
+      shipmentId,
+      user,
+    });
+  } catch (error) {
+    return errorState(error);
+  }
+
+  revalidatePath(`/shipments/${shipmentId}`);
+
+  return {
+    message: "Package photo uploaded.",
+    status: "success",
+  };
+}

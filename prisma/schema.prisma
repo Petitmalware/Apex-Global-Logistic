@@ -1,0 +1,1748 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OrganizationStatus {
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+}
+
+enum UserStatus {
+  INVITED
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+}
+
+enum RoleScope {
+  GLOBAL
+  ORGANIZATION
+  WAREHOUSE
+}
+
+enum PermissionAction {
+  MANAGE
+  CREATE
+  READ
+  UPDATE
+  DELETE
+  ASSIGN
+  APPROVE
+  EXPORT
+}
+
+enum AddressType {
+  BILLING
+  SHIPPING
+  WAREHOUSE
+  PICKUP
+  DELIVERY
+  OTHER
+}
+
+enum ShipmentStatus {
+  DRAFT
+  BOOKED
+  PENDING_PICKUP
+  IN_TRANSIT
+  HELD
+  DELIVERED
+  CANCELLED
+  RETURNED
+}
+
+enum ShipmentPriority {
+  STANDARD
+  EXPEDITED
+  URGENT
+}
+
+enum ShipmentMode {
+  ROAD
+  AIR
+  SEA
+  RAIL
+  MULTIMODAL
+}
+
+enum TrackingEventType {
+  CREATED
+  PICKED_UP
+  CHECKED_IN
+  IN_TRANSIT
+  CUSTOMS_HOLD
+  DELAYED
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+  EXCEPTION
+}
+
+enum PackageType {
+  BOX
+  PALLET
+  CRATE
+  ENVELOPE
+  CONTAINER
+  OTHER
+}
+
+enum PackageStatus {
+  PENDING
+  LOADED
+  IN_TRANSIT
+  DELIVERED
+  DAMAGED
+  LOST
+  RETURNED
+}
+
+enum PetSpecies {
+  DOG
+  CAT
+  BIRD
+  REPTILE
+  OTHER
+}
+
+enum PetTransportStatus {
+  REQUESTED
+  DOCUMENTATION_PENDING
+  CLEARED
+  IN_TRANSIT
+  DELIVERED
+  CANCELLED
+}
+
+enum PetVetCheckStatus {
+  SCHEDULED
+  CLEARED
+  MONITORING
+  NOT_CLEARED
+}
+
+enum PetCrateStatus {
+  ASSIGNED
+  INSPECTED
+  LOADED
+  RELEASED
+}
+
+enum PetTravelEventType {
+  PROFILE_CREATED
+  DOCUMENT_UPLOADED
+  VACCINATION_RECORDED
+  MEDICAL_CERTIFICATE_RECORDED
+  VET_CHECK_COMPLETED
+  FEEDING_SCHEDULED
+  TEMPERATURE_LOGGED
+  CRATE_ASSIGNED
+  PICKUP
+  IN_TRANSIT
+  ARRIVAL
+  DELIVERED
+  EXCEPTION
+}
+
+enum FreightType {
+  LTL
+  FTL
+  CONTAINER
+  OVERSIZED
+  HAZMAT
+  REFRIGERATED
+  FLATBED
+  OTHER
+}
+
+enum FreightTransportStatus {
+  REQUESTED
+  PLANNED
+  ASSIGNED
+  LOADING
+  IN_TRANSIT
+  ON_HOLD
+  DELIVERED
+  CANCELLED
+}
+
+enum FreightCargoStatus {
+  PLANNED
+  LOADED
+  IN_TRANSIT
+  DELIVERED
+  DAMAGED
+  HELD
+}
+
+enum FreightContainerStatus {
+  ASSIGNED
+  SEALED
+  LOADED
+  IN_TRANSIT
+  DELIVERED
+  RELEASED
+}
+
+enum FreightRouteStopType {
+  PICKUP
+  WAREHOUSE
+  PORT
+  BORDER
+  CUSTOMS
+  FUEL
+  REST
+  CUSTOMER
+  DELIVERY
+  OTHER
+}
+
+enum FreightDocumentType {
+  BILL_OF_LADING
+  COMMERCIAL_INVOICE
+  PACKING_LIST
+  CUSTOMS_FORM
+  INSURANCE_CERTIFICATE
+  PERMIT
+  PROOF_OF_DELIVERY
+  OTHER
+}
+
+enum FreightTrackingEventType {
+  BOOKING_CREATED
+  ROUTE_PLANNED
+  CARGO_LOADED
+  DRIVER_ASSIGNED
+  DEPARTED
+  CHECKPOINT_ARRIVED
+  CHECKPOINT_DEPARTED
+  ETA_UPDATED
+  DELAYED
+  DELIVERED
+  EXCEPTION
+  DOCUMENT_UPLOADED
+}
+
+enum WarehouseStatus {
+  ACTIVE
+  INACTIVE
+  MAINTENANCE
+}
+
+enum DriverStatus {
+  AVAILABLE
+  ASSIGNED
+  OFF_DUTY
+  SUSPENDED
+}
+
+enum VehicleType {
+  VAN
+  TRUCK
+  TRAILER
+  REFRIGERATED_TRUCK
+  CARGO_BIKE
+  OTHER
+}
+
+enum VehicleStatus {
+  AVAILABLE
+  IN_SERVICE
+  MAINTENANCE
+  RETIRED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+  VOID
+  UNCOLLECTIBLE
+}
+
+enum InvoiceLineType {
+  SERVICE
+  SURCHARGE
+  TAX
+  DISCOUNT
+  ADJUSTMENT
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CARD
+  BANK_TRANSFER
+  CASH
+  WALLET
+  OTHER
+}
+
+enum NotificationChannel {
+  EMAIL
+  SMS
+  WHATSAPP
+  PUSH
+  IN_APP
+  WEBHOOK
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  DELIVERED
+  READ
+  FAILED
+  CANCELLED
+}
+
+enum EmailTemplateStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum EmailTemplateCategory {
+  ADMIN
+  AUTH
+  BILLING
+  FREIGHT
+  INVOICE
+  MANUAL
+  PACKAGE
+  PAYMENT
+  PET
+  SHIPMENT
+  SYSTEM
+}
+
+enum EmailLogStatus {
+  DRAFT
+  QUEUED
+  SENT
+  FAILED
+}
+
+enum EmailProvider {
+  BREVO
+  CONSOLE
+  RESEND
+  SMTP
+}
+
+enum ActivityAction {
+  LOGIN
+  LOGOUT
+  CREATE
+  UPDATE
+  DELETE
+  VIEW
+  EXPORT
+  SYSTEM
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TicketStatus {
+  OPEN
+  PENDING_CUSTOMER
+  PENDING_INTERNAL
+  RESOLVED
+  CLOSED
+}
+
+enum TicketMessageAuthorType {
+  USER
+  STAFF
+  SYSTEM
+}
+
+enum AiConversationStatus {
+  OPEN
+  ARCHIVED
+  DELETED
+}
+
+enum AiMessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+  TOOL
+}
+
+enum SettingScope {
+  GLOBAL
+  ORGANIZATION
+  WAREHOUSE
+  USER
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  RESTORE
+  LOGIN
+  LOGOUT
+  ASSIGN
+  APPROVE
+  REJECT
+  SYSTEM
+}
+
+model Organization {
+  id            String             @id @default(uuid()) @db.Uuid
+  name          String             @db.VarChar(160)
+  slug          String             @unique @db.VarChar(120)
+  status        OrganizationStatus @default(ACTIVE)
+  legalName     String?            @db.VarChar(200)
+  taxIdentifier String?            @db.VarChar(80)
+  email         String?            @db.VarChar(255)
+  phone         String?            @db.VarChar(40)
+  website       String?            @db.VarChar(255)
+  metadata      Json?
+  createdAt     DateTime           @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime           @updatedAt @db.Timestamptz(6)
+  deletedAt     DateTime?          @db.Timestamptz(6)
+
+  addresses       Address[]
+  activityLogs    ActivityLog[]
+  aiConversations AiConversation[]
+  auditLogs       AuditLog[]
+  emailLogs       EmailLog[]
+  drivers         Driver[]
+  emailTemplates  EmailTemplate[]
+  invoices        Invoice[]
+  notifications   Notification[]
+  roles           Role[]
+  settings        Setting[]
+  shipments       Shipment[]
+  supportTickets  SupportTicket[]
+  userRoles       UserRole[]
+  users           User[]
+  vehicles        Vehicle[]
+  warehouses      Warehouse[]
+
+  @@index([status, createdAt], map: "idx_organizations_status_created_at")
+  @@index([deletedAt], map: "idx_organizations_deleted_at")
+}
+
+model Address {
+  id             String      @id @default(uuid()) @db.Uuid
+  organizationId String?     @db.Uuid
+  type           AddressType @default(OTHER)
+  name           String?     @db.VarChar(120)
+  line1          String      @db.VarChar(255)
+  line2          String?     @db.VarChar(255)
+  city           String      @db.VarChar(120)
+  state          String?     @db.VarChar(120)
+  postalCode     String?     @db.VarChar(32)
+  countryCode    String      @db.Char(2)
+  latitude       Decimal?    @db.Decimal(9, 6)
+  longitude      Decimal?    @db.Decimal(9, 6)
+  createdAt      DateTime    @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime    @updatedAt @db.Timestamptz(6)
+
+  organization         Organization?   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  billingInvoices      Invoice[]       @relation("InvoiceBillingAddress")
+  destinationShipments Shipment[]      @relation("ShipmentDestinationAddress")
+  originShipments      Shipment[]      @relation("ShipmentOriginAddress")
+  trackingEvents       TrackingEvent[] @relation("TrackingEventAddress")
+  warehouses           Warehouse[]     @relation("WarehouseAddress")
+
+  @@index([organizationId, type], map: "idx_addresses_organization_type")
+  @@index([countryCode, city], map: "idx_addresses_country_city")
+}
+
+model User {
+  id                String     @id @default(uuid()) @db.Uuid
+  organizationId    String?    @db.Uuid
+  email             String     @unique @db.VarChar(255)
+  name              String     @db.VarChar(160)
+  phone             String?    @db.VarChar(40)
+  hashedPassword    String?    @db.VarChar(255)
+  status            UserStatus @default(INVITED)
+  emailVerifiedAt   DateTime?  @db.Timestamptz(6)
+  passwordChangedAt DateTime?  @db.Timestamptz(6)
+  lastLoginAt       DateTime?  @db.Timestamptz(6)
+  metadata          Json?
+  createdAt         DateTime   @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime   @updatedAt @db.Timestamptz(6)
+  deletedAt         DateTime?  @db.Timestamptz(6)
+
+  organization              Organization?             @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  activityLogs              ActivityLog[]             @relation("ActivityLogActor")
+  aiConversations           AiConversation[]
+  assignedRoleGrants        UserRole[]                @relation("AssignedUserRoles")
+  assignedVehicleGrants     DriverVehicleAssignment[] @relation("DriverVehicleAssignedBy")
+  assignedSupportTickets    SupportTicket[]           @relation("SupportTicketAssignee")
+  auditLogs                 AuditLog[]                @relation("AuditLogActor")
+  createdEmailTemplates     EmailTemplate[]           @relation("EmailTemplateCreatedBy")
+  receivedEmailLogs         EmailLog[]                @relation("EmailLogRelatedUser")
+  createdShipments          Shipment[]                @relation("ShipmentCreatedBy")
+  customerInvoices          Invoice[]                 @relation("InvoiceCustomer")
+  customerShipments         Shipment[]                @relation("ShipmentCustomer")
+  driverProfile             Driver?                   @relation("DriverUser")
+  notifications             Notification[]
+  passwordResetTokens       PasswordResetToken[]
+  recordedTrackingEvents    TrackingEvent[]           @relation("TrackingRecordedBy")
+  requestedSupportTickets   SupportTicket[]           @relation("SupportTicketRequester")
+  refreshTokens             RefreshToken[]
+  settings                  Setting[]                 @relation("SettingOwner")
+  sentEmailLogs             EmailLog[]                @relation("EmailLogSentBy")
+  supportTicketMessages     SupportTicketMessage[]    @relation("SupportTicketMessageAuthor")
+  emailVerificationTokens   EmailVerificationToken[]
+  uploadedShipmentDocuments ShipmentDocument[]        @relation("ShipmentDocumentUploadedBy")
+  uploadedPackagePhotos     ShipmentPackagePhoto[]    @relation("ShipmentPackagePhotoUploadedBy")
+  uploadedPetPhotos         PetTransportPhoto[]       @relation("PetTransportPhotoUploadedBy")
+  uploadedPetVaccinations   PetVaccinationRecord[]    @relation("PetVaccinationRecordUploadedBy")
+  uploadedPetCertificates   PetMedicalCertificate[]   @relation("PetMedicalCertificateUploadedBy")
+  recordedPetVetChecks      PetVeterinarianCheck[]    @relation("PetVeterinarianCheckRecordedBy")
+  createdPetFeedings        PetFeedingSchedule[]      @relation("PetFeedingScheduleCreatedBy")
+  recordedPetTemperatures   PetTemperatureLog[]       @relation("PetTemperatureLogRecordedBy")
+  assignedPetCrates         PetCrateAssignment[]      @relation("PetCrateAssignmentAssignedBy")
+  recordedPetTravelHistory  PetTravelHistory[]        @relation("PetTravelHistoryRecordedBy")
+  uploadedFreightDocuments  FreightDocument[]         @relation("FreightDocumentUploadedBy")
+  recordedFreightEvents     FreightTrackingEvent[]    @relation("FreightTrackingEventRecordedBy")
+  updatedEmailTemplates     EmailTemplate[]           @relation("EmailTemplateUpdatedBy")
+  updatedSettings           Setting[]                 @relation("SettingUpdatedBy")
+  userRoles                 UserRole[]                @relation("UserRoleUser")
+
+  @@index([organizationId, status], map: "idx_users_organization_status")
+  @@index([emailVerifiedAt], map: "idx_users_email_verified_at")
+  @@index([deletedAt], map: "idx_users_deleted_at")
+}
+
+model RefreshToken {
+  id                String    @id @default(uuid()) @db.Uuid
+  userId            String    @db.Uuid
+  tokenHash         String    @unique @db.Char(64)
+  familyId          String    @db.Uuid
+  expiresAt         DateTime  @db.Timestamptz(6)
+  revokedAt         DateTime? @db.Timestamptz(6)
+  replacedByTokenId String?   @db.Uuid
+  createdByIp       String?   @db.VarChar(45)
+  revokedByIp       String?   @db.VarChar(45)
+  userAgent         String?   @db.Text
+  createdAt         DateTime  @default(now()) @db.Timestamptz(6)
+
+  replacedBy RefreshToken?  @relation("RefreshTokenRotation", fields: [replacedByTokenId], references: [id], onDelete: SetNull)
+  replaces   RefreshToken[] @relation("RefreshTokenRotation")
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt], map: "idx_refresh_tokens_user_expires_at")
+  @@index([familyId, revokedAt], map: "idx_refresh_tokens_family_revoked_at")
+  @@index([revokedAt, expiresAt], map: "idx_refresh_tokens_revoked_expires_at")
+}
+
+model PasswordResetToken {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @db.Uuid
+  tokenHash   String    @unique @db.Char(64)
+  expiresAt   DateTime  @db.Timestamptz(6)
+  usedAt      DateTime? @db.Timestamptz(6)
+  createdByIp String?   @db.VarChar(45)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt], map: "idx_password_reset_tokens_user_expires_at")
+  @@index([usedAt, expiresAt], map: "idx_password_reset_tokens_used_expires_at")
+}
+
+model EmailVerificationToken {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @db.Uuid
+  tokenHash   String    @unique @db.Char(64)
+  expiresAt   DateTime  @db.Timestamptz(6)
+  usedAt      DateTime? @db.Timestamptz(6)
+  createdByIp String?   @db.VarChar(45)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt], map: "idx_email_verification_tokens_user_expires_at")
+  @@index([usedAt, expiresAt], map: "idx_email_verification_tokens_used_expires_at")
+}
+
+model Role {
+  id             String    @id @default(uuid()) @db.Uuid
+  organizationId String?   @db.Uuid
+  name           String    @db.VarChar(120)
+  key            String    @db.VarChar(120)
+  scope          RoleScope @default(ORGANIZATION)
+  description    String?   @db.Text
+  isSystem       Boolean   @default(false)
+  createdAt      DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime  @updatedAt @db.Timestamptz(6)
+
+  organization    Organization?    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  rolePermissions RolePermission[]
+  userRoles       UserRole[]
+
+  @@unique([organizationId, key], map: "uq_roles_organization_key")
+  @@index([scope], map: "idx_roles_scope")
+}
+
+model Permission {
+  id          String           @id @default(uuid()) @db.Uuid
+  key         String           @unique @db.VarChar(160)
+  resource    String           @db.VarChar(120)
+  action      PermissionAction
+  description String?          @db.Text
+  createdAt   DateTime         @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime         @updatedAt @db.Timestamptz(6)
+
+  rolePermissions RolePermission[]
+
+  @@index([resource, action], map: "idx_permissions_resource_action")
+}
+
+model RolePermission {
+  roleId       String   @db.Uuid
+  permissionId String   @db.Uuid
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@index([permissionId], map: "idx_role_permissions_permission_id")
+}
+
+model UserRole {
+  id             String    @id @default(uuid()) @db.Uuid
+  userId         String    @db.Uuid
+  roleId         String    @db.Uuid
+  organizationId String?   @db.Uuid
+  warehouseId    String?   @db.Uuid
+  assignedById   String?   @db.Uuid
+  expiresAt      DateTime? @db.Timestamptz(6)
+  createdAt      DateTime  @default(now()) @db.Timestamptz(6)
+
+  assignedBy   User?         @relation("AssignedUserRoles", fields: [assignedById], references: [id], onDelete: SetNull)
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  role         Role          @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user         User          @relation("UserRoleUser", fields: [userId], references: [id], onDelete: Cascade)
+  warehouse    Warehouse?    @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId, organizationId, warehouseId], map: "uq_user_roles_scope")
+  @@index([roleId], map: "idx_user_roles_role_id")
+  @@index([organizationId, warehouseId], map: "idx_user_roles_scope_lookup")
+  @@index([expiresAt], map: "idx_user_roles_expires_at")
+}
+
+model Warehouse {
+  id             String          @id @default(uuid()) @db.Uuid
+  organizationId String          @db.Uuid
+  addressId      String          @db.Uuid
+  code           String          @db.VarChar(40)
+  name           String          @db.VarChar(160)
+  status         WarehouseStatus @default(ACTIVE)
+  timezone       String          @default("UTC") @db.VarChar(80)
+  phone          String?         @db.VarChar(40)
+  email          String?         @db.VarChar(255)
+  metadata       Json?
+  createdAt      DateTime        @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime        @updatedAt @db.Timestamptz(6)
+  deletedAt      DateTime?       @db.Timestamptz(6)
+
+  address              Address         @relation("WarehouseAddress", fields: [addressId], references: [id], onDelete: Restrict)
+  organization         Organization    @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  destinationShipments Shipment[]      @relation("ShipmentDestinationWarehouse")
+  drivers              Driver[]        @relation("DriverHomeWarehouse")
+  originShipments      Shipment[]      @relation("ShipmentOriginWarehouse")
+  settings             Setting[]
+  trackingEvents       TrackingEvent[]
+  userRoles            UserRole[]
+  vehicles             Vehicle[]       @relation("VehicleCurrentWarehouse")
+
+  @@unique([organizationId, code], map: "uq_warehouses_organization_code")
+  @@index([organizationId, status], map: "idx_warehouses_organization_status")
+  @@index([deletedAt], map: "idx_warehouses_deleted_at")
+}
+
+model Driver {
+  id               String       @id @default(uuid()) @db.Uuid
+  organizationId   String       @db.Uuid
+  userId           String?      @unique @db.Uuid
+  homeWarehouseId  String?      @db.Uuid
+  employeeNumber   String       @db.VarChar(80)
+  licenseNumber    String       @unique @db.VarChar(120)
+  licenseExpiresAt DateTime?    @db.Date
+  status           DriverStatus @default(AVAILABLE)
+  metadata         Json?
+  createdAt        DateTime     @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime     @updatedAt @db.Timestamptz(6)
+  deletedAt        DateTime?    @db.Timestamptz(6)
+
+  homeWarehouse      Warehouse?                @relation("DriverHomeWarehouse", fields: [homeWarehouseId], references: [id], onDelete: SetNull)
+  organization       Organization              @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  user               User?                     @relation("DriverUser", fields: [userId], references: [id], onDelete: SetNull)
+  assignedShipments  Shipment[]                @relation("ShipmentAssignedDriver")
+  trackingEvents     TrackingEvent[]
+  vehicleAssignments DriverVehicleAssignment[]
+
+  @@unique([organizationId, employeeNumber], map: "uq_drivers_organization_employee_number")
+  @@index([organizationId, status], map: "idx_drivers_organization_status")
+  @@index([homeWarehouseId, status], map: "idx_drivers_home_warehouse_status")
+  @@index([deletedAt], map: "idx_drivers_deleted_at")
+}
+
+model Vehicle {
+  id                 String        @id @default(uuid()) @db.Uuid
+  organizationId     String        @db.Uuid
+  currentWarehouseId String?       @db.Uuid
+  registrationNumber String        @unique @db.VarChar(80)
+  vin                String?       @unique @db.VarChar(80)
+  type               VehicleType
+  status             VehicleStatus @default(AVAILABLE)
+  capacityKg         Decimal?      @db.Decimal(12, 3)
+  capacityVolumeCbm  Decimal?      @db.Decimal(12, 3)
+  mileageKm          Int?
+  metadata           Json?
+  createdAt          DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime      @updatedAt @db.Timestamptz(6)
+  deletedAt          DateTime?     @db.Timestamptz(6)
+
+  currentWarehouse   Warehouse?                @relation("VehicleCurrentWarehouse", fields: [currentWarehouseId], references: [id], onDelete: SetNull)
+  organization       Organization              @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  shipments          Shipment[]                @relation("ShipmentVehicle")
+  trackingEvents     TrackingEvent[]
+  vehicleAssignments DriverVehicleAssignment[]
+
+  @@index([organizationId, status], map: "idx_vehicles_organization_status")
+  @@index([currentWarehouseId, status], map: "idx_vehicles_current_warehouse_status")
+  @@index([deletedAt], map: "idx_vehicles_deleted_at")
+}
+
+model DriverVehicleAssignment {
+  id           String    @id @default(uuid()) @db.Uuid
+  driverId     String    @db.Uuid
+  vehicleId    String    @db.Uuid
+  assignedById String?   @db.Uuid
+  assignedAt   DateTime  @default(now()) @db.Timestamptz(6)
+  releasedAt   DateTime? @db.Timestamptz(6)
+  notes        String?   @db.Text
+
+  assignedBy User?   @relation("DriverVehicleAssignedBy", fields: [assignedById], references: [id], onDelete: SetNull)
+  driver     Driver  @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  vehicle    Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([driverId, releasedAt], map: "idx_driver_vehicle_assignments_driver_active")
+  @@index([vehicleId, releasedAt], map: "idx_driver_vehicle_assignments_vehicle_active")
+}
+
+model Shipment {
+  id                     String           @id @default(uuid()) @db.Uuid
+  organizationId         String           @db.Uuid
+  shipmentNumber         String           @db.VarChar(80)
+  customerId             String?          @db.Uuid
+  createdById            String?          @db.Uuid
+  assignedDriverId       String?          @db.Uuid
+  vehicleId              String?          @db.Uuid
+  originAddressId        String           @db.Uuid
+  destinationAddressId   String           @db.Uuid
+  originWarehouseId      String?          @db.Uuid
+  destinationWarehouseId String?          @db.Uuid
+  status                 ShipmentStatus   @default(DRAFT)
+  priority               ShipmentPriority @default(STANDARD)
+  mode                   ShipmentMode     @default(ROAD)
+  serviceLevel           String?          @db.VarChar(80)
+  referenceNumber        String?          @db.VarChar(120)
+  pickupWindowStart      DateTime?        @db.Timestamptz(6)
+  pickupWindowEnd        DateTime?        @db.Timestamptz(6)
+  deliveryWindowStart    DateTime?        @db.Timestamptz(6)
+  deliveryWindowEnd      DateTime?        @db.Timestamptz(6)
+  bookedAt               DateTime?        @db.Timestamptz(6)
+  dispatchedAt           DateTime?        @db.Timestamptz(6)
+  deliveredAt            DateTime?        @db.Timestamptz(6)
+  cancelledAt            DateTime?        @db.Timestamptz(6)
+  cancellationReason     String?          @db.Text
+  notes                  String?          @db.Text
+  metadata               Json?
+  createdAt              DateTime         @default(now()) @db.Timestamptz(6)
+  updatedAt              DateTime         @updatedAt @db.Timestamptz(6)
+  deletedAt              DateTime?        @db.Timestamptz(6)
+
+  assignedDriver       Driver?            @relation("ShipmentAssignedDriver", fields: [assignedDriverId], references: [id], onDelete: SetNull)
+  createdBy            User?              @relation("ShipmentCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  customer             User?              @relation("ShipmentCustomer", fields: [customerId], references: [id], onDelete: SetNull)
+  destinationAddress   Address            @relation("ShipmentDestinationAddress", fields: [destinationAddressId], references: [id], onDelete: Restrict)
+  destinationWarehouse Warehouse?         @relation("ShipmentDestinationWarehouse", fields: [destinationWarehouseId], references: [id], onDelete: SetNull)
+  organization         Organization       @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  originAddress        Address            @relation("ShipmentOriginAddress", fields: [originAddressId], references: [id], onDelete: Restrict)
+  originWarehouse      Warehouse?         @relation("ShipmentOriginWarehouse", fields: [originWarehouseId], references: [id], onDelete: SetNull)
+  vehicle              Vehicle?           @relation("ShipmentVehicle", fields: [vehicleId], references: [id], onDelete: SetNull)
+  aiConversations      AiConversation[]
+  freightTransport     FreightTransport?
+  invoices             Invoice[]
+  emailLogs            EmailLog[]
+  notifications        Notification[]
+  packages             ShipmentPackage[]
+  documents            ShipmentDocument[]
+  petTransport         PetTransport?
+  supportTickets       SupportTicket[]
+  trackingEvents       TrackingEvent[]
+
+  @@unique([organizationId, shipmentNumber], map: "uq_shipments_organization_number")
+  @@index([organizationId, status, createdAt], map: "idx_shipments_organization_status_created_at")
+  @@index([assignedDriverId, status], map: "idx_shipments_assigned_driver_status")
+  @@index([vehicleId, status], map: "idx_shipments_vehicle_status")
+  @@index([originWarehouseId, status], map: "idx_shipments_origin_warehouse_status")
+  @@index([destinationWarehouseId, status], map: "idx_shipments_destination_warehouse_status")
+  @@index([deliveryWindowStart], map: "idx_shipments_delivery_window_start")
+  @@index([deletedAt], map: "idx_shipments_deleted_at")
+}
+
+model ShipmentPackage {
+  id            String        @id @default(uuid()) @db.Uuid
+  shipmentId    String        @db.Uuid
+  packageNumber String        @db.VarChar(80)
+  type          PackageType   @default(BOX)
+  status        PackageStatus @default(PENDING)
+  barcode       String?       @unique @db.VarChar(120)
+  weightKg      Decimal?      @db.Decimal(12, 3)
+  lengthCm      Decimal?      @db.Decimal(12, 3)
+  widthCm       Decimal?      @db.Decimal(12, 3)
+  heightCm      Decimal?      @db.Decimal(12, 3)
+  declaredValue Decimal?      @db.Decimal(14, 2)
+  currency      String        @default("USD") @db.Char(3)
+  fragile       Boolean       @default(false)
+  hazardous     Boolean       @default(false)
+  description   String?       @db.Text
+  metadata      Json?
+  createdAt     DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime      @updatedAt @db.Timestamptz(6)
+
+  shipment       Shipment               @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  photos         ShipmentPackagePhoto[]
+  trackingEvents TrackingEvent[]
+
+  @@unique([shipmentId, packageNumber], map: "uq_shipment_packages_shipment_package_number")
+  @@index([shipmentId, status], map: "idx_shipment_packages_shipment_status")
+  @@index([status], map: "idx_shipment_packages_status")
+}
+
+model ShipmentDocument {
+  id            String    @id @default(uuid()) @db.Uuid
+  shipmentId    String    @db.Uuid
+  uploadedById  String?   @db.Uuid
+  documentType  String    @db.VarChar(80)
+  fileName      String    @db.VarChar(255)
+  mimeType      String    @db.VarChar(120)
+  fileSizeBytes Int
+  storageKey    String    @unique @db.VarChar(500)
+  checksum      String?   @db.VarChar(128)
+  notes         String?   @db.Text
+  verifiedAt    DateTime? @db.Timestamptz(6)
+  createdAt     DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime  @updatedAt @db.Timestamptz(6)
+
+  shipment   Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  uploadedBy User?    @relation("ShipmentDocumentUploadedBy", fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  @@index([shipmentId, createdAt], map: "idx_shipment_documents_shipment_created_at")
+  @@index([uploadedById, createdAt], map: "idx_shipment_documents_uploader_created_at")
+  @@index([documentType], map: "idx_shipment_documents_type")
+}
+
+model ShipmentPackagePhoto {
+  id            String   @id @default(uuid()) @db.Uuid
+  packageId     String   @db.Uuid
+  uploadedById  String?  @db.Uuid
+  fileName      String   @db.VarChar(255)
+  mimeType      String   @db.VarChar(120)
+  fileSizeBytes Int
+  storageKey    String   @unique @db.VarChar(500)
+  checksum      String?  @db.VarChar(128)
+  caption       String?  @db.VarChar(255)
+  createdAt     DateTime @default(now()) @db.Timestamptz(6)
+
+  package    ShipmentPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  uploadedBy User?           @relation("ShipmentPackagePhotoUploadedBy", fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  @@index([packageId, createdAt], map: "idx_shipment_package_photos_package_created_at")
+  @@index([uploadedById, createdAt], map: "idx_shipment_package_photos_uploader_created_at")
+}
+
+model TrackingEvent {
+  id                String            @id @default(uuid()) @db.Uuid
+  shipmentId        String            @db.Uuid
+  packageId         String?           @db.Uuid
+  warehouseId       String?           @db.Uuid
+  driverId          String?           @db.Uuid
+  vehicleId         String?           @db.Uuid
+  locationAddressId String?           @db.Uuid
+  recordedById      String?           @db.Uuid
+  eventType         TrackingEventType
+  shipmentStatus    ShipmentStatus?
+  message           String?           @db.Text
+  latitude          Decimal?          @db.Decimal(9, 6)
+  longitude         Decimal?          @db.Decimal(9, 6)
+  occurredAt        DateTime          @db.Timestamptz(6)
+  metadata          Json?
+  createdAt         DateTime          @default(now()) @db.Timestamptz(6)
+
+  driver             Driver?                @relation(fields: [driverId], references: [id], onDelete: SetNull)
+  locationAddress    Address?               @relation("TrackingEventAddress", fields: [locationAddressId], references: [id], onDelete: SetNull)
+  package            ShipmentPackage?       @relation(fields: [packageId], references: [id], onDelete: SetNull)
+  recordedBy         User?                  @relation("TrackingRecordedBy", fields: [recordedById], references: [id], onDelete: SetNull)
+  shipment           Shipment               @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  vehicle            Vehicle?               @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  warehouse          Warehouse?             @relation(fields: [warehouseId], references: [id], onDelete: SetNull)
+  freightEvents      FreightTrackingEvent[]
+  petTravelHistories PetTravelHistory[]
+
+  @@index([shipmentId, occurredAt], map: "idx_tracking_events_shipment_occurred_at")
+  @@index([packageId, occurredAt], map: "idx_tracking_events_package_occurred_at")
+  @@index([eventType, occurredAt], map: "idx_tracking_events_type_occurred_at")
+  @@index([warehouseId, occurredAt], map: "idx_tracking_events_warehouse_occurred_at")
+  @@index([driverId, occurredAt], map: "idx_tracking_events_driver_occurred_at")
+}
+
+model PetTransport {
+  id                      String             @id @default(uuid()) @db.Uuid
+  shipmentId              String             @unique @db.Uuid
+  species                 PetSpecies
+  breed                   String?            @db.VarChar(120)
+  petName                 String?            @db.VarChar(120)
+  dateOfBirth             DateTime?          @db.Date
+  ageMonths               Int?
+  weightKg                Decimal?           @db.Decimal(10, 3)
+  sex                     String?            @db.VarChar(40)
+  color                   String?            @db.VarChar(80)
+  ownerName               String?            @db.VarChar(160)
+  ownerEmail              String?            @db.VarChar(255)
+  ownerPhone              String?            @db.VarChar(40)
+  crateRequired           Boolean            @default(true)
+  crateLengthCm           Decimal?           @db.Decimal(10, 3)
+  crateWidthCm            Decimal?           @db.Decimal(10, 3)
+  crateHeightCm           Decimal?           @db.Decimal(10, 3)
+  healthCertificateNumber String?            @db.VarChar(120)
+  vaccinationVerified     Boolean            @default(false)
+  microchipNumber         String?            @db.VarChar(120)
+  knownAllergies          String?            @db.Text
+  medicationInstructions  String?            @db.Text
+  feedingInstructions     String?            @db.Text
+  handlerInstructions     String?            @db.Text
+  status                  PetTransportStatus @default(REQUESTED)
+  metadata                Json?
+  createdAt               DateTime           @default(now()) @db.Timestamptz(6)
+  updatedAt               DateTime           @updatedAt @db.Timestamptz(6)
+
+  shipment            Shipment                @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  vaccinationRecords  PetVaccinationRecord[]
+  medicalCertificates PetMedicalCertificate[]
+  veterinarianChecks  PetVeterinarianCheck[]
+  feedingSchedules    PetFeedingSchedule[]
+  temperatureLogs     PetTemperatureLog[]
+  crateAssignments    PetCrateAssignment[]
+  photos              PetTransportPhoto[]
+  travelHistory       PetTravelHistory[]
+
+  @@index([status], map: "idx_pet_transports_status")
+  @@index([species], map: "idx_pet_transports_species")
+  @@index([microchipNumber], map: "idx_pet_transports_microchip_number")
+}
+
+model PetVaccinationRecord {
+  id                String    @id @default(uuid()) @db.Uuid
+  petTransportId    String    @db.Uuid
+  uploadedById      String?   @db.Uuid
+  vaccineName       String    @db.VarChar(160)
+  manufacturer      String?   @db.VarChar(160)
+  administeredAt    DateTime? @db.Timestamptz(6)
+  expiresAt         DateTime? @db.Timestamptz(6)
+  veterinarianName  String?   @db.VarChar(160)
+  clinicName        String?   @db.VarChar(160)
+  certificateNumber String?   @db.VarChar(120)
+  fileName          String?   @db.VarChar(255)
+  mimeType          String?   @db.VarChar(120)
+  fileSizeBytes     Int?
+  storageKey        String?   @unique @db.VarChar(500)
+  checksum          String?   @db.VarChar(128)
+  verifiedAt        DateTime? @db.Timestamptz(6)
+  notes             String?   @db.Text
+  metadata          Json?
+  createdAt         DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime  @updatedAt @db.Timestamptz(6)
+
+  petTransport PetTransport @relation(fields: [petTransportId], references: [id], onDelete: Cascade)
+  uploadedBy   User?        @relation("PetVaccinationRecordUploadedBy", fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  @@index([petTransportId, expiresAt], map: "idx_pet_vaccination_records_transport_expires_at")
+  @@index([uploadedById, createdAt], map: "idx_pet_vaccination_records_uploader_created_at")
+}
+
+model PetMedicalCertificate {
+  id                String    @id @default(uuid()) @db.Uuid
+  petTransportId    String    @db.Uuid
+  uploadedById      String?   @db.Uuid
+  certificateNumber String    @db.VarChar(120)
+  issuedAt          DateTime? @db.Timestamptz(6)
+  expiresAt         DateTime? @db.Timestamptz(6)
+  veterinarianName  String?   @db.VarChar(160)
+  clinicName        String?   @db.VarChar(160)
+  fitToTravel       Boolean   @default(false)
+  fileName          String?   @db.VarChar(255)
+  mimeType          String?   @db.VarChar(120)
+  fileSizeBytes     Int?
+  storageKey        String?   @unique @db.VarChar(500)
+  checksum          String?   @db.VarChar(128)
+  verifiedAt        DateTime? @db.Timestamptz(6)
+  notes             String?   @db.Text
+  metadata          Json?
+  createdAt         DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime  @updatedAt @db.Timestamptz(6)
+
+  petTransport PetTransport @relation(fields: [petTransportId], references: [id], onDelete: Cascade)
+  uploadedBy   User?        @relation("PetMedicalCertificateUploadedBy", fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  @@index([petTransportId, expiresAt], map: "idx_pet_medical_certificates_transport_expires_at")
+  @@index([uploadedById, createdAt], map: "idx_pet_medical_certificates_uploader_created_at")
+}
+
+model PetVeterinarianCheck {
+  id               String            @id @default(uuid()) @db.Uuid
+  petTransportId   String            @db.Uuid
+  recordedById     String?           @db.Uuid
+  status           PetVetCheckStatus @default(SCHEDULED)
+  checkedAt        DateTime          @db.Timestamptz(6)
+  veterinarianName String            @db.VarChar(160)
+  clinicName       String?           @db.VarChar(160)
+  temperatureC     Decimal?          @db.Decimal(6, 2)
+  heartRateBpm     Int?
+  respirationBpm   Int?
+  nextCheckAt      DateTime?         @db.Timestamptz(6)
+  notes            String?           @db.Text
+  metadata         Json?
+  createdAt        DateTime          @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime          @updatedAt @db.Timestamptz(6)
+
+  petTransport PetTransport @relation(fields: [petTransportId], references: [id], onDelete: Cascade)
+  recordedBy   User?        @relation("PetVeterinarianCheckRecordedBy", fields: [recordedById], references: [id], onDelete: SetNull)
+
+  @@index([petTransportId, checkedAt], map: "idx_pet_veterinarian_checks_transport_checked_at")
+  @@index([recordedById, checkedAt], map: "idx_pet_veterinarian_checks_recorder_checked_at")
+}
+
+model PetFeedingSchedule {
+  id             String    @id @default(uuid()) @db.Uuid
+  petTransportId String    @db.Uuid
+  createdById    String?   @db.Uuid
+  foodType       String    @db.VarChar(160)
+  portion        String    @db.VarChar(120)
+  frequencyHours Int
+  nextFeedingAt  DateTime? @db.Timestamptz(6)
+  lastFedAt      DateTime? @db.Timestamptz(6)
+  waterNotes     String?   @db.Text
+  instructions   String?   @db.Text
+  active         Boolean   @default(true)
+  metadata       Json?
+  createdAt      DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime  @updatedAt @db.Timestamptz(6)
+
+  petTransport PetTransport @relation(fields: [petTransportId], references: [id], onDelete: Cascade)
+  createdBy    User?        @relation("PetFeedingScheduleCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([petTransportId, active], map: "idx_pet_feeding_schedules_transport_active")
+  @@index([createdById, createdAt], map: "idx_pet_feeding_schedules_creator_created_at")
+}
+
+model PetTemperatureLog {
+  id              String   @id @default(uuid()) @db.Uuid
+  petTransportId  String   @db.Uuid
+  recordedById    String?  @db.Uuid
+  recordedAt      DateTime @db.Timestamptz(6)
+  temperatureC    Decimal  @db.Decimal(6, 2)
+  humidityPercent Decimal? @db.Decimal(6, 2)
+  crateSensorId   String?  @db.VarChar(120)
+  location        String?  @db.VarChar(160)
+  alertTriggered  Boolean  @default(false)
+  notes           String?  @db.Text
+  metadata        Json?
+  createdAt       DateTime @default(now()) @db.Timestamptz(6)
+
+  petTransport PetTransport @relation(fields: [petTransportId], references: [id], onDelete: Cascade)
+  recordedBy   User?        @relation("PetTemperatureLogRecordedBy", fields: [recordedById], references: [id], onDelete: SetNull)
+
+  @@index([petTransportId, recordedAt], map: "idx_pet_temperature_logs_transport_recorded_at")
+  @@index([alertTriggered, recordedAt], map: "idx_pet_temperature_logs_alert_recorded_at")
+}
+
+model PetCrateAssignment {
+  id                 String         @id @default(uuid()) @db.Uuid
+  petTransportId     String         @db.Uuid
+  assignedById       String?        @db.Uuid
+  crateCode          String         @db.VarChar(120)
+  crateType          String?        @db.VarChar(120)
+  status             PetCrateStatus @default(ASSIGNED)
+  lengthCm           Decimal?       @db.Decimal(10, 3)
+  widthCm            Decimal?       @db.Decimal(10, 3)
+  heightCm           Decimal?       @db.Decimal(10, 3)
+  maxPetWeightKg     Decimal?       @db.Decimal(10, 3)
+  sealNumber         String?        @db.VarChar(120)
+  ventilationChecked Boolean        @default(false)
+  waterBowlAttached  Boolean        @default(false)
+  absorbentLining    Boolean        @default(false)
+  assignedAt         DateTime       @db.Timestamptz(6)
+  inspectedAt        DateTime?      @db.Timestamptz(6)
+  loadedAt           DateTime?      @db.Timestamptz(6)
+  releasedAt         DateTime?      @db.Timestamptz(6)
+  notes              String?        @db.Text
+  metadata           Json?
+  createdAt          DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime       @updatedAt @db.Timestamptz(6)
+
+  petTransport PetTransport @relation(fields: [petTransportId], references: [id], onDelete: Cascade)
+  assignedBy   User?        @relation("PetCrateAssignmentAssignedBy", fields: [assignedById], references: [id], onDelete: SetNull)
+
+  @@index([petTransportId, assignedAt], map: "idx_pet_crate_assignments_transport_assigned_at")
+  @@index([crateCode], map: "idx_pet_crate_assignments_crate_code")
+  @@index([status, assignedAt], map: "idx_pet_crate_assignments_status_assigned_at")
+}
+
+model PetTransportPhoto {
+  id             String   @id @default(uuid()) @db.Uuid
+  petTransportId String   @db.Uuid
+  uploadedById   String?  @db.Uuid
+  fileName       String   @db.VarChar(255)
+  mimeType       String   @db.VarChar(120)
+  fileSizeBytes  Int
+  storageKey     String   @unique @db.VarChar(500)
+  checksum       String?  @db.VarChar(128)
+  caption        String?  @db.VarChar(255)
+  createdAt      DateTime @default(now()) @db.Timestamptz(6)
+
+  petTransport PetTransport @relation(fields: [petTransportId], references: [id], onDelete: Cascade)
+  uploadedBy   User?        @relation("PetTransportPhotoUploadedBy", fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  @@index([petTransportId, createdAt], map: "idx_pet_transport_photos_transport_created_at")
+  @@index([uploadedById, createdAt], map: "idx_pet_transport_photos_uploader_created_at")
+}
+
+model PetTravelHistory {
+  id              String             @id @default(uuid()) @db.Uuid
+  petTransportId  String             @db.Uuid
+  recordedById    String?            @db.Uuid
+  trackingEventId String?            @db.Uuid
+  eventType       PetTravelEventType
+  message         String?            @db.Text
+  location        String?            @db.VarChar(160)
+  occurredAt      DateTime           @db.Timestamptz(6)
+  metadata        Json?
+  createdAt       DateTime           @default(now()) @db.Timestamptz(6)
+
+  petTransport  PetTransport   @relation(fields: [petTransportId], references: [id], onDelete: Cascade)
+  recordedBy    User?          @relation("PetTravelHistoryRecordedBy", fields: [recordedById], references: [id], onDelete: SetNull)
+  trackingEvent TrackingEvent? @relation(fields: [trackingEventId], references: [id], onDelete: SetNull)
+
+  @@index([petTransportId, occurredAt], map: "idx_pet_travel_history_transport_occurred_at")
+  @@index([eventType, occurredAt], map: "idx_pet_travel_history_event_occurred_at")
+  @@index([trackingEventId], map: "idx_pet_travel_history_tracking_event")
+}
+
+model FreightTransport {
+  id                     String                 @id @default(uuid()) @db.Uuid
+  shipmentId             String                 @unique @db.Uuid
+  freightType            FreightType
+  status                 FreightTransportStatus @default(REQUESTED)
+  commodityCode          String?                @db.VarChar(80)
+  commodityDescription   String?                @db.Text
+  containerNumber        String?                @db.VarChar(80)
+  sealNumber             String?                @db.VarChar(80)
+  incoterm               String?                @db.VarChar(16)
+  palletCount            Int?
+  grossWeightKg          Decimal?               @db.Decimal(14, 3)
+  volumeCbm              Decimal?               @db.Decimal(14, 3)
+  refrigeratedRequired   Boolean                @default(false)
+  temperatureMinC        Decimal?               @db.Decimal(6, 2)
+  temperatureMaxC        Decimal?               @db.Decimal(6, 2)
+  hazmatClass            String?                @db.VarChar(40)
+  unNumber               String?                @db.VarChar(40)
+  routeName              String?                @db.VarChar(160)
+  routeCode              String?                @db.VarChar(80)
+  originTerminal         String?                @db.VarChar(160)
+  destinationTerminal    String?                @db.VarChar(160)
+  plannedDepartureAt     DateTime?              @db.Timestamptz(6)
+  plannedArrivalAt       DateTime?              @db.Timestamptz(6)
+  etaAt                  DateTime?              @db.Timestamptz(6)
+  actualDepartureAt      DateTime?              @db.Timestamptz(6)
+  actualArrivalAt        DateTime?              @db.Timestamptz(6)
+  distanceKm             Decimal?               @db.Decimal(12, 3)
+  estimatedDurationHours Int?
+  averageSpeedKph        Decimal?               @db.Decimal(8, 2)
+  specialInstructions    String?                @db.Text
+  metadata               Json?
+  createdAt              DateTime               @default(now()) @db.Timestamptz(6)
+  updatedAt              DateTime               @updatedAt @db.Timestamptz(6)
+
+  shipment       Shipment               @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  cargoItems     FreightCargoItem[]
+  containers     FreightContainer[]
+  machineryItems FreightMachineryItem[]
+  vehicleItems   FreightVehicleItem[]
+  routeStops     FreightRouteStop[]
+  documents      FreightDocument[]
+  trackingEvents FreightTrackingEvent[]
+
+  @@index([freightType, status], map: "idx_freight_transports_type_status")
+  @@index([status, etaAt], map: "idx_freight_transports_status_eta_at")
+  @@index([containerNumber], map: "idx_freight_transports_container_number")
+  @@index([routeCode], map: "idx_freight_transports_route_code")
+}
+
+model FreightCargoItem {
+  id                    String             @id @default(uuid()) @db.Uuid
+  freightTransportId    String             @db.Uuid
+  containerId           String?            @db.Uuid
+  description           String             @db.VarChar(255)
+  cargoType             String?            @db.VarChar(120)
+  commodityCode         String?            @db.VarChar(80)
+  quantity              Int                @default(1)
+  unit                  String             @default("pieces") @db.VarChar(40)
+  weightKg              Decimal?           @db.Decimal(14, 3)
+  volumeCbm             Decimal?           @db.Decimal(14, 3)
+  lengthCm              Decimal?           @db.Decimal(12, 3)
+  widthCm               Decimal?           @db.Decimal(12, 3)
+  heightCm              Decimal?           @db.Decimal(12, 3)
+  declaredValue         Decimal?           @db.Decimal(14, 2)
+  currency              String             @default("USD") @db.Char(3)
+  hazardous             Boolean            @default(false)
+  stackable             Boolean            @default(true)
+  temperatureControlled Boolean            @default(false)
+  temperatureMinC       Decimal?           @db.Decimal(6, 2)
+  temperatureMaxC       Decimal?           @db.Decimal(6, 2)
+  status                FreightCargoStatus @default(PLANNED)
+  notes                 String?            @db.Text
+  metadata              Json?
+  createdAt             DateTime           @default(now()) @db.Timestamptz(6)
+  updatedAt             DateTime           @updatedAt @db.Timestamptz(6)
+
+  container        FreightContainer? @relation(fields: [containerId], references: [id], onDelete: SetNull)
+  freightTransport FreightTransport  @relation(fields: [freightTransportId], references: [id], onDelete: Cascade)
+
+  @@index([freightTransportId, status], map: "idx_freight_cargo_items_transport_status")
+  @@index([containerId], map: "idx_freight_cargo_items_container_id")
+  @@index([hazardous, status], map: "idx_freight_cargo_items_hazardous_status")
+}
+
+model FreightContainer {
+  id                 String                 @id @default(uuid()) @db.Uuid
+  freightTransportId String                 @db.Uuid
+  containerNumber    String                 @db.VarChar(80)
+  containerType      String?                @db.VarChar(80)
+  sealNumber         String?                @db.VarChar(80)
+  status             FreightContainerStatus @default(ASSIGNED)
+  tareWeightKg       Decimal?               @db.Decimal(12, 3)
+  maxGrossWeightKg   Decimal?               @db.Decimal(12, 3)
+  currentWeightKg    Decimal?               @db.Decimal(12, 3)
+  volumeCbm          Decimal?               @db.Decimal(12, 3)
+  temperatureSetC    Decimal?               @db.Decimal(6, 2)
+  loadedAt           DateTime?              @db.Timestamptz(6)
+  releasedAt         DateTime?              @db.Timestamptz(6)
+  notes              String?                @db.Text
+  metadata           Json?
+  createdAt          DateTime               @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime               @updatedAt @db.Timestamptz(6)
+
+  freightTransport FreightTransport   @relation(fields: [freightTransportId], references: [id], onDelete: Cascade)
+  cargoItems       FreightCargoItem[]
+
+  @@unique([freightTransportId, containerNumber], map: "uq_freight_containers_transport_number")
+  @@index([freightTransportId, status], map: "idx_freight_containers_transport_status")
+  @@index([sealNumber], map: "idx_freight_containers_seal_number")
+}
+
+model FreightMachineryItem {
+  id                     String             @id @default(uuid()) @db.Uuid
+  freightTransportId     String             @db.Uuid
+  name                   String             @db.VarChar(160)
+  category               String?            @db.VarChar(120)
+  manufacturer           String?            @db.VarChar(120)
+  model                  String?            @db.VarChar(120)
+  serialNumber           String?            @db.VarChar(120)
+  operatingWeightKg      Decimal?           @db.Decimal(14, 3)
+  lengthCm               Decimal?           @db.Decimal(12, 3)
+  widthCm                Decimal?           @db.Decimal(12, 3)
+  heightCm               Decimal?           @db.Decimal(12, 3)
+  condition              String?            @db.VarChar(120)
+  oversizePermitRequired Boolean            @default(false)
+  loadingInstructions    String?            @db.Text
+  status                 FreightCargoStatus @default(PLANNED)
+  notes                  String?            @db.Text
+  metadata               Json?
+  createdAt              DateTime           @default(now()) @db.Timestamptz(6)
+  updatedAt              DateTime           @updatedAt @db.Timestamptz(6)
+
+  freightTransport FreightTransport @relation(fields: [freightTransportId], references: [id], onDelete: Cascade)
+
+  @@index([freightTransportId, status], map: "idx_freight_machinery_transport_status")
+  @@index([serialNumber], map: "idx_freight_machinery_serial_number")
+  @@index([oversizePermitRequired, status], map: "idx_freight_machinery_oversize_status")
+}
+
+model FreightVehicleItem {
+  id                 String             @id @default(uuid()) @db.Uuid
+  freightTransportId String             @db.Uuid
+  vin                String?            @db.VarChar(80)
+  make               String             @db.VarChar(120)
+  model              String             @db.VarChar(120)
+  year               Int?
+  color              String?            @db.VarChar(80)
+  plateNumber        String?            @db.VarChar(80)
+  condition          String?            @db.VarChar(120)
+  odometerKm         Int?
+  operable           Boolean            @default(true)
+  keysAvailable      Boolean            @default(true)
+  status             FreightCargoStatus @default(PLANNED)
+  notes              String?            @db.Text
+  metadata           Json?
+  createdAt          DateTime           @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime           @updatedAt @db.Timestamptz(6)
+
+  freightTransport FreightTransport @relation(fields: [freightTransportId], references: [id], onDelete: Cascade)
+
+  @@unique([freightTransportId, vin], map: "uq_freight_vehicle_items_transport_vin")
+  @@index([freightTransportId, status], map: "idx_freight_vehicle_items_transport_status")
+  @@index([plateNumber], map: "idx_freight_vehicle_items_plate_number")
+}
+
+model FreightRouteStop {
+  id                 String               @id @default(uuid()) @db.Uuid
+  freightTransportId String               @db.Uuid
+  sequence           Int
+  stopType           FreightRouteStopType
+  name               String               @db.VarChar(160)
+  addressLine1       String?              @db.VarChar(255)
+  city               String?              @db.VarChar(120)
+  countryCode        String?              @db.Char(2)
+  plannedArrivalAt   DateTime?            @db.Timestamptz(6)
+  plannedDepartureAt DateTime?            @db.Timestamptz(6)
+  actualArrivalAt    DateTime?            @db.Timestamptz(6)
+  actualDepartureAt  DateTime?            @db.Timestamptz(6)
+  latitude           Decimal?             @db.Decimal(9, 6)
+  longitude          Decimal?             @db.Decimal(9, 6)
+  contactName        String?              @db.VarChar(160)
+  contactPhone       String?              @db.VarChar(40)
+  notes              String?              @db.Text
+  metadata           Json?
+  createdAt          DateTime             @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime             @updatedAt @db.Timestamptz(6)
+
+  freightTransport FreightTransport @relation(fields: [freightTransportId], references: [id], onDelete: Cascade)
+
+  @@unique([freightTransportId, sequence], map: "uq_freight_route_stops_transport_sequence")
+  @@index([freightTransportId, stopType, sequence], map: "idx_freight_route_stops_transport_type_sequence")
+  @@index([plannedArrivalAt], map: "idx_freight_route_stops_planned_arrival")
+}
+
+model FreightDocument {
+  id                 String              @id @default(uuid()) @db.Uuid
+  freightTransportId String              @db.Uuid
+  uploadedById       String?             @db.Uuid
+  documentType       FreightDocumentType
+  fileName           String              @db.VarChar(255)
+  mimeType           String              @db.VarChar(120)
+  fileSizeBytes      Int
+  storageKey         String              @unique @db.VarChar(500)
+  checksum           String?             @db.VarChar(128)
+  expiresAt          DateTime?           @db.Timestamptz(6)
+  verifiedAt         DateTime?           @db.Timestamptz(6)
+  notes              String?             @db.Text
+  metadata           Json?
+  createdAt          DateTime            @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime            @updatedAt @db.Timestamptz(6)
+
+  freightTransport FreightTransport @relation(fields: [freightTransportId], references: [id], onDelete: Cascade)
+  uploadedBy       User?            @relation("FreightDocumentUploadedBy", fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  @@index([freightTransportId, createdAt], map: "idx_freight_documents_transport_created_at")
+  @@index([documentType], map: "idx_freight_documents_type")
+  @@index([uploadedById, createdAt], map: "idx_freight_documents_uploader_created_at")
+}
+
+model FreightTrackingEvent {
+  id                 String                   @id @default(uuid()) @db.Uuid
+  freightTransportId String                   @db.Uuid
+  recordedById       String?                  @db.Uuid
+  trackingEventId    String?                  @db.Uuid
+  eventType          FreightTrackingEventType
+  status             FreightTransportStatus?
+  message            String?                  @db.Text
+  location           String?                  @db.VarChar(160)
+  latitude           Decimal?                 @db.Decimal(9, 6)
+  longitude          Decimal?                 @db.Decimal(9, 6)
+  etaAt              DateTime?                @db.Timestamptz(6)
+  occurredAt         DateTime                 @db.Timestamptz(6)
+  metadata           Json?
+  createdAt          DateTime                 @default(now()) @db.Timestamptz(6)
+
+  freightTransport FreightTransport @relation(fields: [freightTransportId], references: [id], onDelete: Cascade)
+  recordedBy       User?            @relation("FreightTrackingEventRecordedBy", fields: [recordedById], references: [id], onDelete: SetNull)
+  trackingEvent    TrackingEvent?   @relation(fields: [trackingEventId], references: [id], onDelete: SetNull)
+
+  @@index([freightTransportId, occurredAt], map: "idx_freight_tracking_events_transport_occurred_at")
+  @@index([eventType, occurredAt], map: "idx_freight_tracking_events_type_occurred_at")
+  @@index([trackingEventId], map: "idx_freight_tracking_events_tracking_event")
+}
+
+model Invoice {
+  id               String        @id @default(uuid()) @db.Uuid
+  organizationId   String        @db.Uuid
+  invoiceNumber    String        @db.VarChar(80)
+  shipmentId       String?       @db.Uuid
+  customerId       String?       @db.Uuid
+  billingAddressId String?       @db.Uuid
+  status           InvoiceStatus @default(DRAFT)
+  subtotal         Decimal       @default(0) @db.Decimal(14, 2)
+  taxTotal         Decimal       @default(0) @db.Decimal(14, 2)
+  discountTotal    Decimal       @default(0) @db.Decimal(14, 2)
+  total            Decimal       @default(0) @db.Decimal(14, 2)
+  amountPaid       Decimal       @default(0) @db.Decimal(14, 2)
+  currency         String        @default("USD") @db.Char(3)
+  dueDate          DateTime?     @db.Date
+  issuedAt         DateTime?     @db.Timestamptz(6)
+  paidAt           DateTime?     @db.Timestamptz(6)
+  voidedAt         DateTime?     @db.Timestamptz(6)
+  notes            String?       @db.Text
+  metadata         Json?
+  createdAt        DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime      @updatedAt @db.Timestamptz(6)
+  deletedAt        DateTime?     @db.Timestamptz(6)
+
+  billingAddress Address?          @relation("InvoiceBillingAddress", fields: [billingAddressId], references: [id], onDelete: SetNull)
+  customer       User?             @relation("InvoiceCustomer", fields: [customerId], references: [id], onDelete: SetNull)
+  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  shipment       Shipment?         @relation(fields: [shipmentId], references: [id], onDelete: SetNull)
+  lineItems      InvoiceLineItem[]
+  notifications  Notification[]
+  payments       Payment[]
+
+  @@unique([organizationId, invoiceNumber], map: "uq_invoices_organization_number")
+  @@index([organizationId, status, dueDate], map: "idx_invoices_organization_status_due_date")
+  @@index([customerId, status], map: "idx_invoices_customer_status")
+  @@index([shipmentId], map: "idx_invoices_shipment_id")
+  @@index([deletedAt], map: "idx_invoices_deleted_at")
+}
+
+model InvoiceLineItem {
+  id          String          @id @default(uuid()) @db.Uuid
+  invoiceId   String          @db.Uuid
+  lineType    InvoiceLineType @default(SERVICE)
+  description String          @db.Text
+  quantity    Decimal         @default(1) @db.Decimal(12, 3)
+  unitPrice   Decimal         @db.Decimal(14, 2)
+  taxRate     Decimal         @default(0) @db.Decimal(6, 4)
+  total       Decimal         @db.Decimal(14, 2)
+  sortOrder   Int             @default(0)
+  createdAt   DateTime        @default(now()) @db.Timestamptz(6)
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId, sortOrder], map: "idx_invoice_line_items_invoice_sort_order")
+}
+
+model Payment {
+  id        String        @id @default(uuid()) @db.Uuid
+  invoiceId String        @db.Uuid
+  status    PaymentStatus @default(PENDING)
+  method    PaymentMethod
+  amount    Decimal       @db.Decimal(14, 2)
+  currency  String        @default("USD") @db.Char(3)
+  reference String?       @unique @db.VarChar(160)
+  paidAt    DateTime?     @db.Timestamptz(6)
+  failedAt  DateTime?     @db.Timestamptz(6)
+  metadata  Json?
+  createdAt DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime      @updatedAt @db.Timestamptz(6)
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId, status], map: "idx_payments_invoice_status")
+  @@index([status, createdAt], map: "idx_payments_status_created_at")
+}
+
+model Notification {
+  id                String              @id @default(uuid()) @db.Uuid
+  organizationId    String?             @db.Uuid
+  userId            String?             @db.Uuid
+  shipmentId        String?             @db.Uuid
+  invoiceId         String?             @db.Uuid
+  emailTemplateId   String?             @db.Uuid
+  channel           NotificationChannel
+  status            NotificationStatus  @default(PENDING)
+  title             String              @db.VarChar(180)
+  body              String?             @db.Text
+  actionUrl         String?             @db.VarChar(500)
+  providerMessageId String?             @db.VarChar(180)
+  scheduledAt       DateTime?           @db.Timestamptz(6)
+  sentAt            DateTime?           @db.Timestamptz(6)
+  readAt            DateTime?           @db.Timestamptz(6)
+  failedAt          DateTime?           @db.Timestamptz(6)
+  failureReason     String?             @db.Text
+  metadata          Json?
+  createdAt         DateTime            @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime            @updatedAt @db.Timestamptz(6)
+
+  emailTemplate EmailTemplate? @relation(fields: [emailTemplateId], references: [id], onDelete: SetNull)
+  invoice       Invoice?       @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  organization  Organization?  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  shipment      Shipment?      @relation(fields: [shipmentId], references: [id], onDelete: SetNull)
+  user          User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status, createdAt], map: "idx_notifications_user_status_created_at")
+  @@index([userId, readAt, createdAt], map: "idx_notifications_user_read_created_at")
+  @@index([userId, channel, createdAt], map: "idx_notifications_user_channel_created_at")
+  @@index([organizationId, status, createdAt], map: "idx_notifications_organization_status_created_at")
+  @@index([channel, status, scheduledAt], map: "idx_notifications_channel_status_scheduled_at")
+  @@index([shipmentId], map: "idx_notifications_shipment_id")
+  @@index([invoiceId], map: "idx_notifications_invoice_id")
+}
+
+model EmailTemplate {
+  id             String                @id @default(uuid()) @db.Uuid
+  organizationId String?               @db.Uuid
+  key            String                @db.VarChar(120)
+  slug           String?               @db.VarChar(140)
+  name           String                @db.VarChar(160)
+  category       EmailTemplateCategory @default(SYSTEM)
+  subject        String                @db.VarChar(255)
+  preheader      String?               @db.VarChar(255)
+  bodyHtml       String                @db.Text
+  bodyText       String?               @db.Text
+  status         EmailTemplateStatus   @default(DRAFT)
+  isActive       Boolean               @default(false)
+  locale         String                @default("en") @db.VarChar(16)
+  version        Int                   @default(1)
+  variables      Json?
+  createdById    String?               @db.Uuid
+  updatedById    String?               @db.Uuid
+  createdAt      DateTime              @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime              @updatedAt @db.Timestamptz(6)
+  deletedAt      DateTime?             @db.Timestamptz(6)
+
+  createdBy     User?          @relation("EmailTemplateCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy     User?          @relation("EmailTemplateUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  organization  Organization?  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  emailLogs     EmailLog[]
+  notifications Notification[]
+
+  @@unique([organizationId, key, locale, version], map: "uq_email_templates_organization_key_locale_version")
+  @@unique([organizationId, slug, locale, version], map: "uq_email_templates_organization_slug_locale_version")
+  @@index([category, isActive], map: "idx_email_templates_category_active")
+  @@index([organizationId, status], map: "idx_email_templates_organization_status")
+  @@index([deletedAt], map: "idx_email_templates_deleted_at")
+}
+
+model EmailLog {
+  id                String                @id @default(uuid()) @db.Uuid
+  organizationId    String?               @db.Uuid
+  templateId        String?               @db.Uuid
+  sentById          String?               @db.Uuid
+  relatedUserId     String?               @db.Uuid
+  shipmentId        String?               @db.Uuid
+  recipientEmail    String                @db.VarChar(255)
+  recipientName     String?               @db.VarChar(160)
+  subject           String                @db.VarChar(255)
+  bodyHtml          String                @db.Text
+  bodyText          String?               @db.Text
+  category          EmailTemplateCategory @default(MANUAL)
+  status            EmailLogStatus        @default(DRAFT)
+  provider          EmailProvider         @default(CONSOLE)
+  providerMessageId String?               @db.VarChar(180)
+  providerResponse  Json?
+  trackingNumber    String?               @db.VarChar(120)
+  queuedAt          DateTime?             @db.Timestamptz(6)
+  sentAt            DateTime?             @db.Timestamptz(6)
+  failedAt          DateTime?             @db.Timestamptz(6)
+  failureReason     String?               @db.Text
+  metadata          Json?
+  createdAt         DateTime              @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime              @updatedAt @db.Timestamptz(6)
+
+  organization Organization?  @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  relatedUser  User?          @relation("EmailLogRelatedUser", fields: [relatedUserId], references: [id], onDelete: SetNull)
+  sentBy       User?          @relation("EmailLogSentBy", fields: [sentById], references: [id], onDelete: SetNull)
+  shipment     Shipment?      @relation(fields: [shipmentId], references: [id], onDelete: SetNull)
+  template     EmailTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, status, createdAt], map: "idx_email_logs_organization_status_created_at")
+  @@index([recipientEmail, createdAt], map: "idx_email_logs_recipient_created_at")
+  @@index([sentById, createdAt], map: "idx_email_logs_sender_created_at")
+  @@index([relatedUserId, createdAt], map: "idx_email_logs_related_user_created_at")
+  @@index([shipmentId, createdAt], map: "idx_email_logs_shipment_created_at")
+  @@index([templateId], map: "idx_email_logs_template_id")
+}
+
+model ActivityLog {
+  id             String         @id @default(uuid()) @db.Uuid
+  organizationId String?        @db.Uuid
+  actorId        String?        @db.Uuid
+  action         ActivityAction
+  entityType     String         @db.VarChar(120)
+  entityId       String?        @db.VarChar(120)
+  ipAddress      String?        @db.VarChar(45)
+  userAgent      String?        @db.Text
+  metadata       Json?
+  occurredAt     DateTime       @default(now()) @db.Timestamptz(6)
+
+  actor        User?         @relation("ActivityLogActor", fields: [actorId], references: [id], onDelete: SetNull)
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, occurredAt], map: "idx_activity_logs_organization_occurred_at")
+  @@index([actorId, occurredAt], map: "idx_activity_logs_actor_occurred_at")
+  @@index([entityType, entityId], map: "idx_activity_logs_entity")
+}
+
+model SupportTicket {
+  id             String         @id @default(uuid()) @db.Uuid
+  organizationId String         @db.Uuid
+  ticketNumber   String         @db.VarChar(80)
+  requesterId    String?        @db.Uuid
+  assignedToId   String?        @db.Uuid
+  shipmentId     String?        @db.Uuid
+  priority       TicketPriority @default(MEDIUM)
+  status         TicketStatus   @default(OPEN)
+  subject        String         @db.VarChar(200)
+  description    String?        @db.Text
+  createdAt      DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime       @updatedAt @db.Timestamptz(6)
+  resolvedAt     DateTime?      @db.Timestamptz(6)
+  closedAt       DateTime?      @db.Timestamptz(6)
+
+  assignedTo   User?                  @relation("SupportTicketAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  organization Organization           @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  requester    User?                  @relation("SupportTicketRequester", fields: [requesterId], references: [id], onDelete: SetNull)
+  shipment     Shipment?              @relation(fields: [shipmentId], references: [id], onDelete: SetNull)
+  messages     SupportTicketMessage[]
+
+  @@unique([organizationId, ticketNumber], map: "uq_support_tickets_organization_number")
+  @@index([organizationId, status, priority], map: "idx_support_tickets_organization_status_priority")
+  @@index([assignedToId, status], map: "idx_support_tickets_assignee_status")
+  @@index([shipmentId], map: "idx_support_tickets_shipment_id")
+}
+
+model SupportTicketMessage {
+  id          String                  @id @default(uuid()) @db.Uuid
+  ticketId    String                  @db.Uuid
+  authorId    String?                 @db.Uuid
+  authorType  TicketMessageAuthorType
+  body        String                  @db.Text
+  isInternal  Boolean                 @default(false)
+  attachments Json?
+  createdAt   DateTime                @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime                @updatedAt @db.Timestamptz(6)
+
+  author User?         @relation("SupportTicketMessageAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId, createdAt], map: "idx_support_ticket_messages_ticket_created_at")
+}
+
+model AiConversation {
+  id             String               @id @default(uuid()) @db.Uuid
+  organizationId String?              @db.Uuid
+  userId         String?              @db.Uuid
+  shipmentId     String?              @db.Uuid
+  title          String?              @db.VarChar(200)
+  status         AiConversationStatus @default(OPEN)
+  modelName      String?              @db.VarChar(120)
+  metadata       Json?
+  createdAt      DateTime             @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime             @updatedAt @db.Timestamptz(6)
+  deletedAt      DateTime?            @db.Timestamptz(6)
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  shipment     Shipment?     @relation(fields: [shipmentId], references: [id], onDelete: SetNull)
+  user         User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  messages     AiMessage[]
+
+  @@index([organizationId, status, updatedAt], map: "idx_ai_conversations_organization_status_updated_at")
+  @@index([userId, updatedAt], map: "idx_ai_conversations_user_updated_at")
+  @@index([shipmentId], map: "idx_ai_conversations_shipment_id")
+  @@index([deletedAt], map: "idx_ai_conversations_deleted_at")
+}
+
+model AiMessage {
+  id             String        @id @default(uuid()) @db.Uuid
+  conversationId String        @db.Uuid
+  role           AiMessageRole
+  content        String        @db.Text
+  tokensUsed     Int?
+  toolName       String?       @db.VarChar(120)
+  metadata       Json?
+  createdAt      DateTime      @default(now()) @db.Timestamptz(6)
+
+  conversation AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt], map: "idx_ai_messages_conversation_created_at")
+  @@index([role], map: "idx_ai_messages_role")
+}
+
+model Setting {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String?      @db.Uuid
+  warehouseId    String?      @db.Uuid
+  userId         String?      @db.Uuid
+  updatedById    String?      @db.Uuid
+  scope          SettingScope
+  key            String       @db.VarChar(160)
+  value          Json
+  valueType      String       @default("json") @db.VarChar(40)
+  isEncrypted    Boolean      @default(false)
+  createdAt      DateTime     @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime     @updatedAt @db.Timestamptz(6)
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  updatedBy    User?         @relation("SettingUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  user         User?         @relation("SettingOwner", fields: [userId], references: [id], onDelete: Cascade)
+  warehouse    Warehouse?    @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+
+  @@unique([scope, organizationId, warehouseId, userId, key], map: "uq_settings_scope_owner_key")
+  @@index([key], map: "idx_settings_key")
+  @@index([organizationId, scope], map: "idx_settings_organization_scope")
+}
+
+model AuditLog {
+  id             String      @id @default(uuid()) @db.Uuid
+  organizationId String?     @db.Uuid
+  actorId        String?     @db.Uuid
+  action         AuditAction
+  entityType     String      @db.VarChar(120)
+  entityId       String?     @db.VarChar(120)
+  before         Json?
+  after          Json?
+  ipAddress      String?     @db.VarChar(45)
+  userAgent      String?     @db.Text
+  correlationId  String?     @db.VarChar(120)
+  occurredAt     DateTime    @default(now()) @db.Timestamptz(6)
+
+  actor        User?         @relation("AuditLogActor", fields: [actorId], references: [id], onDelete: SetNull)
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, occurredAt], map: "idx_audit_logs_organization_occurred_at")
+  @@index([actorId, occurredAt], map: "idx_audit_logs_actor_occurred_at")
+  @@index([entityType, entityId], map: "idx_audit_logs_entity")
+  @@index([correlationId], map: "idx_audit_logs_correlation_id")
+}
