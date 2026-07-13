@@ -14,6 +14,7 @@ import type {
   StaffChatMessageInput,
   StartChatConversationInput,
 } from "@/features/chat/schemas/chat.schemas";
+import type { ChatAttachmentView, ChatMessageView } from "@/features/chat/types";
 import { generateAiText } from "@/features/ai/services/ai-provider.service";
 import { AUTH_ROLES } from "@/lib/auth/constants";
 import { AuthError } from "@/lib/auth/errors";
@@ -51,6 +52,16 @@ export type ChatAttachmentMetadata = PersistedUpload & {
 export type ChatMessageAttachmentInput = {
   attachments?: File[];
 };
+
+function toChatAttachmentView(attachment: ChatAttachmentMetadata): ChatAttachmentView {
+  return {
+    fileName: attachment.fileName,
+    fileSizeBytes: attachment.fileSizeBytes,
+    id: attachment.id,
+    isImage: attachment.mimeType.startsWith("image/"),
+    mimeType: attachment.mimeType,
+  };
+}
 
 function getAdminOrganizationFilter(user: AuthSessionUser) {
   if (user.roles.includes(AUTH_ROLES.SUPER_ADMIN)) {
@@ -217,6 +228,7 @@ export async function startChatConversation(
   const attachmentFiles = options.attachments ?? [];
   assertChatMessageHasContent(input.message, attachmentFiles);
   const attachments = await persistChatAttachments(conversationId, attachmentFiles);
+  const messageBody = normalizeChatBody(input.message, attachments);
   const subject =
     input.subject?.trim() ||
     (shipment ? `Shipment ${shipment.shipmentNumber} support` : "Live chat support");
@@ -246,11 +258,11 @@ export async function startChatConversation(
       },
     });
 
-    await transaction.chatMessage.create({
+    const customerMessage = await transaction.chatMessage.create({
       data: {
         authorId: user?.id,
         authorType: user ? ChatMessageAuthorType.CUSTOMER : ChatMessageAuthorType.VISITOR,
-        body: normalizeChatBody(input.message, attachments),
+        body: messageBody,
         conversationId: createdConversation.id,
         metadata: {
           attachments,
@@ -258,17 +270,59 @@ export async function startChatConversation(
           name: participantName,
         },
       },
+      select: {
+        authorType: true,
+        body: true,
+        createdAt: true,
+        id: true,
+        isAiDraft: true,
+        isInternal: true,
+      },
     });
 
-    await transaction.chatMessage.create({
+    const systemMessage = await transaction.chatMessage.create({
       data: {
         authorType: ChatMessageAuthorType.SYSTEM,
         body: "Apex support received this live chat request. An admin can reply from the chat inbox.",
         conversationId: createdConversation.id,
       },
+      select: {
+        authorType: true,
+        body: true,
+        createdAt: true,
+        id: true,
+        isAiDraft: true,
+        isInternal: true,
+      },
     });
 
-    return createdConversation;
+    const initialMessages: ChatMessageView[] = [
+      {
+        attachments: attachments.map(toChatAttachmentView),
+        authorName: user?.name ?? null,
+        authorType: customerMessage.authorType,
+        body: customerMessage.body,
+        createdAt: customerMessage.createdAt.toISOString(),
+        id: customerMessage.id,
+        isAiDraft: customerMessage.isAiDraft,
+        isInternal: customerMessage.isInternal,
+      },
+      {
+        attachments: [],
+        authorName: null,
+        authorType: systemMessage.authorType,
+        body: systemMessage.body,
+        createdAt: systemMessage.createdAt.toISOString(),
+        id: systemMessage.id,
+        isAiDraft: systemMessage.isAiDraft,
+        isInternal: systemMessage.isInternal,
+      },
+    ];
+
+    return {
+      ...createdConversation,
+      initialMessages,
+    };
   });
 
   await logChatActivity({
@@ -282,6 +336,7 @@ export async function startChatConversation(
   return {
     accessKey,
     conversationId: conversation.id,
+    initialMessages: conversation.initialMessages,
     status: conversation.status,
     subject: conversation.subject,
   };

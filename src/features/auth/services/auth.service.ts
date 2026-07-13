@@ -1,6 +1,6 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import { AuditAction, EmailTemplateCategory, UserStatus } from "@prisma/client";
+import { AuditAction, EmailLogStatus, EmailTemplateCategory, UserStatus } from "@prisma/client";
 
 import { env } from "@/config/env.server";
 import {
@@ -197,7 +197,7 @@ async function queueAuthEmail(userId: string, title: string, body: string, actio
     return;
   }
 
-  await queueBrandedEmail({
+  const emailLog = await queueBrandedEmail({
     bodyHtml: `<p>${body}</p><p><a href="${actionUrl}">Open secure link</a></p>`,
     category: EmailTemplateCategory.AUTH,
     organizationId: user.organizationId,
@@ -206,6 +206,20 @@ async function queueAuthEmail(userId: string, title: string, body: string, actio
     relatedUserId: userId,
     subject: title,
   });
+
+  if (!emailLog || emailLog.status === EmailLogStatus.FAILED) {
+    console.error("Auth email delivery failed", {
+      emailLogId: emailLog?.id,
+      failureReason: emailLog?.failureReason ?? "Email log was not available after queueing.",
+      recipientEmail: user.email,
+    });
+
+    throw new AuthError(
+      "We could not send the account email right now. Please contact support or try again shortly.",
+      503,
+      "AUTH_EMAIL_DELIVERY_FAILED",
+    );
+  }
 }
 
 async function writeAuthAudit({

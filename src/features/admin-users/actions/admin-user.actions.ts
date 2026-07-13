@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { ActivityAction, UserStatus } from "@prisma/client";
+import { ActivityAction, EmailLogStatus, UserStatus } from "@prisma/client";
 
 import { createAdminUserSchema } from "@/features/admin-users/schemas/admin-user.schemas";
 import type { AdminUserActionState } from "@/features/admin-users/types/admin-user.types";
@@ -112,7 +112,7 @@ export async function createAdminUserAction(
   const setup = await createPasswordReset(user.id, {});
   const setupUrl = `${env.NEXT_PUBLIC_APP_URL}/reset-password?token=${setup.token}`;
 
-  await queueBrandedEmail({
+  const emailLog = await queueBrandedEmail({
     bodyHtml: `
       <p>Hello ${user.name},</p>
       <p>An Apex Global Logistics admin account has been created for you by ${actor.name}.</p>
@@ -127,6 +127,20 @@ export async function createAdminUserAction(
     sentById: actor.id,
     subject: "Your Apex Global Logistics admin account is ready",
   });
+
+  if (!emailLog || emailLog.status === EmailLogStatus.FAILED) {
+    console.error("Admin setup email delivery failed", {
+      emailLogId: emailLog?.id,
+      failureReason: emailLog?.failureReason ?? "Email log was not available after queueing.",
+      recipientEmail: user.email,
+    });
+
+    return {
+      message:
+        "Admin account was created, but the setup email could not be sent. Check email settings, then send a password reset link.",
+      status: "error",
+    };
+  }
 
   revalidatePath("/admin/users");
 

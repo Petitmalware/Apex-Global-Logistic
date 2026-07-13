@@ -23,6 +23,12 @@ export async function GET() {
     {
       checks: {
         database,
+        email:
+          env.EMAIL_PROVIDER === "smtp"
+            ? env.SMTP_HOST && env.SMTP_USERNAME && env.SMTP_PASSWORD
+              ? "smtp_configured"
+              : "smtp_incomplete"
+            : env.EMAIL_PROVIDER,
         redis: env.REDIS_URL ? "configured" : "not_configured",
         storage: env.STORAGE_DRIVER,
       },

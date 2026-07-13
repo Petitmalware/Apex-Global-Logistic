@@ -67,7 +67,15 @@ export async function POST(request: Request) {
       conversationId: started.conversationId,
     });
 
-    return NextResponse.json({ conversation });
+    return NextResponse.json({
+      conversation: conversation ?? {
+        accessKey: started.accessKey,
+        conversationId: started.conversationId,
+        messages: started.initialMessages,
+        status: started.status,
+        subject: started.subject,
+      },
+    });
   } catch (error) {
     if (isDatabaseUnavailableError(error)) {
       return NextResponse.json({ message: getDatabaseUnavailableMessage() }, { status: 503 });
@@ -77,6 +85,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: error.message }, { status: error.statusCode });
     }
 
-    return NextResponse.json({ message: "Chat could not be started." }, { status: 500 });
+    console.error("Public chat start failed", {
+      errorCode: typeof error === "object" && error !== null && "code" in error ? error.code : null,
+      errorMessage: error instanceof Error ? error.message : "Unknown chat error",
+      errorName: error instanceof Error ? error.name : typeof error,
+    });
+
+    return NextResponse.json(
+      {
+        message:
+          "Chat could not be started because support is temporarily unavailable. Please try again or email support@apexgloballogistics.net.",
+      },
+      { status: 500 },
+    );
   }
 }

@@ -2,16 +2,13 @@ import Image from "next/image";
 import Link from "next/link";
 import type { Route } from "next";
 import type { LucideIcon } from "lucide-react";
-import { ArrowRight, Check, PackageSearch } from "lucide-react";
+import { ArrowRight, Check, Mail, MessageCircle, PackageSearch } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { Display, Heading, Kicker, Text } from "@/components/ui/typography";
+import { siteConfig } from "@/config/site";
 import {
   capabilityHighlights,
   accountabilityCards,
@@ -315,27 +312,20 @@ export function ServiceDetailsSection() {
       <div className="mt-10 grid gap-5 lg:grid-cols-3">
         {serviceDetailCards.map((service) => (
           <article
-            className="border-border bg-card shadow-panel overflow-hidden rounded-lg border"
+            className="border-border bg-card shadow-panel rounded-lg border p-6"
             key={service.title}
           >
-            <Image
-              alt={service.image.alt}
-              className="aspect-[16/10] w-full object-cover"
-              height={360}
-              sizes="(min-width: 1024px) 33vw, 100vw"
-              src={service.image.src}
-              width={560}
-            />
-            <div className="p-5">
-              <h3 className="text-xl font-semibold tracking-normal">{service.title}</h3>
-              <p className="text-muted-foreground mt-3 text-sm leading-6">{service.description}</p>
-              <div className="mt-5 flex flex-wrap gap-2">
-                {service.highlights.map((highlight) => (
-                  <Badge key={highlight} variant="outline">
-                    {highlight}
-                  </Badge>
-                ))}
-              </div>
+            <div className="bg-accent/15 text-accent grid size-12 place-items-center rounded-md">
+              <Check aria-hidden="true" className="size-5" />
+            </div>
+            <h3 className="mt-5 text-xl font-semibold tracking-normal">{service.title}</h3>
+            <p className="text-muted-foreground mt-3 text-sm leading-6">{service.description}</p>
+            <div className="mt-5 flex flex-wrap gap-2">
+              {service.highlights.map((highlight) => (
+                <Badge key={highlight} variant="outline">
+                  {highlight}
+                </Badge>
+              ))}
             </div>
           </article>
         ))}
@@ -749,49 +739,66 @@ export function ContactPanel() {
     <section className="mx-auto grid w-full max-w-7xl gap-8 px-4 py-16 sm:px-6 lg:grid-cols-[0.9fr_1.1fr]">
       <div>
         <SectionIntro
-          description="Tell us what needs to move. Apex will route you to the right parcel, pet, freight, or enterprise logistics team."
+          description="Use the fastest channel for your situation. Customers can track shipments without an account, create an account for documents, or contact operations directly for shipment setup."
           eyebrow="Contact"
-          title="Plan your next move"
+          title="Reach the right Apex desk"
         />
+        <p className="text-muted-foreground mt-5 max-w-xl text-sm leading-6">
+          For account verification or password reset issues, use the email address connected to your
+          customer account so support can match the request to the correct record.
+        </p>
       </div>
-      <form className="border-border bg-card shadow-panel grid gap-4 rounded-lg border p-5">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="contact-name">Name</Label>
-            <Input id="contact-name" placeholder="Ada Johnson" />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <a
+          className="border-border bg-card shadow-panel hover:border-accent/60 rounded-lg border p-5 transition-colors"
+          href={`mailto:${siteConfig.email}?subject=Apex%20Global%20Logistics%20support%20request`}
+        >
+          <div className="bg-accent/15 text-accent grid size-11 place-items-center rounded-md">
+            <Mail aria-hidden="true" className="size-5" />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="contact-email">Email</Label>
-            <Input id="contact-email" placeholder="ada@example.com" type="email" />
+          <h3 className="mt-5 text-lg font-semibold tracking-normal">Email operations</h3>
+          <p className="text-muted-foreground mt-2 text-sm leading-6">
+            Send shipment details, documents, billing questions, or account verification issues to
+            {` ${siteConfig.email}`}.
+          </p>
+        </a>
+        <Link
+          className="border-border bg-card shadow-panel hover:border-accent/60 rounded-lg border p-5 transition-colors"
+          href={"/tracking" as Route}
+        >
+          <div className="bg-accent/15 text-accent grid size-11 place-items-center rounded-md">
+            <PackageSearch aria-hidden="true" className="size-5" />
           </div>
+          <h3 className="mt-5 text-lg font-semibold tracking-normal">Track a shipment</h3>
+          <p className="text-muted-foreground mt-2 text-sm leading-6">
+            Use a tracking number or carrier reference to check public status without creating an
+            account.
+          </p>
+        </Link>
+        <Link
+          className="border-border bg-card shadow-panel hover:border-accent/60 rounded-lg border p-5 transition-colors"
+          href={"/register" as Route}
+        >
+          <div className="bg-accent/15 text-accent grid size-11 place-items-center rounded-md">
+            <Check aria-hidden="true" className="size-5" />
+          </div>
+          <h3 className="mt-5 text-lg font-semibold tracking-normal">Create customer access</h3>
+          <p className="text-muted-foreground mt-2 text-sm leading-6">
+            Register when you need shipment history, invoices, documents, support records, and
+            account-based updates.
+          </p>
+        </Link>
+        <div className="border-border bg-card shadow-panel rounded-lg border p-5">
+          <div className="bg-accent/15 text-accent grid size-11 place-items-center rounded-md">
+            <MessageCircle aria-hidden="true" className="size-5" />
+          </div>
+          <h3 className="mt-5 text-lg font-semibold tracking-normal">Live chat</h3>
+          <p className="text-muted-foreground mt-2 text-sm leading-6">
+            Use the live chat button for quick questions. Admin replies appear in the same chat
+            thread, with attachments supported where needed.
+          </p>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="contact-service">Service</Label>
-            <Select id="contact-service" defaultValue="parcel">
-              <option value="parcel">Parcel delivery</option>
-              <option value="pet">Pet transportation</option>
-              <option value="freight">Freight</option>
-              <option value="enterprise">Enterprise network</option>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="contact-phone">Phone</Label>
-            <Input id="contact-phone" placeholder="+1 555 014 8848" />
-          </div>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="contact-message">Message</Label>
-          <Textarea
-            id="contact-message"
-            placeholder="Shipment origin, destination, timing, and handling details."
-          />
-        </div>
-        <Button type="button" variant="accent">
-          Send request
-          <ArrowRight aria-hidden="true" />
-        </Button>
-      </form>
+      </div>
     </section>
   );
 }

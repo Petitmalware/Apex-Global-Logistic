@@ -35,6 +35,7 @@ export const primaryMarketingNavItems = [
   { href: "/services", label: "Services" },
   { href: "/tracking", label: "Tracking" },
   { href: "/pricing", label: "Pricing" },
+  { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
 ] as const;
 
@@ -53,7 +54,7 @@ export const marketingImages = {
   },
   hero: {
     alt: "Modern logistics warehouse with parcels staged for delivery dispatch",
-    src: "/images/logistics-warehouse.jpg",
+    src: "/images/global-logistics-hero.png",
   },
   parcel: {
     alt: "Courier handling parcel delivery and logistics paperwork",
@@ -64,8 +65,8 @@ export const marketingImages = {
     src: "/images/pet-transport-care.jpg",
   },
   services: {
-    alt: "Warehouse operations with parcels and freight ready for dispatch",
-    src: "/images/logistics-warehouse.jpg",
+    alt: "Cargo containers and freight infrastructure prepared for dispatch",
+    src: "/images/cargo-containers.jpg",
   },
   tracking: {
     alt: "Freight truck route used for live shipment tracking visibility",

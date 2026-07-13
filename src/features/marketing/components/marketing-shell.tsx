@@ -60,7 +60,9 @@ export function MarketingHeader() {
   const serviceNavItems = marketingNavItems.filter(
     (item) => !primaryMarketingNavItems.some((primaryItem) => primaryItem.href === item.href),
   );
-  const companyMenuItems = companyNavItems.filter((item) => item.href !== "/contact");
+  const companyMenuItems = companyNavItems.filter(
+    (item) => !primaryMarketingNavItems.some((primaryItem) => primaryItem.href === item.href),
+  );
 
   return (
     <header className="border-border bg-background/88 sticky top-0 z-50 border-b backdrop-blur-xl">
@@ -201,7 +203,7 @@ export async function MarketingFooter() {
         </div>
       </div>
       <div className="border-border text-muted-foreground border-t px-4 py-5 text-center text-xs">
-        © 2026 Apex Global Logistics. All rights reserved.
+        &copy; 2026 Apex Global Logistics. All rights reserved.
       </div>
     </footer>
   );

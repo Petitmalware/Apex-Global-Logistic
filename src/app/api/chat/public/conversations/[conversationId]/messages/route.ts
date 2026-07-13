@@ -82,6 +82,18 @@ export async function POST(request: Request, { params }: PublicChatMessageContex
       return NextResponse.json({ message: error.message }, { status: error.statusCode });
     }
 
-    return NextResponse.json({ message: "Message could not be sent." }, { status: 500 });
+    console.error("Public chat message failed", {
+      errorCode: typeof error === "object" && error !== null && "code" in error ? error.code : null,
+      errorMessage: error instanceof Error ? error.message : "Unknown chat error",
+      errorName: error instanceof Error ? error.name : typeof error,
+    });
+
+    return NextResponse.json(
+      {
+        message:
+          "Message could not be sent because support is temporarily unavailable. Please try again or email support@apexgloballogistics.net.",
+      },
+      { status: 500 },
+    );
   }
 }
