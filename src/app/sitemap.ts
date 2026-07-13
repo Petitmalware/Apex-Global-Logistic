@@ -20,12 +20,12 @@ const publicRoutes = [
 ] as const;
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const lastModified = new Date("2026-06-25");
+  const lastModified = new Date();
 
   return publicRoutes.map((route) => ({
-    changeFrequency: route === "" ? "weekly" : "monthly",
+    changeFrequency: route === "" || route === "/tracking" ? "weekly" : "monthly",
     lastModified,
-    priority: route === "" ? 1 : 0.8,
+    priority: route === "" ? 1 : route === "/tracking" ? 0.9 : 0.8,
     url: absoluteUrl(route || "/"),
   }));
 }

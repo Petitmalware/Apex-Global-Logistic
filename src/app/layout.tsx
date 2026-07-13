@@ -3,10 +3,20 @@ import type { ReactNode } from "react";
 
 import { siteConfig } from "@/config/site";
 import { ChatWidget } from "@/features/chat/components/chat-widget";
+import { createOrganizationJsonLd, createWebsiteJsonLd, structuredDataToJson } from "@/lib/seo";
 
 import "./globals.css";
 
+const googleSiteVerification = process.env.GOOGLE_SITE_VERIFICATION?.trim();
+
 export const metadata: Metadata = {
+  ...(googleSiteVerification
+    ? {
+        verification: {
+          google: googleSiteVerification,
+        },
+      }
+    : {}),
   title: {
     default: siteConfig.name,
     template: "%s | Apex Global Logistics",
@@ -78,9 +88,18 @@ type RootLayoutProps = {
 };
 
 export default function RootLayout({ children }: RootLayoutProps) {
+  const jsonLd = [createOrganizationJsonLd(), createWebsiteJsonLd()];
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
+        {jsonLd.map((data, index) => (
+          <script
+            dangerouslySetInnerHTML={{ __html: structuredDataToJson(data) }}
+            key={index}
+            type="application/ld+json"
+          />
+        ))}
         <a className="skip-link" href="#main-content">
           Skip to content
         </a>

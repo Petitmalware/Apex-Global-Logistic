@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 
-import { absoluteUrl, siteConfig } from "@/config/site";
 import { MarketingShell } from "@/features/marketing/components/marketing-shell";
 import {
   ContactPanel,
@@ -19,6 +18,7 @@ import {
   TrustAndSafetySection,
   TrustBar,
 } from "@/features/marketing/components/marketing-sections";
+import { createLogisticsServicesJsonLd, structuredDataToJson } from "@/lib/seo";
 
 export const metadata: Metadata = {
   alternates: {
@@ -36,26 +36,12 @@ export const metadata: Metadata = {
 };
 
 export default function HomePage() {
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Organization",
-    contactPoint: {
-      "@type": "ContactPoint",
-      contactType: "customer support",
-      email: siteConfig.email,
-      telephone: siteConfig.phone,
-    },
-    description:
-      "Premium parcel delivery, pet transportation, freight coordination, tracking, and support for global logistics operations.",
-    logo: absoluteUrl("/brand-mark.svg"),
-    name: siteConfig.name,
-    url: siteConfig.url,
-  };
+  const jsonLd = createLogisticsServicesJsonLd();
 
   return (
     <MarketingShell>
       <script
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: structuredDataToJson(jsonLd) }}
         type="application/ld+json"
       />
       <HomeHero />
