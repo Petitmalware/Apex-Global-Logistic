@@ -266,7 +266,7 @@ export async function createEmailVerification(userId: string, meta: RequestMeta)
   };
 }
 
-async function createPasswordReset(userId: string, meta: RequestMeta) {
+export async function createPasswordReset(userId: string, meta: RequestMeta) {
   const token = createSecureToken(48);
   const expiresAt = addMinutes(new Date(), env.AUTH_PASSWORD_RESET_TTL_MINUTES);
 

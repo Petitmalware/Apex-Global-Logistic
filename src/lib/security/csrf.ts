@@ -24,6 +24,28 @@ function getOrigin(value: string | null) {
   }
 }
 
+function getPublicAppOrigin() {
+  return getOrigin(process.env.NEXT_PUBLIC_APP_URL ?? null);
+}
+
+function getForwardedOrigin(request: NextRequest) {
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const forwardedProto = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
+  const host = forwardedHost || request.headers.get("host");
+
+  if (!host) {
+    return null;
+  }
+
+  return getOrigin(`${forwardedProto || request.nextUrl.protocol.replace(":", "")}://${host}`);
+}
+
+function getAcceptedRequestOrigins(request: NextRequest) {
+  return [request.nextUrl.origin, getForwardedOrigin(request), getPublicAppOrigin()].filter(
+    (origin): origin is string => Boolean(origin),
+  );
+}
+
 function isLoopbackHost(hostname: string) {
   return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
 }
@@ -53,16 +75,18 @@ function originsMatch(left: string, right: string) {
 }
 
 function isSameOriginRequest(request: NextRequest) {
-  const requestOrigin = request.nextUrl.origin;
+  const acceptedOrigins = getAcceptedRequestOrigins(request);
   const origin = getOrigin(request.headers.get("origin"));
 
   if (origin) {
-    return originsMatch(origin, requestOrigin);
+    return acceptedOrigins.some((acceptedOrigin) => originsMatch(origin, acceptedOrigin));
   }
 
   const referer = getOrigin(request.headers.get("referer"));
 
-  return referer ? originsMatch(referer, requestOrigin) : false;
+  return referer
+    ? acceptedOrigins.some((acceptedOrigin) => originsMatch(referer, acceptedOrigin))
+    : false;
 }
 
 export function ensureCsrfCookie(response: NextResponse, request: NextRequest) {

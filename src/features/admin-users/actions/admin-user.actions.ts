@@ -5,6 +5,9 @@ import { ActivityAction, UserStatus } from "@prisma/client";
 
 import { createAdminUserSchema } from "@/features/admin-users/schemas/admin-user.schemas";
 import type { AdminUserActionState } from "@/features/admin-users/types/admin-user.types";
+import { createPasswordReset } from "@/features/auth/services/auth.service";
+import { queueBrandedEmail } from "@/features/emails/services/email.service";
+import { env } from "@/config/env.server";
 import { AUTH_ROLES } from "@/lib/auth/constants";
 import { AuthError } from "@/lib/auth/errors";
 import { hashPassword } from "@/lib/auth/password";
@@ -87,7 +90,10 @@ export async function createAdminUserAction(
       },
     },
     select: {
+      email: true,
       id: true,
+      name: true,
+      organizationId: true,
     },
   });
 
@@ -103,11 +109,29 @@ export async function createAdminUserAction(
       organizationId: actor.organizationId,
     },
   });
+  const setup = await createPasswordReset(user.id, {});
+  const setupUrl = `${env.NEXT_PUBLIC_APP_URL}/reset-password?token=${setup.token}`;
+
+  await queueBrandedEmail({
+    bodyHtml: `
+      <p>Hello ${user.name},</p>
+      <p>An Apex Global Logistics admin account has been created for you by ${actor.name}.</p>
+      <p>Use the secure setup link below to choose your password and access the admin dashboard.</p>
+      <p><a href="${setupUrl}">Set up admin access</a></p>
+      <p>This link expires automatically. If it expires, ask an existing admin to send a new password reset link.</p>
+    `,
+    organizationId: user.organizationId,
+    recipientEmail: user.email,
+    recipientName: user.name,
+    relatedUserId: user.id,
+    sentById: actor.id,
+    subject: "Your Apex Global Logistics admin account is ready",
+  });
 
   revalidatePath("/admin/users");
 
   return {
-    message: "Admin account created. Share the temporary password securely.",
+    message: "Admin account created and setup email sent.",
     status: "success",
   };
 }

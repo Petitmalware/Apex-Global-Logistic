@@ -365,9 +365,31 @@ const demoUsers = [
 ];
 
 const retiredDemoUserEmails = [
+  "admin@apexgloballogistics.test",
+  "customer@apexgloballogistics.test",
+  "superadmin@apexgloballogistics.test",
   "agent@apexgloballogistics.test",
   "support@apexgloballogistics.test",
 ];
+
+function shouldSeedDemoUsers() {
+  return process.env.SEED_DEMO_USERS === "true";
+}
+
+function getSeedAdminConfig() {
+  const email = process.env.SEED_ADMIN_EMAIL?.trim().toLowerCase();
+  const password = process.env.SEED_ADMIN_PASSWORD;
+
+  if (!email || !password) {
+    return null;
+  }
+
+  return {
+    email,
+    name: process.env.SEED_ADMIN_NAME?.trim() || "Apex Admin",
+    password,
+  };
+}
 
 function hashPassword(password) {
   const salt = randomBytes(PASSWORD_SALT_BYTES);
@@ -471,6 +493,57 @@ async function archiveRetiredDemoUsers() {
       },
     },
   });
+}
+
+async function upsertProductionAdmin() {
+  const adminConfig = getSeedAdminConfig();
+
+  if (!adminConfig) {
+    return null;
+  }
+
+  const organization = await upsertDemoOrganization();
+  const adminRole = await prisma.role.findFirst({
+    select: {
+      id: true,
+    },
+    where: {
+      key: "admin",
+      organizationId: null,
+    },
+  });
+
+  if (!adminRole) {
+    throw new Error("Seed admin role not found.");
+  }
+
+  const user = await prisma.user.upsert({
+    create: {
+      email: adminConfig.email,
+      emailVerifiedAt: new Date(),
+      hashedPassword: hashPassword(adminConfig.password),
+      name: adminConfig.name,
+      organizationId: organization.id,
+      status: UserStatus.ACTIVE,
+    },
+    update: {
+      emailVerifiedAt: new Date(),
+      name: adminConfig.name,
+      organizationId: organization.id,
+      status: UserStatus.ACTIVE,
+    },
+    where: {
+      email: adminConfig.email,
+    },
+  });
+
+  await assignDemoRole({
+    organizationId: organization.id,
+    roleId: adminRole.id,
+    userId: user.id,
+  });
+
+  return user;
 }
 
 async function upsertEmailTemplate(template) {
@@ -623,9 +696,19 @@ async function main() {
     await upsertEmailTemplate(template);
   }
 
-  await upsertDemoUsers();
-  await archiveRetiredDemoUsers();
-  console.info(`Seeded demo login password: ${DEMO_PASSWORD}`);
+  const productionAdmin = await upsertProductionAdmin();
+
+  if (shouldSeedDemoUsers()) {
+    await upsertDemoUsers();
+    console.info(`Seeded demo login password: ${DEMO_PASSWORD}`);
+  } else {
+    await archiveRetiredDemoUsers();
+    console.info("Demo login users archived. Set SEED_DEMO_USERS=true to recreate them.");
+  }
+
+  if (productionAdmin) {
+    console.info(`Production admin ready: ${productionAdmin.email}`);
+  }
 }
 
 main()
