@@ -45,6 +45,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=deps /app/node_modules ./node_modules
 COPY package.json package-lock.json* prisma.config.ts ./
 COPY prisma ./prisma
+COPY scripts ./scripts
 
 CMD ["npm", "run", "db:migrate:deploy"]
 
