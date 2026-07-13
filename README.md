@@ -24,11 +24,22 @@ Use Node.js 22, or any Node.js version supported by Next.js 15 and the `engines`
 cp .env.example .env
 npm install
 npm run db:generate
+npm run db:migrate
 npm run db:seed
 npm run dev
 ```
 
 The app runs at `http://localhost:3000`.
+
+Local seed accounts use the password `ApexDemo12345`:
+
+- `customer@apexgloballogistics.test`
+- `agent@apexgloballogistics.test`
+- `support@apexgloballogistics.test`
+- `admin@apexgloballogistics.test`
+- `superadmin@apexgloballogistics.test`
+
+When using Neon with Prisma locally, prefer a pooled connection URL with `sslmode=require`, `sslaccept=accept_invalid_certs`, `connect_timeout=30`, `pool_timeout=30`, and `connection_limit=5`. Remove `channel_binding=require` if Prisma reports that it cannot reach the database even though the host and port are reachable.
 
 ## Development Scripts
 

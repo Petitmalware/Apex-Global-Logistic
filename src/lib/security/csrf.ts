@@ -24,17 +24,45 @@ function getOrigin(value: string | null) {
   }
 }
 
+function isLoopbackHost(hostname: string) {
+  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+}
+
+function originsMatch(left: string, right: string) {
+  if (left === right) {
+    return true;
+  }
+
+  if (isProduction()) {
+    return false;
+  }
+
+  try {
+    const leftUrl = new URL(left);
+    const rightUrl = new URL(right);
+
+    return (
+      leftUrl.protocol === rightUrl.protocol &&
+      leftUrl.port === rightUrl.port &&
+      isLoopbackHost(leftUrl.hostname) &&
+      isLoopbackHost(rightUrl.hostname)
+    );
+  } catch {
+    return false;
+  }
+}
+
 function isSameOriginRequest(request: NextRequest) {
   const requestOrigin = request.nextUrl.origin;
   const origin = getOrigin(request.headers.get("origin"));
 
   if (origin) {
-    return origin === requestOrigin;
+    return originsMatch(origin, requestOrigin);
   }
 
   const referer = getOrigin(request.headers.get("referer"));
 
-  return referer === requestOrigin;
+  return referer ? originsMatch(referer, requestOrigin) : false;
 }
 
 export function ensureCsrfCookie(response: NextResponse, request: NextRequest) {

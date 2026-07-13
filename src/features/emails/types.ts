@@ -18,6 +18,7 @@ export type EmailRecipientOption = {
 };
 
 export type EmailShipmentOption = {
+  customerEmail: string | null;
   customerName: string | null;
   id: string;
   label: string;
@@ -28,10 +29,13 @@ export type EmailShipmentOption = {
 export type EmailTemplateOption = {
   bodyHtml: string;
   category: EmailTemplateCategory;
+  defaultVariables?: Record<string, string>;
   id: string;
   label: string;
   slug: string;
+  source: "built_in_client_email" | "email";
   subject: string;
+  templateId: string | null;
   variables: string[];
 };
 
@@ -49,10 +53,13 @@ export type EmailPreview = {
 
 export type EmailTemplateListItem = {
   category: EmailTemplateCategory;
+  composeTemplateId?: string | null;
+  canEdit?: boolean;
   id: string;
   isActive: boolean;
   name: string;
   slug: string;
+  source?: "built_in_client_email" | "database";
   subject: string;
   updatedAt: string;
   version: number;

@@ -8,7 +8,7 @@ import {
   type AppRole,
 } from "@/lib/auth/constants";
 import { verifyAccessToken, type AccessTokenPayload } from "@/lib/auth/jwt";
-import { hasRole } from "@/lib/auth/rbac";
+import { hasPermission, hasRole, PERMISSIONS } from "@/lib/auth/rbac";
 import { ensureCsrfCookie, verifyCsrfProtection } from "@/lib/security/csrf";
 import { applySecurityHeaders } from "@/lib/security/headers";
 import { checkRateLimit, getPositiveIntEnv, type RateLimitResult } from "@/lib/security/rate-limit";
@@ -19,11 +19,11 @@ const ROLE_ROUTE_RULES: Array<{
 }> = [
   {
     prefix: "/super-admin",
-    roles: [AUTH_ROLES.SUPER_ADMIN],
+    roles: [AUTH_ROLES.ADMIN, AUTH_ROLES.SUPER_ADMIN],
   },
   {
     prefix: "/admin/emails",
-    roles: [AUTH_ROLES.SUPPORT, AUTH_ROLES.ADMIN, AUTH_ROLES.SUPER_ADMIN],
+    roles: [AUTH_ROLES.ADMIN, AUTH_ROLES.SUPER_ADMIN],
   },
   {
     prefix: "/admin",
@@ -31,20 +31,54 @@ const ROLE_ROUTE_RULES: Array<{
   },
   {
     prefix: "/support",
-    roles: [AUTH_ROLES.SUPPORT, AUTH_ROLES.ADMIN, AUTH_ROLES.SUPER_ADMIN],
+    roles: [AUTH_ROLES.ADMIN, AUTH_ROLES.SUPER_ADMIN],
   },
   {
     prefix: "/agent",
-    roles: [AUTH_ROLES.AGENT, AUTH_ROLES.ADMIN, AUTH_ROLES.SUPER_ADMIN],
+    roles: [AUTH_ROLES.ADMIN, AUTH_ROLES.SUPER_ADMIN],
   },
   {
     prefix: "/customer",
-    roles: [AUTH_ROLES.CUSTOMER, AUTH_ROLES.ADMIN, AUTH_ROLES.SUPER_ADMIN],
+    roles: [AUTH_ROLES.CUSTOMER],
+  },
+];
+const API_PERMISSION_RULES: Array<{
+  permission: string;
+  prefix: string;
+}> = [
+  {
+    permission: PERMISSIONS.EMAILS_CREATE,
+    prefix: "/api/admin/emails",
+  },
+  {
+    permission: PERMISSIONS.EMAILS_CREATE,
+    prefix: "/api/ai/emails/draft",
+  },
+  {
+    permission: PERMISSIONS.AI_READ,
+    prefix: "/api/ai/search",
+  },
+  {
+    permission: PERMISSIONS.AI_CREATE,
+    prefix: "/api/ai",
+  },
+  {
+    permission: PERMISSIONS.NOTIFICATIONS_MANAGE,
+    prefix: "/api/notifications/email/dispatch",
+  },
+  {
+    permission: PERMISSIONS.NOTIFICATIONS_READ,
+    prefix: "/api/notifications",
+  },
+  {
+    permission: PERMISSIONS.SHIPMENTS_READ,
+    prefix: "/api/shipments",
   },
 ];
 
 const AUTH_PAGE_PATHS = new Set(["/login", "/register", "/forgot-password", "/reset-password"]);
-const MAX_API_BODY_BYTES = 1024 * 1024;
+const DEFAULT_MAX_API_BODY_BYTES = 1024 * 1024;
+const CHAT_UPLOAD_MAX_API_BODY_BYTES = 32 * 1024 * 1024;
 
 function isPublicPath(pathname: string) {
   return AUTH_PUBLIC_PATHS.some((path) => pathname === path);
@@ -58,6 +92,12 @@ function getRequiredRoles(pathname: string) {
   return ROLE_ROUTE_RULES.find(
     (rule) => pathname === rule.prefix || pathname.startsWith(`${rule.prefix}/`),
   )?.roles;
+}
+
+function getRequiredApiPermission(pathname: string) {
+  return API_PERMISSION_RULES.find(
+    (rule) => pathname === rule.prefix || pathname.startsWith(`${rule.prefix}/`),
+  )?.permission;
 }
 
 function getClientIp(request: NextRequest) {
@@ -183,8 +223,11 @@ function enforceApiBodyLimit(request: NextRequest) {
   }
 
   const contentLength = Number(request.headers.get("content-length"));
+  const maxBodyBytes = request.nextUrl.pathname.startsWith("/api/chat/public/")
+    ? CHAT_UPLOAD_MAX_API_BODY_BYTES
+    : DEFAULT_MAX_API_BODY_BYTES;
 
-  if (Number.isSafeInteger(contentLength) && contentLength > MAX_API_BODY_BYTES) {
+  if (Number.isSafeInteger(contentLength) && contentLength > maxBodyBytes) {
     return NextResponse.json(
       {
         message: "Request body is too large.",
@@ -314,6 +357,12 @@ export async function middleware(request: NextRequest) {
   const requiredRoles = getRequiredRoles(pathname);
 
   if (requiredRoles && !hasRole(payload, requiredRoles)) {
+    return forbiddenResponse(request);
+  }
+
+  const requiredApiPermission = isApiPath ? getRequiredApiPermission(pathname) : undefined;
+
+  if (requiredApiPermission && !hasPermission(payload, requiredApiPermission)) {
     return forbiddenResponse(request);
   }
 

@@ -7,7 +7,7 @@ import {
   PageHero,
   ProcessSection,
 } from "@/features/marketing/components/marketing-sections";
-import { petFeatures } from "@/features/marketing/data/marketing";
+import { marketingImages, petFeatures } from "@/features/marketing/data/marketing";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/pet-transportation" },
@@ -23,6 +23,7 @@ export default function PetTransportationPage() {
         badge="Pet-safe movement"
         description="Apex treats pet transportation as a specialized service with structured profiles, crate planning, wellness status, and documentation visibility."
         eyebrow="Pet Transportation"
+        image={marketingImages.pet}
         primaryHref="/contact"
         primaryLabel="Plan pet transport"
         title="Comfort-first logistics for pets and their people"

@@ -12,6 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { formatPetTransportStatus } from "@/features/shipments/status-labels";
 import type { PetTransportListItem } from "@/features/pet-transport/types";
 
 const statusVariant = {
@@ -31,24 +32,35 @@ function formatDate(value: string) {
 }
 
 export function PetTransportStatusBadge({ status }: { status: PetTransportListItem["status"] }) {
-  return <Badge variant={statusVariant[status]}>{status.replaceAll("_", " ")}</Badge>;
+  return <Badge variant={statusVariant[status]}>{formatPetTransportStatus(status)}</Badge>;
 }
 
-export function PetTransportList({ petTransports }: { petTransports: PetTransportListItem[] }) {
+export function PetTransportList({
+  canCreate = false,
+  petTransports,
+}: {
+  canCreate?: boolean;
+  petTransports: PetTransportListItem[];
+}) {
   if (petTransports.length === 0) {
     return (
       <div className="border-border bg-card shadow-panel rounded-lg border p-8 text-center">
         <div className="bg-accent/15 text-accent-foreground mx-auto grid size-12 place-items-center rounded-md">
           <PawPrint aria-hidden="true" className="size-6" />
         </div>
-        <h2 className="mt-4 text-xl font-semibold tracking-normal">No pet transports yet</h2>
+        <h2 className="mt-4 text-xl font-semibold tracking-normal">
+          {canCreate ? "No pet shipments yet" : "No assigned pet shipments yet"}
+        </h2>
         <p className="text-muted-foreground mx-auto mt-2 max-w-md text-sm leading-6">
-          Create a pet transport to manage profile records, travel documents, crate handling,
-          feeding, temperature, photos, and shipment tracking.
+          {canCreate
+            ? "Create a pet shipment for a registered customer recipient, then manage profile records, travel documents, crate handling, feeding, temperature, photos, and tracking."
+            : "Pet shipments assigned to your customer account will appear here after the Apex team creates them."}
         </p>
-        <Button asChild className="mt-5" variant="accent">
-          <Link href={"/pet-transport/new" as Route}>Book pet transport</Link>
-        </Button>
+        {canCreate ? (
+          <Button asChild className="mt-5" variant="accent">
+            <Link href={"/pet-transport/new" as Route}>Create pet shipment</Link>
+          </Button>
+        ) : null}
       </div>
     );
   }

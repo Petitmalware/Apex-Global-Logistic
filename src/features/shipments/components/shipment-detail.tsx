@@ -14,6 +14,7 @@ import {
   Printer,
   ReceiptText,
   Scale,
+  Truck,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -23,13 +24,39 @@ import { PackagePhotoForm } from "@/features/shipments/components/package-photo-
 import { ShipmentDocumentForm } from "@/features/shipments/components/shipment-document-form";
 import { ShipmentStatusBadge } from "@/features/shipments/components/shipment-list";
 import { RealtimeShipmentTimeline } from "@/features/shipments/components/realtime-shipment-timeline";
+import { ShipmentLiveMap } from "@/features/shipments/components/shipment-live-map";
 import { ShipmentStatusForm } from "@/features/shipments/components/shipment-status-form";
 import {
   updateShipmentStatusAction,
   uploadPackagePhotoAction,
   uploadShipmentDocumentAction,
 } from "@/features/shipments/actions/shipment.actions";
+import type { AuthSessionUser } from "@/features/auth/services/auth.service";
 import type { ShipmentDetail } from "@/features/shipments/types";
+import type { ShipmentTrackingSnapshot } from "@/features/shipments/types";
+import { AUTH_ROLES } from "@/lib/auth/constants";
+
+function canManageShipmentWorkspace(user: AuthSessionUser) {
+  return user.roles.includes(AUTH_ROLES.ADMIN) || user.roles.includes(AUTH_ROLES.SUPER_ADMIN);
+}
+
+function getTrackingSnapshotFromDetail(shipment: ShipmentDetail): ShipmentTrackingSnapshot {
+  return {
+    deliveryWindowEnd: shipment.deliveryWindowEnd,
+    deliveryWindowStart: shipment.deliveryWindowStart,
+    destinationCity: shipment.destinationCity,
+    id: shipment.id,
+    mode: shipment.mode,
+    originCity: shipment.originCity,
+    pickupWindowEnd: shipment.pickupWindowEnd,
+    pickupWindowStart: shipment.pickupWindowStart,
+    serviceLevel: shipment.serviceLevel,
+    shipmentNumber: shipment.shipmentNumber,
+    status: shipment.status,
+    timeline: shipment.timeline,
+    updatedAt: shipment.updatedAt,
+  };
+}
 
 function formatDate(value: string | null) {
   if (!value) {
@@ -88,7 +115,74 @@ function AddressCard({ address, title }: { address: ShipmentDetail["origin"]; ti
   );
 }
 
-function ShipmentOverview({ shipment }: { shipment: ShipmentDetail }) {
+function getVisibleOfficeDetails(shipment: ShipmentDetail) {
+  const details = shipment.officeDetails;
+
+  if (!details) {
+    return [];
+  }
+
+  return [
+    { label: "Courier", value: details.courier },
+    { label: "Carrier", value: details.carrier },
+    { label: "Carrier reference", value: details.carrierReference },
+    { label: "Payment mode", value: details.paymentMode },
+    { label: "Total freight", value: details.totalFreight },
+    { label: "Quantity", value: details.quantity },
+    { label: "Departure time", value: details.departureTime },
+    { label: "Pickup time", value: details.pickupTime },
+    { label: "Shipper phone", value: details.shipperPhone },
+    { label: "Shipper email", value: details.shipperEmail },
+  ].filter((item) => item.value);
+}
+
+function OfficeDetailsCard({ shipment }: { shipment: ShipmentDetail }) {
+  const officeDetails = getVisibleOfficeDetails(shipment);
+
+  if (!officeDetails.length && !shipment.officeDetails?.comments) {
+    return null;
+  }
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-start gap-3">
+        <div className="bg-info/10 text-info grid size-10 place-items-center rounded-md">
+          <Truck aria-hidden="true" className="size-5" />
+        </div>
+        <div>
+          <CardTitle>Agency shipment details</CardTitle>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Carrier, billing, schedule, and office notes captured by the admin team.
+          </p>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {officeDetails.map((item) => (
+            <div className="border-border bg-surface rounded-lg border p-3" key={item.label}>
+              <p className="text-muted-foreground text-xs font-semibold uppercase">{item.label}</p>
+              <p className="mt-2 text-sm font-medium">{item.value}</p>
+            </div>
+          ))}
+        </div>
+        {shipment.officeDetails?.comments ? (
+          <div className="border-border bg-surface rounded-lg border p-4">
+            <p className="text-muted-foreground text-xs font-semibold uppercase">Comments</p>
+            <p className="mt-2 text-sm leading-6">{shipment.officeDetails.comments}</p>
+          </div>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
+function ShipmentOverview({
+  canManage,
+  shipment,
+}: {
+  canManage: boolean;
+  shipment: ShipmentDetail;
+}) {
   return (
     <section className="bg-primary text-primary-foreground shadow-panel overflow-hidden rounded-lg p-6 md:p-8">
       <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-start">
@@ -127,16 +221,22 @@ function ShipmentOverview({ shipment }: { shipment: ShipmentDetail }) {
               Receipt
             </Link>
           </Button>
-          <Button asChild variant="accent">
-            <Link href={`/shipments/${shipment.id}/edit` as Route}>
-              <Pencil aria-hidden="true" />
-              Edit shipment
-            </Link>
-          </Button>
+          {canManage ? (
+            <Button asChild variant="accent">
+              <Link href={`/shipments/${shipment.id}/edit` as Route}>
+                <Pencil aria-hidden="true" />
+                Edit shipment
+              </Link>
+            </Button>
+          ) : null}
         </div>
       </div>
-      <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {[
+          {
+            label: "Recipient",
+            value: shipment.recipientName ?? shipment.recipientEmail ?? "Manual tracking",
+          },
           { label: "Mode", value: shipment.mode },
           { label: "Priority", value: shipment.priority },
           { label: "Packages", value: String(shipment.packageCount) },
@@ -187,7 +287,13 @@ function WeightSummary({ shipment }: { shipment: ShipmentDetail }) {
   );
 }
 
-function InvoiceSummary({ invoice }: { invoice: ShipmentDetail["invoice"] }) {
+function InvoiceSummary({
+  canIssue,
+  invoice,
+}: {
+  canIssue: boolean;
+  invoice: ShipmentDetail["invoice"];
+}) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-start gap-3">
@@ -213,6 +319,12 @@ function InvoiceSummary({ invoice }: { invoice: ShipmentDetail["invoice"] }) {
               </div>
               <Badge variant="outline">{invoice.status.replaceAll("_", " ")}</Badge>
             </div>
+            <Button asChild variant="outline">
+              <Link href={`/invoices/${invoice.id}` as Route}>
+                <ReceiptText aria-hidden="true" />
+                View invoice
+              </Link>
+            </Button>
             <div className="space-y-2">
               {invoice.lineItems.map((lineItem) => (
                 <div className="flex items-start justify-between gap-4 text-sm" key={lineItem.id}>
@@ -239,7 +351,17 @@ function InvoiceSummary({ invoice }: { invoice: ShipmentDetail["invoice"] }) {
             </div>
           </div>
         ) : (
-          <p className="text-muted-foreground text-sm">No invoice has been generated yet.</p>
+          <div className="space-y-4">
+            <p className="text-muted-foreground text-sm">No invoice has been generated yet.</p>
+            {canIssue ? (
+              <Button asChild variant="accent">
+                <Link href={"/admin/invoices/new" as Route}>
+                  <ReceiptText aria-hidden="true" />
+                  Issue invoice
+                </Link>
+              </Button>
+            ) : null}
+          </div>
         )}
       </CardContent>
     </Card>
@@ -312,7 +434,7 @@ function PackageCards({ shipment }: { shipment: ShipmentDetail }) {
   );
 }
 
-function PackagePhotos({ shipment }: { shipment: ShipmentDetail }) {
+function PackagePhotos({ canManage, shipment }: { canManage: boolean; shipment: ShipmentDetail }) {
   const photoCount = shipment.packages.reduce(
     (sum, shipmentPackage) => sum + shipmentPackage.photos.length,
     0,
@@ -334,10 +456,16 @@ function PackagePhotos({ shipment }: { shipment: ShipmentDetail }) {
         </div>
       </CardHeader>
       <CardContent>
-        <PackagePhotoForm
-          action={uploadPackagePhotoAction.bind(null, shipment.id)}
-          packages={shipment.packages}
-        />
+        {canManage ? (
+          <PackagePhotoForm
+            action={uploadPackagePhotoAction.bind(null, shipment.id)}
+            packages={shipment.packages}
+          />
+        ) : (
+          <p className="text-muted-foreground text-sm">
+            Package photos uploaded by the Apex team appear in the package cards.
+          </p>
+        )}
       </CardContent>
     </Card>
   );
@@ -364,7 +492,7 @@ function Timeline({ shipment }: { shipment: ShipmentDetail }) {
   );
 }
 
-function Documents({ shipment }: { shipment: ShipmentDetail }) {
+function Documents({ canManage, shipment }: { canManage: boolean; shipment: ShipmentDetail }) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-start gap-3">
@@ -377,7 +505,9 @@ function Documents({ shipment }: { shipment: ShipmentDetail }) {
         </div>
       </CardHeader>
       <CardContent className="space-y-5">
-        <ShipmentDocumentForm action={uploadShipmentDocumentAction.bind(null, shipment.id)} />
+        {canManage ? (
+          <ShipmentDocumentForm action={uploadShipmentDocumentAction.bind(null, shipment.id)} />
+        ) : null}
         <div className="space-y-3">
           {shipment.documents.length ? (
             shipment.documents.map((document) => (
@@ -442,10 +572,18 @@ function HistoryPanel({ shipment }: { shipment: ShipmentDetail }) {
   );
 }
 
-export function ShipmentDetailView({ shipment }: { shipment: ShipmentDetail }) {
+export function ShipmentDetailView({
+  shipment,
+  user,
+}: {
+  shipment: ShipmentDetail;
+  user: AuthSessionUser;
+}) {
+  const canManage = canManageShipmentWorkspace(user);
+
   return (
     <div className="space-y-6">
-      <ShipmentOverview shipment={shipment} />
+      <ShipmentOverview canManage={canManage} shipment={shipment} />
       <div className="grid gap-6 lg:grid-cols-2">
         <AddressCard address={shipment.origin} title="Origin" />
         <AddressCard address={shipment.destination} title="Destination" />
@@ -487,25 +625,32 @@ export function ShipmentDetailView({ shipment }: { shipment: ShipmentDetail }) {
           </CardContent>
         </Card>
       </div>
+      <OfficeDetailsCard shipment={shipment} />
       <WeightSummary shipment={shipment} />
       <PackageCards shipment={shipment} />
       <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
         <div className="space-y-6">
+          <ShipmentLiveMap snapshot={getTrackingSnapshotFromDetail(shipment)} />
           <Timeline shipment={shipment} />
           <HistoryPanel shipment={shipment} />
         </div>
         <div className="space-y-6">
-          <InvoiceSummary invoice={shipment.invoice} />
-          <Card>
-            <CardHeader>
-              <CardTitle>Status update</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ShipmentStatusForm action={updateShipmentStatusAction.bind(null, shipment.id)} />
-            </CardContent>
-          </Card>
-          <PackagePhotos shipment={shipment} />
-          <Documents shipment={shipment} />
+          <InvoiceSummary canIssue={canManage} invoice={shipment.invoice} />
+          {canManage ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Status update</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ShipmentStatusForm
+                  action={updateShipmentStatusAction.bind(null, shipment.id)}
+                  currentStatus={shipment.status}
+                />
+              </CardContent>
+            </Card>
+          ) : null}
+          <PackagePhotos canManage={canManage} shipment={shipment} />
+          <Documents canManage={canManage} shipment={shipment} />
         </div>
       </div>
     </div>

@@ -39,10 +39,10 @@ const MAX_PET_PHOTO_SIZE_BYTES = 8 * 1024 * 1024;
 const petDocumentUploadRules = {
   acceptedMimeTypes: DOCUMENT_MIME_TYPES,
   allowedExtensions: DOCUMENT_EXTENSIONS,
-  emptyFileMessage: "Attach a pet transport file before uploading.",
+  emptyFileMessage: "Attach a pet shipment file before uploading.",
   maxSizeBytes: MAX_PET_DOCUMENT_SIZE_BYTES,
   tooLargeMessage: "Pet transport files are larger than the allowed size.",
-  unsupportedTypeMessage: "Unsupported pet transport file type.",
+  unsupportedTypeMessage: "Unsupported pet shipment file type.",
 };
 const petPhotoUploadRules = {
   acceptedMimeTypes: IMAGE_MIME_TYPES,
@@ -51,6 +51,10 @@ const petPhotoUploadRules = {
   maxSizeBytes: MAX_PET_PHOTO_SIZE_BYTES,
   tooLargeMessage: "Pet transport photos are larger than the allowed size.",
   unsupportedTypeMessage: "Pet photos must be JPG, PNG, or WebP.",
+};
+const REMOTE_DATABASE_TRANSACTION_OPTIONS = {
+  maxWait: 20_000,
+  timeout: 60_000,
 };
 
 function toDecimal(value?: number) {
@@ -112,7 +116,7 @@ async function getPetTransportForMutation(petTransportId: string, user: AuthSess
 
   if (!canMutatePetTransport({ ...petTransport.shipment, user })) {
     throw new AuthError(
-      "You do not have permission to update this pet transport.",
+      "You do not have permission to update this pet shipment.",
       403,
       "FORBIDDEN",
     );
@@ -169,6 +173,12 @@ function hasUpload(file: File | null | undefined): file is File {
   return file instanceof File && file.size > 0;
 }
 
+function getJsonObject(value: Prisma.JsonValue | null): Prisma.InputJsonObject {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Prisma.InputJsonObject)
+    : {};
+}
+
 function buildPetProfileData(input: PetTransportProfileInput) {
   return {
     ageMonths: input.ageMonths,
@@ -209,7 +219,7 @@ export async function createPetTransportBooking({
   const shipment = await createShipment(
     {
       ...shipmentInput,
-      serviceLevel: shipmentInput.serviceLevel || "Pet Transport Care",
+      serviceLevel: shipmentInput.serviceLevel || "Pet Shipment Care",
       status: ShipmentStatus.BOOKED,
     },
     user,
@@ -219,6 +229,7 @@ export async function createPetTransportBooking({
     await transaction.shipment.update({
       data: {
         metadata: {
+          ...getJsonObject(shipment.metadata),
           bookingType: "PET_TRANSPORT",
           petName: pet.petName,
           species: pet.species,
@@ -242,7 +253,7 @@ export async function createPetTransportBooking({
     await transaction.petTravelHistory.create({
       data: {
         eventType: PetTravelEventType.PROFILE_CREATED,
-        message: "Pet transport profile created and linked to shipment tracking.",
+        message: "Pet shipment profile created and linked to shipment tracking.",
         occurredAt: new Date(),
         petTransportId: createdPetTransport.id,
         recordedById: user.id,
@@ -265,7 +276,7 @@ export async function createPetTransportBooking({
     });
 
     return createdPetTransport;
-  });
+  }, REMOTE_DATABASE_TRANSACTION_OPTIONS);
 
   return petTransport;
 }
@@ -288,7 +299,7 @@ export async function updatePetTransportProfile(
     await transaction.petTravelHistory.create({
       data: {
         eventType: PetTravelEventType.PROFILE_CREATED,
-        message: "Pet transport profile updated.",
+        message: "Pet shipment profile updated.",
         occurredAt: new Date(),
         petTransportId,
         recordedById: user.id,

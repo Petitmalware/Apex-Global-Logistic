@@ -9,6 +9,10 @@ import type {
   EmailTemplateDetail,
   EmailTemplateListItem,
 } from "@/features/emails/types";
+import {
+  getBuiltInClientEmailTemplates,
+  type BuiltInClientEmailTemplate,
+} from "@/features/emails/data/built-in-client-email-templates";
 import { AUTH_ROLES } from "@/lib/auth/constants";
 import { prisma } from "@/lib/db";
 
@@ -39,6 +43,42 @@ function parseVariables(value: Prisma.JsonValue | null) {
     : [];
 }
 
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+}
+
+function getManualRecipient(metadata: Prisma.JsonValue | null) {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    return null;
+  }
+
+  const value = "manualRecipient" in metadata ? metadata.manualRecipient : null;
+
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const email = "email" in value && typeof value.email === "string" ? value.email : null;
+  const name = "name" in value && typeof value.name === "string" ? value.name : null;
+
+  return email || name ? { email, name } : null;
+}
+
+function builtInClientEmailToComposerOption(template: BuiltInClientEmailTemplate) {
+  return {
+    bodyHtml: template.bodyHtml,
+    category: template.category,
+    defaultVariables: template.defaultVariables,
+    id: `built-in:${template.id}`,
+    label: `Built-in mail - ${template.name}`,
+    slug: `built-in-${template.slug}`,
+    source: "built_in_client_email" as const,
+    subject: template.subject,
+    templateId: null,
+    variables: template.variables,
+  };
+}
+
 function mapTemplate(template: {
   category: EmailTemplateListItem["category"];
   id: string;
@@ -51,19 +91,41 @@ function mapTemplate(template: {
   version: number;
 }): EmailTemplateListItem {
   return {
+    canEdit: true,
     category: template.category,
+    composeTemplateId: template.id,
     id: template.id,
     isActive: template.isActive,
     name: template.name,
     slug: template.slug ?? template.key,
+    source: "database",
     subject: template.subject,
     updatedAt: template.updatedAt.toISOString(),
     version: template.version,
   };
 }
 
+function builtInClientEmailToTemplateListItem(
+  template: BuiltInClientEmailTemplate,
+): EmailTemplateListItem {
+  return {
+    canEdit: false,
+    category: template.category,
+    composeTemplateId: `built-in:${template.id}`,
+    id: `built-in:${template.id}`,
+    isActive: template.isActive,
+    name: `Built-in mail - ${template.name}`,
+    slug: `built-in-${template.slug}`,
+    source: "built_in_client_email",
+    subject: template.subject,
+    updatedAt: new Date(0).toISOString(),
+    version: 1,
+  };
+}
+
 export async function getEmailStudioOverview(user: AuthSessionUser) {
   const where = getOrganizationFilter(user);
+  const builtInTemplateCount = getBuiltInClientEmailTemplates().length;
   const [templateCount, queuedCount, sentCount, failedCount, recentLogs] = await Promise.all([
     prisma.emailTemplate.count({
       where: {
@@ -97,7 +159,7 @@ export async function getEmailStudioOverview(user: AuthSessionUser) {
     queuedCount,
     recentLogs,
     sentCount,
-    templateCount,
+    templateCount: templateCount + builtInTemplateCount,
   };
 }
 
@@ -128,10 +190,12 @@ export async function getEmailComposerOptions(
       select: {
         customer: {
           select: {
+            email: true,
             name: true,
           },
         },
         id: true,
+        metadata: true,
         shipmentNumber: true,
         status: true,
       },
@@ -165,6 +229,7 @@ export async function getEmailComposerOptions(
       },
     }),
   ]);
+  const builtInTemplates = getBuiltInClientEmailTemplates();
 
   return {
     recipients: recipients.map((recipient) => ({
@@ -173,26 +238,78 @@ export async function getEmailComposerOptions(
       label: `${recipient.name} <${recipient.email}>`,
       name: recipient.name,
     })),
-    shipments: shipments.map((shipment) => ({
-      customerName: shipment.customer?.name ?? null,
-      id: shipment.id,
-      label: `${shipment.shipmentNumber} - ${shipment.status.replaceAll("_", " ")}`,
-      shipmentNumber: shipment.shipmentNumber,
-      status: shipment.status,
-    })),
-    templates: templates.map((template) => ({
-      bodyHtml: template.bodyHtml,
-      category: template.category,
-      id: template.id,
-      label: template.name,
-      slug: template.slug ?? template.key,
-      subject: template.subject,
-      variables: parseVariables(template.variables),
-    })),
+    shipments: shipments.map((shipment) => {
+      const manualRecipient = getManualRecipient(shipment.metadata);
+      const customerName =
+        shipment.customer?.name ?? manualRecipient?.name ?? manualRecipient?.email ?? null;
+
+      return {
+        customerEmail: shipment.customer?.email ?? manualRecipient?.email ?? null,
+        customerName,
+        id: shipment.id,
+        label: `${shipment.shipmentNumber} - ${
+          customerName ?? shipment.status.replaceAll("_", " ")
+        }`,
+        shipmentNumber: shipment.shipmentNumber,
+        status: shipment.status,
+      };
+    }),
+    templates: [
+      ...builtInTemplates.map(builtInClientEmailToComposerOption),
+      ...templates.map((template) => ({
+        bodyHtml: template.bodyHtml,
+        category: template.category,
+        id: template.id,
+        label: template.name,
+        slug: template.slug ?? template.key,
+        source: "email" as const,
+        subject: template.subject,
+        templateId: template.id,
+        variables: parseVariables(template.variables),
+      })),
+    ],
   };
 }
 
 export async function getEmailTemplatesForAdmin(
+  user: AuthSessionUser,
+): Promise<EmailTemplateListItem[]> {
+  const templates = await prisma.emailTemplate.findMany({
+    orderBy: [
+      {
+        category: "asc",
+      },
+      {
+        name: "asc",
+      },
+    ],
+    select: {
+      category: true,
+      id: true,
+      isActive: true,
+      key: true,
+      name: true,
+      slug: true,
+      subject: true,
+      updatedAt: true,
+      version: true,
+    },
+    where: {
+      ...getOrganizationFilter(user),
+      deletedAt: null,
+    },
+  });
+  const builtInTemplates = getBuiltInClientEmailTemplates();
+
+  return [
+    ...builtInTemplates
+      .filter((template) => template.isActive)
+      .map(builtInClientEmailToTemplateListItem),
+    ...templates.map(mapTemplate),
+  ];
+}
+
+export async function getEditableEmailTemplatesForAdmin(
   user: AuthSessionUser,
 ): Promise<EmailTemplateListItem[]> {
   const templates = await prisma.emailTemplate.findMany({
@@ -228,6 +345,10 @@ export async function getEmailTemplateForAdmin(
   templateId: string,
   user: AuthSessionUser,
 ): Promise<EmailTemplateDetail | null> {
+  if (!isUuid(templateId)) {
+    return null;
+  }
+
   const template = await prisma.emailTemplate.findFirst({
     where: {
       ...getOrganizationFilter(user),

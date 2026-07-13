@@ -6,6 +6,8 @@ import {
   FinalCta,
   PageHero,
 } from "@/features/marketing/components/marketing-sections";
+import { CompanyContactDetails } from "@/features/settings/components/company-contact-details";
+import { getCompanyProfile } from "@/features/settings/queries/company-profile.queries";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/contact" },
@@ -14,7 +16,11 @@ export const metadata: Metadata = {
   title: "Contact | Apex Global Logistics",
 };
 
-export default function ContactPage() {
+export const dynamic = "force-dynamic";
+
+export default async function ContactPage() {
+  const profile = await getCompanyProfile();
+
   return (
     <MarketingShell>
       <PageHero
@@ -23,8 +29,9 @@ export default function ContactPage() {
         eyebrow="Contact"
         primaryHref="/contact"
         primaryLabel="Start below"
-        title="Let’s design your next logistics flow"
+        title="Let's design your next logistics flow"
       />
+      <CompanyContactDetails profile={profile} />
       <ContactPanel />
       <FinalCta />
     </MarketingShell>

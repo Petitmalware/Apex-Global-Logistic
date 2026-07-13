@@ -376,6 +376,22 @@ enum TicketMessageAuthorType {
   SYSTEM
 }
 
+enum ChatConversationStatus {
+  OPEN
+  PENDING_CUSTOMER
+  PENDING_STAFF
+  RESOLVED
+  CLOSED
+}
+
+enum ChatMessageAuthorType {
+  VISITOR
+  CUSTOMER
+  STAFF
+  AI
+  SYSTEM
+}
+
 enum AiConversationStatus {
   OPEN
   ARCHIVED
@@ -424,23 +440,24 @@ model Organization {
   updatedAt     DateTime           @updatedAt @db.Timestamptz(6)
   deletedAt     DateTime?          @db.Timestamptz(6)
 
-  addresses       Address[]
-  activityLogs    ActivityLog[]
-  aiConversations AiConversation[]
-  auditLogs       AuditLog[]
-  emailLogs       EmailLog[]
-  drivers         Driver[]
-  emailTemplates  EmailTemplate[]
-  invoices        Invoice[]
-  notifications   Notification[]
-  roles           Role[]
-  settings        Setting[]
-  shipments       Shipment[]
-  supportTickets  SupportTicket[]
-  userRoles       UserRole[]
-  users           User[]
-  vehicles        Vehicle[]
-  warehouses      Warehouse[]
+  addresses         Address[]
+  activityLogs      ActivityLog[]
+  aiConversations   AiConversation[]
+  auditLogs         AuditLog[]
+  chatConversations ChatConversation[]
+  emailLogs         EmailLog[]
+  drivers           Driver[]
+  emailTemplates    EmailTemplate[]
+  invoices          Invoice[]
+  notifications     Notification[]
+  roles             Role[]
+  settings          Setting[]
+  shipments         Shipment[]
+  supportTickets    SupportTicket[]
+  userRoles         UserRole[]
+  users             User[]
+  vehicles          Vehicle[]
+  warehouses        Warehouse[]
 
   @@index([status, createdAt], map: "idx_organizations_status_created_at")
   @@index([deletedAt], map: "idx_organizations_deleted_at")
@@ -495,7 +512,10 @@ model User {
   assignedRoleGrants        UserRole[]                @relation("AssignedUserRoles")
   assignedVehicleGrants     DriverVehicleAssignment[] @relation("DriverVehicleAssignedBy")
   assignedSupportTickets    SupportTicket[]           @relation("SupportTicketAssignee")
+  assignedChatConversations ChatConversation[]        @relation("ChatConversationAssignee")
   auditLogs                 AuditLog[]                @relation("AuditLogActor")
+  authoredChatMessages      ChatMessage[]             @relation("ChatMessageAuthor")
+  customerChatConversations ChatConversation[]        @relation("ChatConversationCustomer")
   createdEmailTemplates     EmailTemplate[]           @relation("EmailTemplateCreatedBy")
   receivedEmailLogs         EmailLog[]                @relation("EmailLogRelatedUser")
   createdShipments          Shipment[]                @relation("ShipmentCreatedBy")
@@ -794,6 +814,7 @@ model Shipment {
   originWarehouse      Warehouse?         @relation("ShipmentOriginWarehouse", fields: [originWarehouseId], references: [id], onDelete: SetNull)
   vehicle              Vehicle?           @relation("ShipmentVehicle", fields: [vehicleId], references: [id], onDelete: SetNull)
   aiConversations      AiConversation[]
+  chatConversations    ChatConversation[]
   freightTransport     FreightTransport?
   invoices             Invoice[]
   emailLogs            EmailLog[]
@@ -1658,6 +1679,63 @@ model SupportTicketMessage {
   ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
   @@index([ticketId, createdAt], map: "idx_support_ticket_messages_ticket_created_at")
+}
+
+model ChatConversation {
+  id                String                 @id @default(uuid()) @db.Uuid
+  organizationId    String?                @db.Uuid
+  customerId        String?                @db.Uuid
+  assignedToId      String?                @db.Uuid
+  shipmentId        String?                @db.Uuid
+  trackingReference String?                @db.VarChar(120)
+  visitorName       String?                @db.VarChar(160)
+  visitorEmail      String?                @db.VarChar(255)
+  visitorPhone      String?                @db.VarChar(40)
+  subject           String                 @default("Live chat") @db.VarChar(200)
+  status            ChatConversationStatus @default(OPEN)
+  priority          TicketPriority         @default(MEDIUM)
+  accessKeyHash     String?                @unique @db.Char(64)
+  lastMessageAt     DateTime               @default(now()) @db.Timestamptz(6)
+  aiSummary         String?                @db.Text
+  metadata          Json?
+  createdAt         DateTime               @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime               @updatedAt @db.Timestamptz(6)
+  resolvedAt        DateTime?              @db.Timestamptz(6)
+  closedAt          DateTime?              @db.Timestamptz(6)
+
+  assignedTo   User?         @relation("ChatConversationAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  customer     User?         @relation("ChatConversationCustomer", fields: [customerId], references: [id], onDelete: SetNull)
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  shipment     Shipment?     @relation(fields: [shipmentId], references: [id], onDelete: SetNull)
+  messages     ChatMessage[]
+
+  @@index([organizationId, status, lastMessageAt], map: "idx_chat_conversations_organization_status_last_message")
+  @@index([customerId, lastMessageAt], map: "idx_chat_conversations_customer_last_message")
+  @@index([assignedToId, status], map: "idx_chat_conversations_assignee_status")
+  @@index([shipmentId], map: "idx_chat_conversations_shipment_id")
+  @@index([visitorEmail, lastMessageAt], map: "idx_chat_conversations_visitor_email_last_message")
+}
+
+model ChatMessage {
+  id             String                @id @default(uuid()) @db.Uuid
+  conversationId String                @db.Uuid
+  authorId       String?               @db.Uuid
+  authorType     ChatMessageAuthorType
+  body           String                @db.Text
+  isAiDraft      Boolean               @default(false)
+  isInternal     Boolean               @default(false)
+  readAt         DateTime?             @db.Timestamptz(6)
+  metadata       Json?
+  createdAt      DateTime              @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime              @updatedAt @db.Timestamptz(6)
+
+  author       User?            @relation("ChatMessageAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  conversation ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt], map: "idx_chat_messages_conversation_created_at")
+  @@index([authorId, createdAt], map: "idx_chat_messages_author_created_at")
+  @@index([authorType, createdAt], map: "idx_chat_messages_author_type_created_at")
+  @@index([readAt], map: "idx_chat_messages_read_at")
 }
 
 model AiConversation {

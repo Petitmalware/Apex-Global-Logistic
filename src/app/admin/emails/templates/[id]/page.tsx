@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 
 import { ProtectedShell } from "@/components/layout/protected-shell";
@@ -20,7 +20,17 @@ type EmailTemplatePageProps = {
 export default async function EmailTemplatePage({ params }: EmailTemplatePageProps) {
   const user = await requirePermission(PERMISSIONS.EMAILS_READ);
   const { id } = await params;
-  const template = await getEmailTemplateForAdmin(id, user);
+  const templateId = decodeURIComponent(id);
+
+  if (templateId.startsWith("built-in:")) {
+    redirect(`/admin/emails/compose?template=${encodeURIComponent(templateId)}`);
+  }
+
+  if (templateId.startsWith("official:")) {
+    redirect("/admin/emails/templates");
+  }
+
+  const template = await getEmailTemplateForAdmin(templateId, user);
 
   if (!template) {
     notFound();

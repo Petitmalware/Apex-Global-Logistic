@@ -13,6 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { formatShipmentStatus } from "@/features/shipments/status-labels";
 import type { ShipmentListItem } from "@/features/shipments/types";
 
 const statusVariant = {
@@ -34,24 +35,36 @@ function formatDate(value: string) {
 }
 
 export function ShipmentStatusBadge({ status }: { status: ShipmentListItem["status"] }) {
-  return <Badge variant={statusVariant[status]}>{status.replaceAll("_", " ")}</Badge>;
+  return <Badge variant={statusVariant[status]}>{formatShipmentStatus(status)}</Badge>;
 }
 
-export function ShipmentList({ shipments }: { shipments: ShipmentListItem[] }) {
+export function ShipmentList({
+  canCreate = false,
+  shipments,
+}: {
+  canCreate?: boolean;
+  shipments: ShipmentListItem[];
+}) {
   if (!shipments.length) {
     return (
       <EmptyState
         action={
-          <Button asChild variant="accent">
-            <Link href={"/shipments/new" as Route}>
-              <Plus aria-hidden="true" />
-              Create shipment
-            </Link>
-          </Button>
+          canCreate ? (
+            <Button asChild variant="accent">
+              <Link href={"/shipments/new" as Route}>
+                <Plus aria-hidden="true" />
+                Create shipment
+              </Link>
+            </Button>
+          ) : undefined
         }
-        description="Create the first shipment to start tracking packages, documents, status events, and shipment history."
+        description={
+          canCreate
+            ? "Create the first shipment to start tracking packages, documents, status events, and shipment history."
+            : "Shipments assigned to your customer account will appear here after the Apex team creates them."
+        }
         icon={PackageSearch}
-        title="No shipments yet"
+        title={canCreate ? "No shipments yet" : "No assigned shipments yet"}
       />
     );
   }
@@ -77,6 +90,11 @@ export function ShipmentList({ shipments }: { shipments: ShipmentListItem[] }) {
                 <p className="text-muted-foreground text-xs">
                   {shipment.referenceNumber ?? shipment.priority}
                 </p>
+                {shipment.recipientEmail ? (
+                  <p className="text-muted-foreground text-xs">
+                    Recipient: {shipment.recipientName ?? shipment.recipientEmail}
+                  </p>
+                ) : null}
               </div>
             </TableCell>
             <TableCell>

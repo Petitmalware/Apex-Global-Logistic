@@ -30,6 +30,12 @@ function formatDate(value: Date | null) {
     : "";
 }
 
+function formatDocumentDate(value = new Date()) {
+  return new Intl.DateTimeFormat("en", {
+    dateStyle: "long",
+  }).format(value);
+}
+
 export function replaceEmailVariables(
   value: string,
   variables: Record<string, string | undefined>,
@@ -87,6 +93,13 @@ export async function getShipmentEmailContext(shipmentId?: string) {
 }
 
 export function buildEmailVariables(context: EmailVariableContext): EmailVariableMap {
+  const recipientName =
+    context.variables?.recipientName ??
+    context.recipientName ??
+    context.variables?.customerName ??
+    context.recipientEmail ??
+    "Customer";
+
   return {
     amountDue: context.variables?.amountDue ?? "",
     companyName: "Apex Global Logistics",
@@ -95,22 +108,30 @@ export function buildEmailVariables(context: EmailVariableContext): EmailVariabl
       context.shipment?.destinationCity ??
       context.shipment?.originCity ??
       "",
+    deliveryAddress: context.variables?.deliveryAddress ?? "",
     customerName:
       context.variables?.customerName ??
       context.recipientName ??
       context.recipientEmail ??
       "Customer",
+    documentDate: context.variables?.documentDate ?? formatDocumentDate(),
     estimatedDeliveryDate:
       context.variables?.estimatedDeliveryDate ?? context.shipment?.estimatedDeliveryDate ?? "",
     invoiceNumber: context.variables?.invoiceNumber ?? "",
+    paymentInstructions:
+      context.variables?.paymentInstructions ?? "Use the approved Apex invoice or payment portal.",
     petName: context.variables?.petName ?? "",
+    recipientName,
+    refundTerms:
+      context.variables?.refundTerms ?? "Terms are shown on the approved billing record.",
     shipmentStatus: context.variables?.shipmentStatus ?? context.shipment?.shipmentStatus ?? "",
-    supportEmail: env.SUPPORT_EMAIL,
-    supportPhone: env.SUPPORT_PHONE,
+    supportEmail: context.variables?.supportEmail ?? env.SUPPORT_EMAIL,
+    supportPhone: context.variables?.supportPhone ?? env.SUPPORT_PHONE,
     trackingNumber:
       context.variables?.trackingNumber ??
       context.shipment?.trackingNumber ??
       context.shipment?.shipmentNumber ??
       "",
+    website: context.variables?.website ?? env.NEXT_PUBLIC_APP_URL,
   };
 }

@@ -24,4 +24,4 @@ Apex Global Logistics uses the existing `Notification`, `EmailTemplate`, and `Se
 
 `REDIS_URL` enables cross-instance realtime updates. Without Redis, the local event broker keeps a single development server live.
 
-Email dispatch is provider-neutral. `dispatchPendingEmailNotifications` currently marks queued email through the `console` adapter path and is exposed to users with `notifications:manage` at `/api/notifications/email/dispatch`.
+Email dispatch is provider-neutral and uses the branded email service configured by `EMAIL_PROVIDER`. `dispatchPendingEmailNotifications` sends pending email notifications through the active provider, writes the resulting `EmailLog` ID and provider message ID back to the notification record, and is exposed to users with `notifications:manage` at `/api/notifications/email/dispatch`.

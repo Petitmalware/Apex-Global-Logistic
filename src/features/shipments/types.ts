@@ -17,6 +17,13 @@ export const initialShipmentActionState: ShipmentActionState = {
   status: "idle",
 };
 
+export type CustomerOption = {
+  email: string;
+  id: string;
+  label: string;
+  name: string;
+};
+
 export type ShipmentPackageView = {
   barcode: string | null;
   currency: string;
@@ -54,18 +61,55 @@ export type ShipmentAddressView = {
   state: string | null;
 };
 
+export type ManualRecipientView = {
+  email: string | null;
+  name: string | null;
+  phone: string | null;
+};
+
+export type ShipmentOfficeDetails = {
+  carrier: string | null;
+  carrierReference: string | null;
+  comments: string | null;
+  courier: string | null;
+  departureTime: string | null;
+  paymentMode: string | null;
+  pickupTime: string | null;
+  productName: string | null;
+  quantity: string | null;
+  shipperEmail: string | null;
+  shipperPhone: string | null;
+  totalFreight: string | null;
+};
+
 export type ShipmentListItem = {
   createdAt: string;
   destinationCity: string;
   id: string;
+  manualRecipient: ManualRecipientView | null;
   mode: ShipmentMode;
   originCity: string;
   packageCount: number;
   priority: ShipmentPriority;
+  recipientEmail: string | null;
+  recipientName: string | null;
   referenceNumber: string | null;
   shipmentNumber: string;
   status: ShipmentStatus;
   updatedAt: string;
+};
+
+export type ShipmentDocumentListItem = {
+  createdAt: string;
+  documentType: string;
+  fileName: string;
+  fileSizeBytes: number;
+  id: string;
+  shipmentId: string;
+  shipmentNumber: string;
+  shipmentStatus: ShipmentStatus;
+  uploadedBy: string | null;
+  verifiedAt: string | null;
 };
 
 export type ShipmentDetail = ShipmentListItem & {
@@ -114,6 +158,7 @@ export type ShipmentDetail = ShipmentListItem & {
     occurredAt: string;
   }>;
   notes: string | null;
+  officeDetails: ShipmentOfficeDetails | null;
   origin: ShipmentAddressView;
   packages: ShipmentPackageView[];
   pickupWindowEnd: string | null;
@@ -125,8 +170,11 @@ export type ShipmentDetail = ShipmentListItem & {
     dimensionalWeightKg: string;
   };
   timeline: Array<{
+    currentLocation: string | null;
     eventType: TrackingEventType;
     id: string;
+    latitude: string | null;
+    longitude: string | null;
     message: string | null;
     occurredAt: string;
     packageNumber: string | null;

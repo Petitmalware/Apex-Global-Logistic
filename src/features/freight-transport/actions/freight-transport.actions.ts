@@ -29,9 +29,10 @@ import {
 } from "@/features/freight-transport/services/freight-transport.service";
 import type { FreightTransportActionState } from "@/features/freight-transport/types";
 import { shipmentFormSchema } from "@/features/shipments/schemas/shipment.schemas";
+import { AUTH_ROLES } from "@/lib/auth/constants";
 import { AuthError } from "@/lib/auth/errors";
-import { PERMISSIONS } from "@/lib/auth/rbac";
-import { requireAuthenticatedUser, requirePermission } from "@/lib/auth/session";
+import { requireAuthenticatedUser, requireRole } from "@/lib/auth/session";
+import { getDatabaseUnavailableMessage, isDatabaseUnavailableError } from "@/lib/db-errors";
 
 function getString(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -87,6 +88,7 @@ function parseFreightShipmentFormData(formData: FormData) {
     getString(formData, "commodityDescription") || "Long-haul freight consignment";
 
   return shipmentFormSchema.safeParse({
+    customerId: getString(formData, "customerId"),
     deliveryWindowEnd: getString(formData, "deliveryWindowEnd"),
     deliveryWindowStart: getString(formData, "deliveryWindowStart"),
     destination: {
@@ -99,6 +101,11 @@ function parseFreightShipmentFormData(formData: FormData) {
       state: getString(formData, "destination.state"),
     },
     mode: getString(formData, "mode") || "ROAD",
+    manualRecipient: {
+      email: getString(formData, "manualRecipient.email"),
+      name: getString(formData, "manualRecipient.name"),
+      phone: getString(formData, "manualRecipient.phone"),
+    },
     notes: getString(formData, "notes"),
     origin: {
       city: getString(formData, "origin.city"),
@@ -141,6 +148,13 @@ function errorState(error: unknown): FreightTransportActionState {
     };
   }
 
+  if (isDatabaseUnavailableError(error)) {
+    return {
+      message: getDatabaseUnavailableMessage(),
+      status: "error",
+    };
+  }
+
   return {
     message: "Something went wrong. Please review the freight details and try again.",
     status: "error",
@@ -151,7 +165,7 @@ export async function createFreightTransportBookingAction(
   _previousState: FreightTransportActionState,
   formData: FormData,
 ): Promise<FreightTransportActionState> {
-  const user = await requirePermission(PERMISSIONS.FREIGHT_TRANSPORT_CREATE);
+  const user = await requireRole([AUTH_ROLES.ADMIN, AUTH_ROLES.SUPER_ADMIN]);
   const parsedFreight = parseFreightProfileFormData(formData);
   const parsedShipment = parseFreightShipmentFormData(formData);
 

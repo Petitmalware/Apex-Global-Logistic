@@ -13,6 +13,8 @@ const publicRoutes = [
   "/about",
   "/faq",
   "/contact",
+  "/policy",
+  "/privacy",
   "/login",
   "/register",
 ] as const;

@@ -13,12 +13,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { CustomerSelectCard } from "@/features/customers/components/customer-select-card";
 import { calculateParcelQuote } from "@/features/shipments/services/parcel-pricing";
-import type { ShipmentActionState } from "@/features/shipments/types";
+import type { CustomerOption, ShipmentActionState } from "@/features/shipments/types";
 import { initialShipmentActionState } from "@/features/shipments/types";
 
 type ParcelBookingFormProps = {
   action: (state: ShipmentActionState, formData: FormData) => Promise<ShipmentActionState>;
+  customerOptions?: CustomerOption[];
 };
 
 type PackageDraft = {
@@ -127,7 +129,7 @@ function AddressFields({ prefix, title }: { prefix: "destination" | "origin"; ti
   );
 }
 
-export function ParcelBookingForm({ action }: ParcelBookingFormProps) {
+export function ParcelBookingForm({ action, customerOptions = [] }: ParcelBookingFormProps) {
   const [state, formAction, isPending] = useActionState(action, initialShipmentActionState);
   const [priority, setPriority] = useState("STANDARD");
   const [mode, setMode] = useState("ROAD");
@@ -155,6 +157,7 @@ export function ParcelBookingForm({ action }: ParcelBookingFormProps) {
 
     return calculateParcelQuote(
       {
+        customerId: undefined,
         deliveryWindowEnd: undefined,
         deliveryWindowStart: undefined,
         destination: {
@@ -162,8 +165,10 @@ export function ParcelBookingForm({ action }: ParcelBookingFormProps) {
           countryCode: "US",
           line1: "Destination",
         },
+        manualRecipient: {},
         mode: mode as "AIR" | "MULTIMODAL" | "RAIL" | "ROAD" | "SEA",
         notes: undefined,
+        officeDetails: {},
         origin: {
           city: "Origin",
           countryCode: "US",
@@ -174,6 +179,7 @@ export function ParcelBookingForm({ action }: ParcelBookingFormProps) {
         pickupWindowStart: undefined,
         priority: priority as "EXPEDITED" | "STANDARD" | "URGENT",
         referenceNumber: undefined,
+        recipientRequired: false,
         serviceLevel: "Parcel Standard",
         status: "BOOKED",
       },
@@ -196,6 +202,19 @@ export function ParcelBookingForm({ action }: ParcelBookingFormProps) {
     <form action={formAction} className="space-y-6">
       <input name="status" type="hidden" value="BOOKED" />
       <input name="serviceLevel" type="hidden" value="Parcel Standard" />
+      <CustomerSelectCard
+        allowManualRecipient
+        customerOptions={customerOptions}
+        errors={[
+          ...(state.fieldErrors?.customerId ?? []),
+          ...(state.fieldErrors?.manualRecipient ?? []),
+        ]}
+        hint="Select a registered customer when available, or enter a manual parcel recipient who does not need a portal account."
+        label="Registered customer account"
+        manualRecipientHint="Use this for unregistered parcel recipients. The delivery address below is the recipient house or business address."
+        placeholder="Manual recipient / no account"
+        title="Parcel recipient"
+      />
       {state.message ? (
         <p className="border-border bg-secondary text-secondary-foreground rounded-md border px-3 py-2 text-sm">
           {state.message}

@@ -27,9 +27,10 @@ import {
 } from "@/features/pet-transport/services/pet-transport.service";
 import type { PetTransportActionState } from "@/features/pet-transport/types";
 import { shipmentFormSchema } from "@/features/shipments/schemas/shipment.schemas";
+import { AUTH_ROLES } from "@/lib/auth/constants";
 import { AuthError } from "@/lib/auth/errors";
-import { PERMISSIONS } from "@/lib/auth/rbac";
-import { requireAuthenticatedUser, requirePermission } from "@/lib/auth/session";
+import { requireAuthenticatedUser, requireRole } from "@/lib/auth/session";
+import { getDatabaseUnavailableMessage, isDatabaseUnavailableError } from "@/lib/db-errors";
 
 function getString(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -75,32 +76,63 @@ function parsePetProfileFormData(formData: FormData) {
   });
 }
 
+function getPetShipmentAddress(formData: FormData, prefix: "destination" | "origin") {
+  return {
+    city: getString(formData, `${prefix}.city`),
+    countryCode: getString(formData, `${prefix}.countryCode`),
+    line1: getString(formData, `${prefix}.line1`),
+    line2: getString(formData, `${prefix}.line2`),
+    name: getString(formData, `${prefix}.name`),
+    postalCode: getString(formData, `${prefix}.postalCode`),
+    state: getString(formData, `${prefix}.state`),
+  };
+}
+
+function hasCompleteAddress(address: ReturnType<typeof getPetShipmentAddress>) {
+  return Boolean(address.city.trim() && address.countryCode.trim() && address.line1.trim());
+}
+
+function getPetShipmentOriginAddress(
+  formData: FormData,
+  destination: ReturnType<typeof getPetShipmentAddress>,
+) {
+  const origin = getPetShipmentAddress(formData, "origin");
+
+  if (hasCompleteAddress(origin)) {
+    return origin;
+  }
+
+  const destinationCountryCode = destination.countryCode.trim();
+  const fallbackCountryCode = destinationCountryCode.length === 2 ? destinationCountryCode : "US";
+
+  return {
+    city: "Not provided",
+    countryCode: fallbackCountryCode,
+    line1: "Sender pickup address not provided",
+    line2: "",
+    name: getString(formData, "ownerName") || "Sender not provided",
+    postalCode: "",
+    state: "",
+  };
+}
+
 function parsePetShipmentFormData(formData: FormData) {
   const petName = getString(formData, "petName") || "Pet";
+  const destination = getPetShipmentAddress(formData, "destination");
 
   return shipmentFormSchema.safeParse({
+    customerId: getString(formData, "customerId"),
     deliveryWindowEnd: getString(formData, "deliveryWindowEnd"),
     deliveryWindowStart: getString(formData, "deliveryWindowStart"),
-    destination: {
-      city: getString(formData, "destination.city"),
-      countryCode: getString(formData, "destination.countryCode"),
-      line1: getString(formData, "destination.line1"),
-      line2: getString(formData, "destination.line2"),
-      name: getString(formData, "destination.name"),
-      postalCode: getString(formData, "destination.postalCode"),
-      state: getString(formData, "destination.state"),
-    },
+    destination,
     mode: getString(formData, "mode") || "AIR",
-    notes: getString(formData, "notes"),
-    origin: {
-      city: getString(formData, "origin.city"),
-      countryCode: getString(formData, "origin.countryCode"),
-      line1: getString(formData, "origin.line1"),
-      line2: getString(formData, "origin.line2"),
-      name: getString(formData, "origin.name"),
-      postalCode: getString(formData, "origin.postalCode"),
-      state: getString(formData, "origin.state"),
+    manualRecipient: {
+      email: getString(formData, "manualRecipient.email"),
+      name: getString(formData, "manualRecipient.name"),
+      phone: getString(formData, "manualRecipient.phone"),
     },
+    notes: getString(formData, "notes"),
+    origin: getPetShipmentOriginAddress(formData, destination),
     packages: [
       {
         currency: "USD",
@@ -116,11 +148,11 @@ function parsePetShipmentFormData(formData: FormData) {
         widthCm: getString(formData, "crateWidthCm"),
       },
     ],
-    pickupWindowEnd: getString(formData, "pickupWindowEnd"),
-    pickupWindowStart: getString(formData, "pickupWindowStart"),
+    pickupWindowEnd: "",
+    pickupWindowStart: "",
     priority: getString(formData, "priority") || "STANDARD",
     referenceNumber: getString(formData, "referenceNumber"),
-    serviceLevel: getString(formData, "serviceLevel") || "Pet Transport Care",
+    serviceLevel: getString(formData, "serviceLevel") || "Pet Shipment Care",
     status: "BOOKED",
   });
 }
@@ -133,8 +165,15 @@ function errorState(error: unknown): PetTransportActionState {
     };
   }
 
+  if (isDatabaseUnavailableError(error)) {
+    return {
+      message: getDatabaseUnavailableMessage(),
+      status: "error",
+    };
+  }
+
   return {
-    message: "Something went wrong. Please review the pet transport details and try again.",
+    message: "Something went wrong. Please review the pet shipment details and try again.",
     status: "error",
   };
 }
@@ -143,7 +182,7 @@ export async function createPetTransportBookingAction(
   _previousState: PetTransportActionState,
   formData: FormData,
 ): Promise<PetTransportActionState> {
-  const user = await requirePermission(PERMISSIONS.PET_TRANSPORT_CREATE);
+  const user = await requireRole([AUTH_ROLES.ADMIN, AUTH_ROLES.SUPER_ADMIN]);
   const parsedPet = parsePetProfileFormData(formData);
   const parsedShipment = parsePetShipmentFormData(formData);
 
@@ -158,7 +197,7 @@ export async function createPetTransportBookingAction(
   if (!parsedShipment.success) {
     return {
       fieldErrors: parsedShipment.error.flatten().fieldErrors,
-      message: "Please fix the pickup and delivery details.",
+      message: "Please fix the recipient and delivery details.",
       status: "error",
     };
   }

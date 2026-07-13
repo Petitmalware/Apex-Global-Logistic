@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react";
+import type { Route } from "next";
 import {
   Activity,
   BarChart3,
@@ -9,18 +10,17 @@ import {
   Clock3,
   CreditCard,
   Gauge,
-  Headphones,
   KeyRound,
   LayoutDashboard,
   MailPlus,
   MapPinned,
   MessageSquareText,
   Bell,
+  FileText,
   PackageCheck,
   PackageSearch,
   PawPrint,
   Plane,
-  Route,
   Settings,
   ShieldCheck,
   TicketCheck,
@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 
 import type { NavigationItem } from "@/components/ui/navigation";
+import type { AuthSessionUser } from "@/features/auth/services/auth.service";
 import { AUTH_ROLES, type AppRole } from "@/lib/auth/constants";
 
 export type DashboardRole = "admin" | "agent" | "customer" | "support" | "super-admin";
@@ -61,52 +62,158 @@ export type DashboardConfig = {
   metrics: DashboardMetric[];
   operations: DashboardTask[];
   primaryAction: string;
+  primaryActionHref?: Route;
   role: DashboardRole;
   roleLabel: string;
   secondaryAction: string;
+  secondaryActionHref?: Route;
   title: string;
   trend: Array<{ label: string; value: number }>;
 };
 
-export const dashboardNavItems: NavigationItem[] = [
-  { href: "/dashboard", icon: LayoutDashboard, label: "Overview" },
-  { href: "/analytics", icon: BarChart3, label: "Analytics" },
-  { href: "/shipments", icon: PackageSearch, label: "Shipments" },
-  { href: "/pet-transport", icon: PawPrint, label: "Pet Transport" },
-  { href: "/freight-transport", icon: Truck, label: "Freight" },
-  { href: "/notifications", icon: Bell, label: "Notifications" },
-  { href: "/ai", icon: BrainCircuit, label: "AI Assist" },
-  { href: "/admin/emails", icon: MailPlus, label: "Email Studio" },
-  { href: "/customer", icon: PackageSearch, label: "Customer" },
-  { href: "/agent", badge: "12", icon: Route, label: "Agent" },
-  { href: "/support", badge: "5", icon: Headphones, label: "Support" },
-  { href: "/admin", icon: Building2, label: "Admin" },
-  { href: "/super-admin", icon: ShieldCheck, label: "Super Admin" },
-];
+type RoleNavigationItem = NavigationItem & {
+  roles: AppRole[];
+};
 
-export const dashboardQuickNav = [
-  { href: "/dashboard", label: "Overview" },
-  { href: "/analytics", label: "Analytics" },
-  { href: "/shipments", label: "Shipments" },
-  { href: "/pet-transport", label: "Pet Transport" },
-  { href: "/freight-transport", label: "Freight" },
-  { href: "/notifications", label: "Notifications" },
-  { href: "/ai", label: "AI Assist" },
-  { href: "/admin/emails", label: "Email Studio" },
-  { href: "/customer", label: "Customer" },
-  { href: "/agent", label: "Agent" },
-  { href: "/support", label: "Support" },
-  { href: "/admin", label: "Admin" },
-  { href: "/super-admin", label: "Super Admin" },
-] satisfies Array<{ href: string; label: string }>;
+const roleNavigationItems: RoleNavigationItem[] = [
+  {
+    href: "/customer",
+    icon: LayoutDashboard,
+    label: "My Dashboard",
+    roles: [AUTH_ROLES.CUSTOMER],
+  },
+  {
+    href: "/shipments",
+    icon: PackageSearch,
+    label: "My Shipments",
+    roles: [AUTH_ROLES.CUSTOMER],
+  },
+  {
+    href: "/pet-transport",
+    icon: PawPrint,
+    label: "My Pet Shipments",
+    roles: [AUTH_ROLES.CUSTOMER],
+  },
+  {
+    href: "/freight-transport",
+    icon: Truck,
+    label: "My Freight",
+    roles: [AUTH_ROLES.CUSTOMER],
+  },
+  {
+    href: "/customer/documents",
+    icon: ClipboardCheck,
+    label: "My Documents",
+    roles: [AUTH_ROLES.CUSTOMER],
+  },
+  {
+    href: "/notifications",
+    icon: Bell,
+    label: "Notifications",
+    roles: [AUTH_ROLES.CUSTOMER],
+  },
+  {
+    href: "/admin",
+    icon: Building2,
+    label: "Admin Dashboard",
+    roles: [AUTH_ROLES.ADMIN, AUTH_ROLES.SUPER_ADMIN],
+  },
+  {
+    href: "/analytics",
+    icon: BarChart3,
+    label: "Analytics",
+    roles: [AUTH_ROLES.ADMIN, AUTH_ROLES.SUPER_ADMIN],
+  },
+  {
+    href: "/admin/invoices",
+    icon: CreditCard,
+    label: "Invoices",
+    roles: [AUTH_ROLES.ADMIN, AUTH_ROLES.SUPER_ADMIN],
+  },
+  {
+    href: "/admin/documents",
+    icon: FileText,
+    label: "Official Documents",
+    roles: [AUTH_ROLES.ADMIN, AUTH_ROLES.SUPER_ADMIN],
+  },
+  {
+    href: "/shipments",
+    icon: PackageSearch,
+    label: "Shipments",
+    roles: [AUTH_ROLES.ADMIN, AUTH_ROLES.SUPER_ADMIN],
+  },
+  {
+    href: "/pet-transport",
+    icon: PawPrint,
+    label: "Pet Shipments",
+    roles: [AUTH_ROLES.ADMIN, AUTH_ROLES.SUPER_ADMIN],
+  },
+  {
+    href: "/freight-transport",
+    icon: Truck,
+    label: "Freight",
+    roles: [AUTH_ROLES.ADMIN, AUTH_ROLES.SUPER_ADMIN],
+  },
+  {
+    href: "/notifications",
+    icon: Bell,
+    label: "Notifications",
+    roles: [AUTH_ROLES.ADMIN, AUTH_ROLES.SUPER_ADMIN],
+  },
+  {
+    href: "/admin/chat",
+    icon: MessageSquareText,
+    label: "Live Chat",
+    roles: [AUTH_ROLES.ADMIN, AUTH_ROLES.SUPER_ADMIN],
+  },
+  {
+    href: "/admin/emails",
+    icon: MailPlus,
+    label: "Email Studio",
+    roles: [AUTH_ROLES.ADMIN, AUTH_ROLES.SUPER_ADMIN],
+  },
+  {
+    href: "/admin/users",
+    icon: Users,
+    label: "Admin Users",
+    roles: [AUTH_ROLES.ADMIN, AUTH_ROLES.SUPER_ADMIN],
+  },
+  {
+    href: "/admin/settings",
+    icon: Settings,
+    label: "Company Settings",
+    roles: [AUTH_ROLES.ADMIN, AUTH_ROLES.SUPER_ADMIN],
+  },
+  {
+    href: "/ai",
+    icon: BrainCircuit,
+    label: "AI Assist",
+    roles: [AUTH_ROLES.ADMIN, AUTH_ROLES.SUPER_ADMIN],
+  },
+];
 
 export const roleHomeByRole = {
   [AUTH_ROLES.ADMIN]: "/admin",
-  [AUTH_ROLES.AGENT]: "/agent",
+  [AUTH_ROLES.AGENT]: "/unauthorized",
   [AUTH_ROLES.CUSTOMER]: "/customer",
-  [AUTH_ROLES.SUPPORT]: "/support",
-  [AUTH_ROLES.SUPER_ADMIN]: "/super-admin",
+  [AUTH_ROLES.SUPPORT]: "/unauthorized",
+  [AUTH_ROLES.SUPER_ADMIN]: "/admin",
 } satisfies Record<AppRole, string>;
+
+function canSeeNavigationItem(user: AuthSessionUser, item: RoleNavigationItem) {
+  return item.roles.some((role) => user.roles.includes(role));
+}
+
+export function getDashboardNavItems(user: AuthSessionUser) {
+  return roleNavigationItems.filter((item) => canSeeNavigationItem(user, item));
+}
+
+export function getDashboardQuickNav(user: AuthSessionUser) {
+  return getDashboardNavItems(user).map(({ href, label }) => ({
+    href,
+    label,
+  }));
+}
 
 export const dashboardConfigs = {
   admin: {
@@ -143,19 +250,25 @@ export const dashboardConfigs = {
       { delta: "$128k", icon: CreditCard, label: "Open invoices", tone: "warning", value: "418" },
     ],
     operations: [
-      { label: "Approve Dubai cold-chain capacity", meta: "Freight network", status: "Review" },
+      {
+        label: "Create shipment for registered or manual recipient",
+        meta: "Customer operations",
+        status: "Ready",
+      },
+      { label: "Prepare official billing document", meta: "Document control", status: "Ready" },
       {
         label: "Resolve 14 delayed customs handoffs",
         meta: "Exception queue",
         status: "Attention",
       },
-      { label: "Publish June billing packet", meta: "Finance desk", status: "Ready" },
-      { label: "Verify driver onboarding batch", meta: "Fleet operations", status: "Live" },
+      { label: "Issue customer invoice", meta: "Finance desk", status: "Ready" },
     ],
-    primaryAction: "Review network",
+    primaryAction: "Create shipment",
+    primaryActionHref: "/shipments/new",
     role: "admin",
     roleLabel: "Admin",
-    secondaryAction: "Export report",
+    secondaryAction: "Official documents",
+    secondaryActionHref: "/admin/documents",
     title: "Operations command center",
     trend: [
       { label: "Mon", value: 64 },
@@ -196,7 +309,7 @@ export const dashboardConfigs = {
     ],
     operations: [
       { label: "Confirm pickup scan for AGL-2026-0148", meta: "Priority parcel", status: "Ready" },
-      { label: "Attach airway bill to pet transport", meta: "Animal handling", status: "Review" },
+      { label: "Attach airway bill to pet shipment", meta: "Animal handling", status: "Review" },
       { label: "Escalate missing warehouse scan", meta: "Lagos hub", status: "Attention" },
       { label: "Dispatch Route 7B handoff notes", meta: "Driver desk", status: "Live" },
     ],
@@ -222,8 +335,8 @@ export const dashboardConfigs = {
         time: "12 min ago",
       },
       {
-        description: "Your freight quote for 12 pallets was saved as a draft.",
-        label: "Quote draft saved",
+        description: "Apex operations attached the latest freight document to your shipment.",
+        label: "Document added",
         time: "1 hr ago",
       },
       {
@@ -234,7 +347,7 @@ export const dashboardConfigs = {
     ],
     badge: "Customer portal",
     description:
-      "Track parcels, book specialist transport, manage quotes, and keep every delivery conversation in one place.",
+      "View shipments assigned to your account, follow tracking updates, review documents, and message the Apex team when help is needed.",
     metrics: [
       {
         delta: "2 arriving",
@@ -243,7 +356,7 @@ export const dashboardConfigs = {
         tone: "accent",
         value: "7",
       },
-      { delta: "+1 quote", icon: Plane, label: "Freight requests", tone: "info", value: "3" },
+      { delta: "+1 update", icon: Plane, label: "Freight tracking", tone: "info", value: "3" },
       {
         delta: "On track",
         icon: Clock3,
@@ -260,16 +373,18 @@ export const dashboardConfigs = {
       },
     ],
     operations: [
-      { label: "Approve delivery window for AGL-0148", meta: "Parcel delivery", status: "Ready" },
-      { label: "Upload vaccine document for Milo", meta: "Pet transport", status: "Review" },
-      { label: "Compare freight quote options", meta: "Freight booking", status: "Live" },
+      { label: "Review delivery window for AGL-0148", meta: "Parcel delivery", status: "Ready" },
+      { label: "Check vaccine document status for Milo", meta: "Pet transport", status: "Review" },
+      { label: "Follow freight milestone updates", meta: "Freight tracking", status: "Live" },
       { label: "Reply to customs clarification", meta: "Support thread", status: "Attention" },
     ],
-    primaryAction: "Book shipment",
+    primaryAction: "Track shipment",
+    primaryActionHref: "/shipments",
     role: "customer",
     roleLabel: "Customer",
-    secondaryAction: "Track package",
-    title: "Shipment control room",
+    secondaryAction: "View documents",
+    secondaryActionHref: "/customer/documents",
+    title: "My logistics portal",
     trend: [
       { label: "Jan", value: 6 },
       { label: "Feb", value: 9 },
@@ -394,7 +509,7 @@ export const overviewConfig: DashboardConfig = {
     "A personalized operations overview for authenticated Apex users across shipments, support, billing, and access.",
   metrics: [
     { delta: "+11%", icon: Truck, label: "Shipments in motion", tone: "accent", value: "186" },
-    { delta: "24/7", icon: Headphones, label: "Support coverage", tone: "info", value: "Live" },
+    { delta: "24/7", icon: BellRing, label: "Alert coverage", tone: "info", value: "Live" },
     { delta: "98.8%", icon: Gauge, label: "Delivery SLA", tone: "success", value: "98.8%" },
     {
       delta: "4 roles",

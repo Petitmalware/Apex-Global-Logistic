@@ -1,11 +1,17 @@
 import Link from "next/link";
 import type { Route } from "next";
 import type { ReactNode } from "react";
-import { ArrowRight, Mail, MapPin, Menu, Phone, Truck } from "lucide-react";
+import { ArrowRight, Mail, MapPin, Menu, Phone, Truck, type LucideIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { companyNavItems, marketingNavItems } from "@/features/marketing/data/marketing";
+import {
+  companyNavItems,
+  marketingNavItems,
+  primaryMarketingNavItems,
+} from "@/features/marketing/data/marketing";
+import type { CompanyProfileInput } from "@/features/settings/schemas/company-profile.schema";
+import { getCompanyProfile } from "@/features/settings/queries/company-profile.queries";
 
 type MarketingShellProps = {
   children: ReactNode;
@@ -25,13 +31,43 @@ function Brand() {
   );
 }
 
+function MobileMenuSection({
+  items,
+  title,
+}: {
+  items: readonly { href: string; label: string }[];
+  title: string;
+}) {
+  return (
+    <div className="space-y-2">
+      <p className="text-muted-foreground px-3 text-xs font-semibold uppercase">{title}</p>
+      <nav className="grid gap-1">
+        {items.map((item) => (
+          <Link
+            className="text-muted-foreground hover:bg-secondary hover:text-foreground rounded-md px-3 py-2 text-sm font-semibold"
+            href={item.href as Route}
+            key={item.href}
+          >
+            {item.label}
+          </Link>
+        ))}
+      </nav>
+    </div>
+  );
+}
+
 export function MarketingHeader() {
+  const serviceNavItems = marketingNavItems.filter(
+    (item) => !primaryMarketingNavItems.some((primaryItem) => primaryItem.href === item.href),
+  );
+  const companyMenuItems = companyNavItems.filter((item) => item.href !== "/contact");
+
   return (
     <header className="border-border bg-background/88 sticky top-0 z-50 border-b backdrop-blur-xl">
       <div className="mx-auto flex min-h-18 w-full max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
         <Brand />
         <nav aria-label="Primary" className="hidden items-center gap-1 lg:flex">
-          {[...marketingNavItems, ...companyNavItems].map((item) => (
+          {primaryMarketingNavItems.map((item) => (
             <Link
               className="text-muted-foreground hover:bg-secondary hover:text-foreground rounded-md px-3 py-2 text-sm font-semibold transition-colors"
               href={item.href as Route}
@@ -41,7 +77,7 @@ export function MarketingHeader() {
             </Link>
           ))}
         </nav>
-        <div className="hidden items-center gap-2 sm:flex">
+        <div className="hidden items-center gap-2 lg:flex">
           <ThemeToggle />
           <Button asChild variant="outline">
             <Link href="/login">Login</Link>
@@ -53,24 +89,20 @@ export function MarketingHeader() {
             </Link>
           </Button>
         </div>
-        <details className="group relative sm:hidden">
+        <details className="group relative lg:hidden">
           <summary className="border-border bg-background text-muted-foreground grid size-10 cursor-pointer list-none place-items-center rounded-md border">
             <Menu aria-hidden="true" className="size-5" />
             <span className="sr-only">Open menu</span>
           </summary>
-          <div className="border-border bg-popover text-popover-foreground shadow-panel absolute top-12 right-0 w-72 rounded-lg border p-3">
-            <nav className="grid gap-1">
-              {[...marketingNavItems, ...companyNavItems].map((item) => (
-                <Link
-                  className="text-muted-foreground hover:bg-secondary hover:text-foreground rounded-md px-3 py-2 text-sm font-semibold"
-                  href={item.href as Route}
-                  key={item.href}
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
+          <div className="border-border bg-popover text-popover-foreground shadow-panel absolute top-12 right-0 w-80 max-w-[calc(100vw-2rem)] space-y-4 rounded-lg border p-3">
+            <MobileMenuSection items={primaryMarketingNavItems} title="Main" />
+            <MobileMenuSection items={serviceNavItems} title="Services" />
+            <MobileMenuSection items={companyMenuItems} title="Company" />
             <div className="border-border mt-3 grid gap-2 border-t pt-3">
+              <div className="flex items-center justify-between px-3 py-1">
+                <span className="text-muted-foreground text-sm font-semibold">Appearance</span>
+                <ThemeToggle />
+              </div>
               <Button asChild variant="outline">
                 <Link href="/login">Login</Link>
               </Button>
@@ -85,7 +117,38 @@ export function MarketingHeader() {
   );
 }
 
-export function MarketingFooter() {
+function getAddressLines(profile: CompanyProfileInput) {
+  return [
+    profile.addressLine1,
+    profile.addressLine2,
+    [profile.city, profile.state, profile.postalCode].filter(Boolean).join(", "),
+    profile.country,
+  ].filter((line): line is string => Boolean(line));
+}
+
+function getFooterContactItems(profile: CompanyProfileInput) {
+  const address = getAddressLines(profile).join(", ");
+  const items: Array<{ icon: LucideIcon; value: string }> = [];
+
+  if (address) {
+    items.push({ icon: MapPin, value: address });
+  }
+
+  if (profile.phone) {
+    items.push({ icon: Phone, value: profile.phone });
+  }
+
+  if (profile.email) {
+    items.push({ icon: Mail, value: profile.email });
+  }
+
+  return items;
+}
+
+export async function MarketingFooter() {
+  const profile = await getCompanyProfile();
+  const contactItems = getFooterContactItems(profile);
+
   return (
     <footer className="border-border bg-card border-t">
       <div className="mx-auto grid w-full max-w-7xl gap-8 px-4 py-12 sm:px-6 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
@@ -95,20 +158,16 @@ export function MarketingFooter() {
             Premium parcel, pet, and freight logistics for teams that need clarity from quote to
             delivery.
           </p>
-          <div className="text-muted-foreground mt-5 grid gap-2 text-sm">
-            <span className="inline-flex items-center gap-2">
-              <MapPin aria-hidden="true" className="text-accent size-4" />
-              Lagos, London, Dubai, Singapore
-            </span>
-            <span className="inline-flex items-center gap-2">
-              <Phone aria-hidden="true" className="text-accent size-4" />
-              +1 (555) 014-8848
-            </span>
-            <span className="inline-flex items-center gap-2">
-              <Mail aria-hidden="true" className="text-accent size-4" />
-              hello@apexgloballogistics.com
-            </span>
-          </div>
+          {contactItems.length ? (
+            <div className="text-muted-foreground mt-5 grid gap-2 text-sm">
+              {contactItems.map((item) => (
+                <span className="inline-flex items-start gap-2" key={item.value}>
+                  <item.icon aria-hidden="true" className="text-accent mt-0.5 size-4 shrink-0" />
+                  <span>{item.value}</span>
+                </span>
+              ))}
+            </div>
+          ) : null}
         </div>
         <div>
           <h2 className="text-sm font-semibold">Services</h2>

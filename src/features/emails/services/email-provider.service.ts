@@ -1,6 +1,7 @@
 import "server-only";
 
 import { EmailProvider } from "@prisma/client";
+import nodemailer from "nodemailer";
 
 import { env } from "@/config/env.server";
 
@@ -32,6 +33,10 @@ function getConfiguredProvider() {
   }
 
   return EmailProvider.CONSOLE;
+}
+
+function getSenderAddress() {
+  return env.EMAIL_PROVIDER === "smtp" && env.SMTP_FROM ? env.SMTP_FROM : env.EMAIL_FROM;
 }
 
 async function sendWithResend(input: SendEmailInput): Promise<SendEmailResult> {
@@ -110,10 +115,52 @@ async function sendWithBrevo(input: SendEmailInput): Promise<SendEmailResult> {
   };
 }
 
-async function sendWithSmtp(): Promise<SendEmailResult> {
-  throw new Error(
-    "SMTP adapter is configured structurally. Add an SMTP transport implementation before using EMAIL_PROVIDER=smtp.",
-  );
+async function sendWithSmtp(input: SendEmailInput): Promise<SendEmailResult> {
+  if (!env.SMTP_HOST || !env.SMTP_USERNAME || !env.SMTP_PASSWORD) {
+    throw new Error("SMTP_HOST, SMTP_USERNAME, and SMTP_PASSWORD must be configured.");
+  }
+
+  const port = env.SMTP_PORT ?? 587;
+  const transporter = nodemailer.createTransport({
+    auth: {
+      pass: env.SMTP_PASSWORD,
+      user: env.SMTP_USERNAME,
+    },
+    connectionTimeout: 30_000,
+    greetingTimeout: 30_000,
+    host: env.SMTP_HOST,
+    port,
+    secure: port === 465,
+    socketTimeout: 60_000,
+    tls: {
+      rejectUnauthorized: true,
+    },
+  });
+  const info = await transporter.sendMail({
+    from: {
+      address: getSenderAddress(),
+      name: "Apex Global Logistics",
+    },
+    html: input.html,
+    subject: input.subject,
+    text: input.text ?? undefined,
+    to: input.recipientName
+      ? {
+          address: input.recipientEmail,
+          name: input.recipientName,
+        }
+      : input.recipientEmail,
+  });
+
+  return {
+    messageId: info.messageId || `smtp-${Date.now()}`,
+    provider: EmailProvider.SMTP,
+    response: {
+      accepted: info.accepted,
+      rejected: info.rejected,
+      response: info.response,
+    },
+  };
 }
 
 async function sendWithConsole(input: SendEmailInput): Promise<SendEmailResult> {
@@ -121,7 +168,7 @@ async function sendWithConsole(input: SendEmailInput): Promise<SendEmailResult> 
     messageId: `console-${Date.now()}`,
     provider: EmailProvider.CONSOLE,
     response: {
-      from: env.EMAIL_FROM,
+      from: getSenderAddress(),
       to: input.recipientEmail,
       transport: "console",
     },
@@ -140,7 +187,7 @@ export async function sendEmailWithConfiguredProvider(input: SendEmailInput) {
   }
 
   if (provider === EmailProvider.SMTP) {
-    return sendWithSmtp();
+    return sendWithSmtp(input);
   }
 
   return sendWithConsole(input);

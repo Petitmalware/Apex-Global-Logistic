@@ -10,8 +10,15 @@ export const metadata: Metadata = {
   title: "Compose Email | Apex Global Logistics",
 };
 
-export default async function ComposeEmailPage() {
+type ComposeEmailPageProps = {
+  searchParams?: Promise<{
+    template?: string;
+  }>;
+};
+
+export default async function ComposeEmailPage({ searchParams }: ComposeEmailPageProps) {
   const user = await requirePermission(PERMISSIONS.EMAILS_CREATE);
+  const params = await searchParams;
   const options = await getEmailComposerOptions(user);
 
   return (
@@ -22,11 +29,11 @@ export default async function ComposeEmailPage() {
         { href: "/admin/emails", label: "Email Studio" },
         { label: "Compose" },
       ]}
-      description="Write a manual email, attach logistics context, preview the branded result, and send safely."
+      description="Select a built-in client email, attach shipment context, preview the branded result, and send safely."
       title="Compose Email"
       user={user}
     >
-      <EmailComposer options={options} />
+      <EmailComposer initialTemplateId={params?.template} options={options} />
     </ProtectedShell>
   );
 }

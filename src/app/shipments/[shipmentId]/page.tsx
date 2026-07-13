@@ -38,7 +38,7 @@ export default async function ShipmentPage({ params }: ShipmentPageProps) {
       title="Shipment Details"
       user={user}
     >
-      <ShipmentDetailView shipment={shipment} />
+      <ShipmentDetailView shipment={shipment} user={user} />
     </ProtectedShell>
   );
 }

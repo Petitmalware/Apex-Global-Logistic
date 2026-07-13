@@ -4,11 +4,19 @@ import { absoluteUrl, siteConfig } from "@/config/site";
 import { MarketingShell } from "@/features/marketing/components/marketing-shell";
 import {
   ContactPanel,
+  ClientAssuranceSection,
+  CustomerJourneySection,
+  DeliveryProofSection,
+  DocumentsAndBillingSection,
   FinalCta,
+  GettingStartedGuideSection,
   HomeHero,
   ProcessSection,
+  RefundableFeesSection,
+  ServiceDetailsSection,
   ServiceGrid,
   TrackingPreview,
+  TrustAndSafetySection,
   TrustBar,
 } from "@/features/marketing/components/marketing-sections";
 
@@ -52,9 +60,17 @@ export default function HomePage() {
       />
       <HomeHero />
       <TrustBar />
+      <ClientAssuranceSection />
+      <GettingStartedGuideSection />
+      <DeliveryProofSection />
       <ServiceGrid />
+      <ServiceDetailsSection />
+      <CustomerJourneySection />
       <ProcessSection />
+      <DocumentsAndBillingSection />
+      <RefundableFeesSection />
       <TrackingPreview />
+      <TrustAndSafetySection />
       <ContactPanel />
       <FinalCta />
     </MarketingShell>

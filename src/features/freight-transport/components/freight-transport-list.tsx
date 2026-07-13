@@ -45,8 +45,10 @@ export function FreightTransportStatusBadge({
 }
 
 export function FreightTransportList({
+  canCreate = false,
   freightTransports,
 }: {
+  canCreate?: boolean;
   freightTransports: FreightTransportListItem[];
 }) {
   if (freightTransports.length === 0) {
@@ -55,14 +57,19 @@ export function FreightTransportList({
         <div className="bg-accent/15 text-accent-foreground mx-auto grid size-12 place-items-center rounded-md">
           <Truck aria-hidden="true" className="size-6" />
         </div>
-        <h2 className="mt-4 text-xl font-semibold tracking-normal">No freight transports yet</h2>
+        <h2 className="mt-4 text-xl font-semibold tracking-normal">
+          {canCreate ? "No freight transports yet" : "No assigned freight transports yet"}
+        </h2>
         <p className="text-muted-foreground mx-auto mt-2 max-w-md text-sm leading-6">
-          Create a long-haul freight booking to manage cargo, containers, machinery, transported
-          vehicles, route stops, dispatch, documents, ETA, and tracking.
+          {canCreate
+            ? "Create a long-haul freight booking to manage cargo, containers, machinery, transported vehicles, route stops, dispatch, documents, ETA, and tracking."
+            : "Freight movements assigned to your customer account will appear here after the Apex team creates them."}
         </p>
-        <Button asChild className="mt-5" variant="accent">
-          <Link href={"/freight-transport/new" as Route}>Book freight</Link>
-        </Button>
+        {canCreate ? (
+          <Button asChild className="mt-5" variant="accent">
+            <Link href={"/freight-transport/new" as Route}>Book freight</Link>
+          </Button>
+        ) : null}
       </div>
     );
   }

@@ -103,41 +103,57 @@ function mapNotification(notification: NotificationRecord): NotificationItem {
 export async function getNotificationCenterSnapshot(
   user: AuthSessionUser,
 ): Promise<NotificationCenterSnapshot> {
-  const [notifications, history, unreadCount] = await Promise.all([
-    prisma.notification.findMany({
-      orderBy: {
-        createdAt: "desc",
-      },
-      select: notificationSelect,
-      take: 8,
-      where: {
-        channel: NotificationChannel.IN_APP,
-        userId: user.id,
-      },
-    }),
-    prisma.notification.findMany({
-      orderBy: {
-        createdAt: "desc",
-      },
-      select: notificationSelect,
-      take: 50,
-      where: {
-        userId: user.id,
-      },
-    }),
-    prisma.notification.count({
-      where: {
-        channel: NotificationChannel.IN_APP,
-        readAt: null,
-        userId: user.id,
-      },
-    }),
-  ]);
+  try {
+    const [notifications, history, unreadCount] = await Promise.all([
+      prisma.notification.findMany({
+        orderBy: {
+          createdAt: "desc",
+        },
+        select: notificationSelect,
+        take: 8,
+        where: {
+          channel: NotificationChannel.IN_APP,
+          userId: user.id,
+        },
+      }),
+      prisma.notification.findMany({
+        orderBy: {
+          createdAt: "desc",
+        },
+        select: notificationSelect,
+        take: 50,
+        where: {
+          userId: user.id,
+        },
+      }),
+      prisma.notification.count({
+        where: {
+          channel: NotificationChannel.IN_APP,
+          readAt: null,
+          userId: user.id,
+        },
+      }),
+    ]);
 
-  return {
-    history: history.map(mapNotification),
-    notifications: notifications.map(mapNotification),
-    unreadCount,
-    updatedAt: new Date().toISOString(),
-  };
+    return {
+      history: history.map(mapNotification),
+      notifications: notifications.map(mapNotification),
+      unreadCount,
+      updatedAt: new Date().toISOString(),
+    };
+  } catch (error) {
+    if (process.env.APP_ENV === "development") {
+      console.warn("Unable to load notification center snapshot", {
+        message: error instanceof Error ? error.message : "Unknown notification query error",
+        name: error instanceof Error ? error.name : typeof error,
+      });
+    }
+
+    return {
+      history: [],
+      notifications: [],
+      unreadCount: 0,
+      updatedAt: new Date().toISOString(),
+    };
+  }
 }

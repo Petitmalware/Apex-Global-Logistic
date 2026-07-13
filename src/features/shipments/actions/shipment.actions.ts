@@ -20,9 +20,10 @@ import {
   uploadShipmentDocument,
 } from "@/features/shipments/services/shipment.service";
 import type { ShipmentActionState } from "@/features/shipments/types";
-import { PERMISSIONS } from "@/lib/auth/rbac";
+import { AUTH_ROLES } from "@/lib/auth/constants";
 import { AuthError } from "@/lib/auth/errors";
-import { requireAuthenticatedUser, requirePermission } from "@/lib/auth/session";
+import { requireAuthenticatedUser, requireRole } from "@/lib/auth/session";
+import { getDatabaseUnavailableMessage, isDatabaseUnavailableError } from "@/lib/db-errors";
 
 function getString(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -50,8 +51,8 @@ function hasOptionalPackageData(formData: FormData, index: number) {
   return keys.some((key) => getString(formData, `packages.${index}.${key}`).trim().length > 0);
 }
 
-function parseShipmentFormData(formData: FormData) {
-  const packages = [0, 1, 2]
+function parseShipmentFormData(formData: FormData, { recipientRequired = true } = {}) {
+  const packages = [0, 1, 2, 3, 4, 5]
     .filter((index) => index === 0 || hasOptionalPackageData(formData, index))
     .map((index) => ({
       barcode: getString(formData, `packages.${index}.barcode`),
@@ -71,6 +72,7 @@ function parseShipmentFormData(formData: FormData) {
     }));
 
   return shipmentFormSchema.safeParse({
+    customerId: getString(formData, "customerId"),
     deliveryWindowEnd: getString(formData, "deliveryWindowEnd"),
     deliveryWindowStart: getString(formData, "deliveryWindowStart"),
     destination: {
@@ -83,7 +85,26 @@ function parseShipmentFormData(formData: FormData) {
       state: getString(formData, "destination.state"),
     },
     mode: getString(formData, "mode") || "ROAD",
+    manualRecipient: {
+      email: getString(formData, "manualRecipient.email"),
+      name: getString(formData, "manualRecipient.name"),
+      phone: getString(formData, "manualRecipient.phone"),
+    },
     notes: getString(formData, "notes"),
+    officeDetails: {
+      carrier: getString(formData, "officeDetails.carrier"),
+      carrierReference: getString(formData, "officeDetails.carrierReference"),
+      comments: getString(formData, "officeDetails.comments"),
+      courier: getString(formData, "officeDetails.courier"),
+      departureTime: getString(formData, "officeDetails.departureTime"),
+      paymentMode: getString(formData, "officeDetails.paymentMode"),
+      pickupTime: getString(formData, "officeDetails.pickupTime"),
+      productName: getString(formData, "officeDetails.productName"),
+      quantity: getString(formData, "officeDetails.quantity"),
+      shipperEmail: getString(formData, "officeDetails.shipperEmail"),
+      shipperPhone: getString(formData, "officeDetails.shipperPhone"),
+      totalFreight: getString(formData, "officeDetails.totalFreight"),
+    },
     origin: {
       city: getString(formData, "origin.city"),
       countryCode: getString(formData, "origin.countryCode"),
@@ -98,6 +119,7 @@ function parseShipmentFormData(formData: FormData) {
     pickupWindowStart: getString(formData, "pickupWindowStart"),
     priority: getString(formData, "priority") || "STANDARD",
     referenceNumber: getString(formData, "referenceNumber"),
+    recipientRequired,
     serviceLevel: getString(formData, "serviceLevel"),
     status: getString(formData, "status") || "DRAFT",
   });
@@ -107,6 +129,13 @@ function errorState(error: unknown): ShipmentActionState {
   if (error instanceof AuthError) {
     return {
       message: error.message,
+      status: "error",
+    };
+  }
+
+  if (isDatabaseUnavailableError(error)) {
+    return {
+      message: getDatabaseUnavailableMessage(),
       status: "error",
     };
   }
@@ -121,7 +150,7 @@ export async function createShipmentAction(
   _previousState: ShipmentActionState,
   formData: FormData,
 ): Promise<ShipmentActionState> {
-  const user = await requirePermission(PERMISSIONS.SHIPMENTS_CREATE);
+  const user = await requireRole([AUTH_ROLES.ADMIN, AUTH_ROLES.SUPER_ADMIN]);
   const parsed = parseShipmentFormData(formData);
 
   if (!parsed.success) {
@@ -149,7 +178,7 @@ export async function createParcelBookingAction(
   _previousState: ShipmentActionState,
   formData: FormData,
 ): Promise<ShipmentActionState> {
-  const user = await requirePermission(PERMISSIONS.SHIPMENTS_CREATE);
+  const user = await requireRole([AUTH_ROLES.ADMIN, AUTH_ROLES.SUPER_ADMIN]);
   const parsed = parseShipmentFormData(formData);
   const parsedOptions = parcelBookingOptionsSchema.safeParse({
     insuranceRequested: getBoolean(formData, "insuranceRequested"),
@@ -196,7 +225,7 @@ export async function updateShipmentAction(
   formData: FormData,
 ): Promise<ShipmentActionState> {
   const user = await requireAuthenticatedUser();
-  const parsed = parseShipmentFormData(formData);
+  const parsed = parseShipmentFormData(formData, { recipientRequired: false });
 
   if (!parsed.success) {
     return {
@@ -225,6 +254,9 @@ export async function updateShipmentStatusAction(
   const user = await requireAuthenticatedUser();
   const parsed = shipmentStatusUpdateSchema.safeParse({
     eventType: getString(formData, "eventType"),
+    latitude: getString(formData, "latitude"),
+    location: getString(formData, "location"),
+    longitude: getString(formData, "longitude"),
     message: getString(formData, "message"),
     occurredAt: getString(formData, "occurredAt"),
     status: getString(formData, "status"),

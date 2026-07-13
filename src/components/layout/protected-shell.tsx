@@ -8,16 +8,19 @@ import { Breadcrumbs, type BreadcrumbItem } from "@/components/ui/breadcrumb";
 import { Input } from "@/components/ui/input";
 import { SideNavigation, TopNavigation } from "@/components/ui/navigation";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { WorkspaceHistoryControls } from "@/components/layout/workspace-history-controls";
+import { SessionKeepAlive } from "@/features/auth/components/session-keep-alive";
 import type { AuthSessionUser } from "@/features/auth/services/auth.service";
 import { LogoutButton } from "@/features/auth/components/logout-button";
+import { ChatWidget } from "@/features/chat/components/chat-widget";
 import {
-  dashboardNavItems,
-  dashboardQuickNav,
+  getDashboardNavItems,
+  getDashboardQuickNav,
   roleHomeByRole,
 } from "@/features/dashboard/data/dashboard";
 import { NotificationCenter } from "@/features/notifications/components/notification-center";
-import { getNotificationCenterSnapshot } from "@/features/notifications/queries/notification.queries";
-import { AUTH_ROLE_LABELS } from "@/lib/auth/constants";
+import type { NotificationCenterSnapshot } from "@/features/notifications/types";
+import { AUTH_ROLE_LABELS, AUTH_ROLES } from "@/lib/auth/constants";
 import { cn } from "@/lib/utils";
 
 type ProtectedShellProps = {
@@ -62,6 +65,15 @@ function WorkspaceBrand() {
       </div>
     </Link>
   );
+}
+
+function getEmptyNotificationSnapshot(): NotificationCenterSnapshot {
+  return {
+    history: [],
+    notifications: [],
+    unreadCount: 0,
+    updatedAt: new Date().toISOString(),
+  };
 }
 
 function DashboardSearch() {
@@ -129,7 +141,15 @@ function ProfileMenu({ user }: { user: AuthSessionUser }) {
   );
 }
 
-function MobileNavigation({ activeHref }: { activeHref: Route | string }) {
+function MobileNavigation({
+  activeHref,
+  user,
+}: {
+  activeHref: Route | string;
+  user: AuthSessionUser;
+}) {
+  const navItems = getDashboardNavItems(user);
+
   return (
     <details className="group relative lg:hidden">
       <summary className="border-border bg-background text-muted-foreground grid size-10 cursor-pointer list-none place-items-center rounded-md border">
@@ -138,7 +158,7 @@ function MobileNavigation({ activeHref }: { activeHref: Route | string }) {
       </summary>
       <div className="border-border bg-popover shadow-panel absolute top-12 left-0 z-50 w-80 rounded-lg border p-3">
         <SideNavigation
-          items={dashboardNavItems.map((item) => ({
+          items={navItems.map((item) => ({
             ...item,
             isActive: item.href === activeHref,
           }))}
@@ -156,14 +176,21 @@ export async function ProtectedShell({
   title,
   user,
 }: ProtectedShellProps) {
-  const sidebarItems = dashboardNavItems.map((item) => ({
+  const sidebarItems = getDashboardNavItems(user).map((item) => ({
     ...item,
     isActive: item.href === activeHref,
   }));
-  const notificationSnapshot = await getNotificationCenterSnapshot(user);
+  const quickNavItems = getDashboardQuickNav(user).map((item) => ({
+    ...item,
+    isActive: item.href === activeHref,
+  }));
+  const notificationSnapshot = getEmptyNotificationSnapshot();
+  const homeHref = getHomeHref(user);
 
   return (
     <div className="bg-background text-foreground min-h-svh">
+      <SessionKeepAlive />
+      {user.roles.includes(AUTH_ROLES.CUSTOMER) ? <ChatWidget surface="workspace" /> : null}
       <aside className="border-border bg-card/95 shadow-soft fixed inset-y-0 left-0 hidden w-72 border-r p-4 backdrop-blur lg:block">
         <WorkspaceBrand />
         <div className="mt-6">
@@ -187,7 +214,7 @@ export async function ProtectedShell({
         <header className="border-border bg-background/92 sticky top-0 z-40 border-b backdrop-blur-xl">
           <div className="flex min-h-[72px] items-center justify-between gap-3 px-4 sm:px-6">
             <div className="flex min-w-0 items-center gap-3">
-              <MobileNavigation activeHref={activeHref} />
+              <MobileNavigation activeHref={activeHref} user={user} />
               <div className="hidden sm:block lg:hidden">
                 <WorkspaceBrand />
               </div>
@@ -203,13 +230,7 @@ export async function ProtectedShell({
               <ProfileMenu user={user} />
             </div>
           </div>
-          <TopNavigation
-            className="min-h-14 border-b-0 px-4 sm:px-6"
-            items={dashboardQuickNav.map((item) => ({
-              ...item,
-              isActive: item.href === activeHref,
-            }))}
-          />
+          <TopNavigation className="min-h-14 border-b-0 px-4 sm:px-6" items={quickNavItems} />
         </header>
         <main id="main-content" className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:py-8">
           <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -226,7 +247,8 @@ export async function ProtectedShell({
                 </p>
               ) : null}
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center justify-start gap-2 lg:justify-end">
+              <WorkspaceHistoryControls homeHref={homeHref} />
               {user.roles.map((role) => (
                 <Badge key={role} variant="outline">
                   {AUTH_ROLE_LABELS[role]}

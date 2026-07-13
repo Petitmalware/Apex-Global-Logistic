@@ -7,7 +7,7 @@ import {
   PageHero,
   TrackingPreview,
 } from "@/features/marketing/components/marketing-sections";
-import { parcelFeatures } from "@/features/marketing/data/marketing";
+import { marketingImages, parcelFeatures } from "@/features/marketing/data/marketing";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/parcel-delivery" },
@@ -23,6 +23,7 @@ export default function ParcelDeliveryPage() {
         badge="Fast parcel delivery"
         description="Ship parcels with structured service levels, route visibility, delivery windows, exception alerts, and customer-ready status updates."
         eyebrow="Parcel Delivery"
+        image={marketingImages.parcel}
         primaryHref="/register"
         primaryLabel="Create account"
         title="Parcel delivery built for speed and accountability"

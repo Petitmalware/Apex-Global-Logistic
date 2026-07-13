@@ -139,16 +139,6 @@ function createTimeoutSignal() {
   };
 }
 
-function assertConfigured(config: ProviderConfig) {
-  if (config.provider === "local" || config.apiKey) {
-    return;
-  }
-
-  if (env.APP_ENV === "production") {
-    throw new Error(`AI provider ${config.provider} is missing its API key.`);
-  }
-}
-
 async function generateChatCompletion(input: AiTextRequest, config: ProviderConfig) {
   const timeout = createTimeoutSignal();
 
@@ -252,8 +242,6 @@ async function generateGemini(input: AiTextRequest, config: ProviderConfig) {
 
 export async function generateAiText(input: AiTextRequest): Promise<AiTextResult> {
   const config = getProviderConfig();
-
-  assertConfigured(config);
 
   if (config.provider === "local") {
     return buildLocalText(input);

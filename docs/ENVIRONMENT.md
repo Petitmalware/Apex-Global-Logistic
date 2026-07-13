@@ -26,8 +26,8 @@ Environment variables are validated with Zod in `src/config`.
 | `GROQ_BASE_URL`                     | Server                | No       | Groq OpenAI-compatible base URL.                                                    |
 | `GROQ_MODEL`                        | Server                | No       | Groq model name.                                                                    |
 | `NEXT_PUBLIC_APP_URL`               | Client and server     | No       | Public application URL. Defaults to `http://localhost:3000`.                        |
-| `NOTIFICATION_EMAIL_FROM`           | Server                | No       | Sender address for queued notification email delivery.                              |
-| `NOTIFICATION_EMAIL_PROVIDER`       | Server                | No       | Email delivery adapter. Defaults to `console`.                                      |
+| `NOTIFICATION_EMAIL_FROM`           | Server                | No       | Reserved sender override for a future separate notification adapter.                |
+| `NOTIFICATION_EMAIL_PROVIDER`       | Server                | No       | Reserved adapter setting. Branded notifications currently use `EMAIL_PROVIDER`.     |
 | `OPENAI_API_KEY`                    | Server                | No       | OpenAI API key used when `AI_PROVIDER=openai`.                                      |
 | `OPENAI_BASE_URL`                   | Server                | No       | OpenAI-compatible base URL.                                                         |
 | `OPENAI_MODEL`                      | Server                | No       | OpenAI model name.                                                                  |
@@ -36,11 +36,11 @@ Environment variables are validated with Zod in `src/config`.
 | `OPENROUTER_MODEL`                  | Server                | No       | OpenRouter model name.                                                              |
 | `REDIS_URL`                         | Server                | No       | Redis URL for cross-instance realtime pub/sub.                                      |
 | `RESEND_API_KEY`                    | Server                | No       | Resend API key used when `EMAIL_PROVIDER=resend`.                                   |
-| `SMTP_FROM`                         | Server                | No       | SMTP sender override for future SMTP transport support.                             |
-| `SMTP_HOST`                         | Server                | No       | SMTP host for future SMTP transport support.                                        |
-| `SMTP_PASSWORD`                     | Server                | No       | SMTP password for future SMTP transport support.                                    |
-| `SMTP_PORT`                         | Server                | No       | SMTP port for future SMTP transport support.                                        |
-| `SMTP_USERNAME`                     | Server                | No       | SMTP username for future SMTP transport support.                                    |
+| `SMTP_FROM`                         | Server                | No       | SMTP sender override used when `EMAIL_PROVIDER=smtp`.                               |
+| `SMTP_HOST`                         | Server                | No       | SMTP host used when `EMAIL_PROVIDER=smtp`.                                          |
+| `SMTP_PASSWORD`                     | Server                | No       | SMTP mailbox password used when `EMAIL_PROVIDER=smtp`.                              |
+| `SMTP_PORT`                         | Server                | No       | SMTP port used when `EMAIL_PROVIDER=smtp`; port `465` uses SSL/TLS.                 |
+| `SMTP_USERNAME`                     | Server                | No       | SMTP mailbox username used when `EMAIL_PROVIDER=smtp`.                              |
 | `STORAGE_DRIVER`                    | Server                | No       | Upload storage driver. Defaults to `local`; `s3` is reserved for MinIO/S3 adapters. |
 | `STORAGE_LOCAL_PATH`                | Server                | No       | Local upload storage path relative to the application working directory.            |
 | `S3_ACCESS_KEY_ID`                  | Server                | No       | MinIO/S3 access key for future object storage adapters.                             |
@@ -60,6 +60,8 @@ cp .env.example .env
 ```
 
 Use the Docker Compose PostgreSQL service or provide your own PostgreSQL connection string.
+
+For Apex domain mailbox delivery, keep local development on `EMAIL_PROVIDER=console` until you are ready to send real emails. In production, use `EMAIL_PROVIDER=smtp`, `SMTP_HOST=mail.spacemail.com`, `SMTP_PORT=465`, the full mailbox address as `SMTP_USERNAME`, and the mailbox password as `SMTP_PASSWORD`.
 
 ## Production
 

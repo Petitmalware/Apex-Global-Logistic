@@ -41,7 +41,7 @@ export function EmailStudioDashboard({ overview }: EmailStudioDashboardProps) {
         ))}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-4 lg:grid-cols-4">
         <Card>
           <CardHeader>
             <CardTitle>Compose</CardTitle>
@@ -57,9 +57,22 @@ export function EmailStudioDashboard({ overview }: EmailStudioDashboardProps) {
         </Card>
         <Card>
           <CardHeader>
+            <CardTitle>Built-in Client Emails</CardTitle>
+            <CardDescription>
+              Use ready-made billing, pet transport, clearance, and compliance email texts.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild variant="outline">
+              <Link href={"/admin/emails/templates" as Route}>Open email library</Link>
+            </Button>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
             <CardTitle>Templates</CardTitle>
             <CardDescription>
-              Edit built-in logistics, pet, freight, invoice, and auth templates.
+              Edit database-backed logistics, pet, freight, invoice, and auth templates.
             </CardDescription>
           </CardHeader>
           <CardContent>

@@ -7,6 +7,7 @@ import { ProtectedShell } from "@/components/layout/protected-shell";
 import { Button } from "@/components/ui/button";
 import { ShipmentList } from "@/features/shipments/components/shipment-list";
 import { getShipmentsForUser } from "@/features/shipments/queries/shipment.queries";
+import { AUTH_ROLES } from "@/lib/auth/constants";
 import { PERMISSIONS } from "@/lib/auth/rbac";
 import { requirePermission } from "@/lib/auth/session";
 
@@ -17,13 +18,19 @@ export const metadata: Metadata = {
 export default async function ShipmentsPage() {
   const user = await requirePermission(PERMISSIONS.SHIPMENTS_READ);
   const shipments = await getShipmentsForUser(user);
+  const canCreateShipments =
+    user.roles.includes(AUTH_ROLES.ADMIN) || user.roles.includes(AUTH_ROLES.SUPER_ADMIN);
 
   return (
     <ProtectedShell
       activeHref="/shipments"
       breadcrumbs={[{ href: "/dashboard", label: "Dashboard" }, { label: "Shipments" }]}
-      description="Create, edit, track, and audit shipments across package, document, and status workflows."
-      title="Shipment Management"
+      description={
+        canCreateShipments
+          ? "Create, edit, track, and audit shipments across package, document, and status workflows."
+          : "Track shipments assigned to your account and review package, document, and status history."
+      }
+      title={canCreateShipments ? "Shipment Management" : "My Shipments"}
       user={user}
     >
       <div className="space-y-6">
@@ -34,22 +41,24 @@ export default async function ShipmentsPage() {
               Showing the latest 50 shipments available to your role.
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button asChild variant="outline">
-              <Link href={"/shipments/new" as Route}>
-                <Plus aria-hidden="true" />
-                New shipment
-              </Link>
-            </Button>
-            <Button asChild variant="accent">
-              <Link href={"/shipments/parcel/new" as Route}>
-                <PackagePlus aria-hidden="true" />
-                Book parcel
-              </Link>
-            </Button>
-          </div>
+          {canCreateShipments ? (
+            <div className="flex flex-wrap gap-2">
+              <Button asChild variant="outline">
+                <Link href={"/shipments/new" as Route}>
+                  <Plus aria-hidden="true" />
+                  New shipment
+                </Link>
+              </Button>
+              <Button asChild variant="accent">
+                <Link href={"/shipments/parcel/new" as Route}>
+                  <PackagePlus aria-hidden="true" />
+                  Book parcel
+                </Link>
+              </Button>
+            </div>
+          ) : null}
         </div>
-        <ShipmentList shipments={shipments} />
+        <ShipmentList canCreate={canCreateShipments} shipments={shipments} />
       </div>
     </ProtectedShell>
   );

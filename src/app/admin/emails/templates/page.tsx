@@ -23,7 +23,7 @@ export default async function EmailTemplatesPage() {
         { href: "/admin/emails", label: "Email Studio" },
         { label: "Templates" },
       ]}
-      description="Manage editable built-in and manual email templates used by the branded email system."
+      description="Use built-in client emails or edit database templates used by the branded email system."
       title="Email Templates"
       user={user}
     >
@@ -31,7 +31,8 @@ export default async function EmailTemplatesPage() {
         <CardHeader>
           <CardTitle>Template library</CardTitle>
           <CardDescription>
-            Shipment, pet, freight, invoice, auth, admin, and manual templates.
+            Ready-to-send client emails plus editable shipment, pet, freight, invoice, auth, admin,
+            and manual templates.
           </CardDescription>
         </CardHeader>
         <CardContent>

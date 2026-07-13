@@ -441,7 +441,7 @@ export function FreightDocumentForm({ action }: { action: RecordAction }) {
   const [state, formAction, isPending] = useActionState(action, initialFreightTransportActionState);
 
   return (
-    <form action={formAction} className="space-y-4" encType="multipart/form-data">
+    <form action={formAction} className="space-y-4">
       <FormMessage state={state} />
       <Field>
         <Label htmlFor="document-type">Document type</Label>

@@ -20,6 +20,14 @@ function decimalToString(value: Prisma.Decimal | null) {
   return value === null ? null : value.toString();
 }
 
+function getTrackingLocation(metadata: Prisma.JsonValue | null) {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    return null;
+  }
+
+  return "location" in metadata && typeof metadata.location === "string" ? metadata.location : null;
+}
+
 function formatDimensions({
   heightCm,
   lengthCm,
@@ -395,8 +403,11 @@ export async function getFreightTransportForUser(
     shipmentNumber: freightTransport.shipment.shipmentNumber,
     shipmentStatus: freightTransport.shipment.status,
     shipmentTimeline: freightTransport.shipment.trackingEvents.map((event) => ({
+      currentLocation: getTrackingLocation(event.metadata),
       eventType: event.eventType,
       id: event.id,
+      latitude: decimalToString(event.latitude),
+      longitude: decimalToString(event.longitude),
       message: event.message,
       occurredAt: event.occurredAt.toISOString(),
       packageNumber: event.package?.packageNumber ?? null,

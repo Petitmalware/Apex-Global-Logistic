@@ -21,7 +21,7 @@ export function PackagePhotoForm({ action, packages }: PackagePhotoFormProps) {
   const [state, formAction, isPending] = useActionState(action, initialShipmentActionState);
 
   return (
-    <form action={formAction} className="space-y-4" encType="multipart/form-data">
+    <form action={formAction} className="space-y-4">
       {state.message ? (
         <p className="border-border bg-secondary text-secondary-foreground rounded-md border px-3 py-2 text-sm">
           {state.message}

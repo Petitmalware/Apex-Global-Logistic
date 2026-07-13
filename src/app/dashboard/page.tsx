@@ -1,19 +1,12 @@
-import { ProtectedShell } from "@/components/layout/protected-shell";
-import { RoleDashboard } from "@/features/dashboard/components/role-dashboard";
-import { overviewConfig } from "@/features/dashboard/data/dashboard";
+import { redirect } from "next/navigation";
+import type { Route } from "next";
+
+import { roleHomeByRole } from "@/features/dashboard/data/dashboard";
 import { requireAuthenticatedUser } from "@/lib/auth/session";
 
 export default async function DashboardPage() {
   const user = await requireAuthenticatedUser();
+  const [primaryRole] = user.roles;
 
-  return (
-    <ProtectedShell
-      activeHref="/dashboard"
-      description="A secure authenticated workspace that routes each team member into the right logistics dashboard."
-      title="Dashboard"
-      user={user}
-    >
-      <RoleDashboard config={overviewConfig} user={user} />
-    </ProtectedShell>
-  );
+  redirect((primaryRole ? roleHomeByRole[primaryRole] : "/customer") as Route);
 }

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
+import { formatShipmentStatus, formatTrackingEventType } from "@/features/shipments/status-labels";
 import type {
   ShipmentTrackingSnapshot,
   ShipmentTrackingTimelineEvent,
@@ -71,12 +72,15 @@ export function RealtimeShipmentTimeline({
             </div>
             <div className="min-w-0 flex-1 pb-5">
               <div className="flex flex-wrap items-center gap-2">
-                <p className="font-semibold">{event.eventType.replaceAll("_", " ")}</p>
+                <p className="font-semibold">{formatTrackingEventType(event.eventType)}</p>
                 {event.shipmentStatus ? (
-                  <Badge variant="outline">{event.shipmentStatus.replaceAll("_", " ")}</Badge>
+                  <Badge variant="outline">{formatShipmentStatus(event.shipmentStatus)}</Badge>
                 ) : null}
               </div>
               <p className="text-muted-foreground mt-1 text-sm">{formatDate(event.occurredAt)}</p>
+              {event.currentLocation ? (
+                <p className="text-muted-foreground mt-1 text-xs">{event.currentLocation}</p>
+              ) : null}
               {event.message ? <p className="mt-2 text-sm leading-6">{event.message}</p> : null}
               <p className="text-muted-foreground mt-2 text-xs">
                 {event.recordedBy ? `Recorded by ${event.recordedBy}` : "System event"}

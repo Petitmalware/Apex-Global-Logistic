@@ -371,6 +371,8 @@ function shipmentSearchText(shipment: ShipmentListItem) {
     shipment.mode,
     shipment.originCity,
     shipment.destinationCity,
+    shipment.recipientName,
+    shipment.recipientEmail,
     `${shipment.packageCount} packages`,
   ]
     .filter(Boolean)

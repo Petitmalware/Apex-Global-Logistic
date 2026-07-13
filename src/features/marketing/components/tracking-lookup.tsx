@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-import { Clock3, PackageSearch, Route } from "lucide-react";
+import { Clock3, MapPinned, PackageSearch, Route } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Notification } from "@/components/ui/notification";
+import { ShipmentLiveMap } from "@/features/shipments/components/shipment-live-map";
+import { formatShipmentStatus, formatTrackingEventType } from "@/features/shipments/status-labels";
 import type { ShipmentTrackingSnapshot } from "@/features/shipments/types";
 
 type LookupStatus = "idle" | "loading" | "ready" | "error";
@@ -67,10 +69,12 @@ export function TrackingLookup() {
     });
 
     if (!response.ok) {
+      const payload = (await response.json().catch(() => null)) as { message?: string } | null;
+
       setSnapshot(null);
       setTrackedReference("");
       setStatus("error");
-      setError("We could not find a shipment for that reference.");
+      setError(payload?.message ?? "We could not find a shipment for that reference.");
       return;
     }
 
@@ -147,7 +151,7 @@ export function TrackingLookup() {
           {snapshot ? (
             <div className="flex flex-wrap gap-2">
               <Badge variant={statusVariant(snapshot.status)}>
-                {snapshot.status.replaceAll("_", " ")}
+                {formatShipmentStatus(snapshot.status)}
               </Badge>
               <Badge variant={connectionState === "live" ? "success" : "outline"}>
                 {connectionState === "live" ? "Live" : "Waiting"}
@@ -160,7 +164,7 @@ export function TrackingLookup() {
 
         {snapshot ? (
           <div className="mt-5 space-y-6">
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               {[
                 {
                   icon: Route,
@@ -175,7 +179,12 @@ export function TrackingLookup() {
                 {
                   icon: PackageSearch,
                   label: "Latest",
-                  value: latestEvent?.eventType.replaceAll("_", " ") ?? "No events",
+                  value: latestEvent ? formatTrackingEventType(latestEvent.eventType) : "No events",
+                },
+                {
+                  icon: MapPinned,
+                  label: "Location",
+                  value: latestEvent?.currentLocation ?? "Awaiting next manual update",
                 },
               ].map((item) => (
                 <div className="border-border bg-background rounded-md border p-4" key={item.label}>
@@ -185,6 +194,7 @@ export function TrackingLookup() {
                 </div>
               ))}
             </div>
+            <ShipmentLiveMap snapshot={snapshot} />
             <div className="space-y-4">
               {snapshot.timeline.length ? (
                 snapshot.timeline.map((event) => (
@@ -195,16 +205,21 @@ export function TrackingLookup() {
                     </div>
                     <div className="min-w-0 flex-1 pb-4">
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-semibold">{event.eventType.replaceAll("_", " ")}</p>
+                        <p className="font-semibold">{formatTrackingEventType(event.eventType)}</p>
                         {event.shipmentStatus ? (
                           <Badge variant="outline">
-                            {event.shipmentStatus.replaceAll("_", " ")}
+                            {formatShipmentStatus(event.shipmentStatus)}
                           </Badge>
                         ) : null}
                       </div>
                       <p className="text-muted-foreground mt-1 text-xs">
                         {formatDate(event.occurredAt)}
                       </p>
+                      {event.currentLocation ? (
+                        <p className="text-muted-foreground mt-1 text-xs">
+                          {event.currentLocation}
+                        </p>
+                      ) : null}
                       {event.message ? (
                         <p className="mt-2 text-sm leading-6">{event.message}</p>
                       ) : null}

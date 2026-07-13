@@ -15,7 +15,7 @@ type EditPetTransportPageProps = {
 };
 
 export const metadata: Metadata = {
-  title: "Edit Pet Transport | Apex Global Logistics",
+  title: "Edit Pet Shipment | Apex Global Logistics",
 };
 
 export default async function EditPetTransportPage({ params }: EditPetTransportPageProps) {
@@ -32,12 +32,12 @@ export default async function EditPetTransportPage({ params }: EditPetTransportP
       activeHref="/pet-transport"
       breadcrumbs={[
         { href: "/dashboard", label: "Dashboard" },
-        { href: "/pet-transport", label: "Pet Transport" },
+        { href: "/pet-transport", label: "Pet Shipments" },
         { href: `/pet-transport/${petTransport.id}`, label: petTransport.petName ?? "Pet" },
         { label: "Edit" },
       ]}
-      description="Update pet profile, crate requirements, care instructions, and specialist handling state."
-      title="Edit Pet Transport"
+      description="Update pet profile, sender contact, crate requirements, care instructions, and specialist handling state."
+      title="Edit Pet Shipment"
       user={user}
     >
       <PetTransportForm

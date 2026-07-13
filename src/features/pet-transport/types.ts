@@ -159,8 +159,11 @@ export type PetTransportDetail = PetTransportListItem & {
     recordedBy: string | null;
   }>;
   shipmentTimeline: Array<{
+    currentLocation: string | null;
     eventType: TrackingEventType;
     id: string;
+    latitude: string | null;
+    longitude: string | null;
     message: string | null;
     occurredAt: string;
     packageNumber: string | null;

@@ -4,9 +4,16 @@ import {
   PermissionAction,
   PrismaClient,
   RoleScope,
+  UserStatus,
 } from "@prisma/client";
+import { pbkdf2Sync, randomBytes } from "node:crypto";
 
 const prisma = new PrismaClient();
+const DEMO_PASSWORD = "ApexDemo12345";
+const PASSWORD_ALGORITHM = "pbkdf2_sha256";
+const PASSWORD_HASH_BYTES = 32;
+const PASSWORD_ITERATIONS = 310_000;
+const PASSWORD_SALT_BYTES = 16;
 
 const permissions = [
   ["users:read", "users", PermissionAction.READ],
@@ -65,24 +72,18 @@ const roleDefinitions = [
   {
     key: "customer",
     name: "Customer",
-    description: "Customer access for booking, tracking, invoices, notifications, and support.",
+    description:
+      "Customer portal access for assigned shipments, tracking, invoices, notifications, and support.",
     permissionKeys: [
-      "shipments:create",
       "shipments:read",
       "tracking:read",
       "packages:read",
-      "pet_transport:create",
       "pet_transport:read",
-      "pet_transport:update",
-      "freight_transport:create",
       "freight_transport:read",
-      "freight_transport:update",
       "invoices:read",
       "notifications:read",
       "support:create",
       "support:read",
-      "ai:create",
-      "ai:read",
     ],
   },
   {
@@ -345,6 +346,41 @@ const emailTemplates = [
   },
 ];
 
+const demoUsers = [
+  {
+    email: "admin@apexgloballogistics.test",
+    name: "Apex Admin",
+    roleKey: "admin",
+  },
+  {
+    email: "customer@apexgloballogistics.test",
+    name: "Apex Customer",
+    roleKey: "customer",
+  },
+  {
+    email: "superadmin@apexgloballogistics.test",
+    name: "Apex Super Admin",
+    roleKey: "super_admin",
+  },
+];
+
+const retiredDemoUserEmails = [
+  "agent@apexgloballogistics.test",
+  "support@apexgloballogistics.test",
+];
+
+function hashPassword(password) {
+  const salt = randomBytes(PASSWORD_SALT_BYTES);
+  const hash = pbkdf2Sync(password, salt, PASSWORD_ITERATIONS, PASSWORD_HASH_BYTES, "sha256");
+
+  return [
+    PASSWORD_ALGORITHM,
+    PASSWORD_ITERATIONS.toString(),
+    salt.toString("base64url"),
+    hash.toString("base64url"),
+  ].join("$");
+}
+
 async function upsertPermissions() {
   for (const [key, resource, action] of permissions) {
     await prisma.permission.upsert({
@@ -403,12 +439,37 @@ async function upsertSystemRole(definition) {
     },
   });
 
+  const permissionIdsToKeep = rolePermissions.map((permission) => permission.id);
+
+  await prisma.rolePermission.deleteMany({
+    where: {
+      roleId: role.id,
+      permissionId: {
+        notIn: permissionIdsToKeep,
+      },
+    },
+  });
+
   await prisma.rolePermission.createMany({
     data: rolePermissions.map((permission) => ({
       permissionId: permission.id,
       roleId: role.id,
     })),
     skipDuplicates: true,
+  });
+}
+
+async function archiveRetiredDemoUsers() {
+  await prisma.user.updateMany({
+    data: {
+      deletedAt: new Date(),
+      status: UserStatus.ARCHIVED,
+    },
+    where: {
+      email: {
+        in: retiredDemoUserEmails,
+      },
+    },
   });
 }
 
@@ -458,6 +519,99 @@ async function upsertEmailTemplate(template) {
   });
 }
 
+async function upsertDemoOrganization() {
+  return prisma.organization.upsert({
+    create: {
+      email: "ops@apexgloballogistics.test",
+      name: "Apex Global Logistics Demo",
+      slug: "apex-demo",
+    },
+    update: {
+      email: "ops@apexgloballogistics.test",
+      name: "Apex Global Logistics Demo",
+    },
+    where: {
+      slug: "apex-demo",
+    },
+  });
+}
+
+async function assignDemoRole({ organizationId, roleId, userId }) {
+  const existingRole = await prisma.userRole.findFirst({
+    where: {
+      organizationId,
+      roleId,
+      userId,
+      warehouseId: null,
+    },
+  });
+
+  if (existingRole) {
+    return;
+  }
+
+  await prisma.userRole.create({
+    data: {
+      organizationId,
+      roleId,
+      userId,
+    },
+  });
+}
+
+async function upsertDemoUsers() {
+  const organization = await upsertDemoOrganization();
+  const roleKeys = demoUsers.map((user) => user.roleKey);
+  const roles = await prisma.role.findMany({
+    select: {
+      id: true,
+      key: true,
+    },
+    where: {
+      key: {
+        in: roleKeys,
+      },
+      organizationId: null,
+    },
+  });
+  const rolesByKey = new Map(roles.map((role) => [role.key, role]));
+
+  for (const demoUser of demoUsers) {
+    const role = rolesByKey.get(demoUser.roleKey);
+
+    if (!role) {
+      throw new Error(`Seed role not found: ${demoUser.roleKey}`);
+    }
+
+    const user = await prisma.user.upsert({
+      create: {
+        email: demoUser.email,
+        emailVerifiedAt: new Date(),
+        hashedPassword: hashPassword(DEMO_PASSWORD),
+        name: demoUser.name,
+        organizationId: organization.id,
+        status: UserStatus.ACTIVE,
+      },
+      update: {
+        emailVerifiedAt: new Date(),
+        hashedPassword: hashPassword(DEMO_PASSWORD),
+        name: demoUser.name,
+        organizationId: organization.id,
+        status: UserStatus.ACTIVE,
+      },
+      where: {
+        email: demoUser.email,
+      },
+    });
+
+    await assignDemoRole({
+      organizationId: organization.id,
+      roleId: role.id,
+      userId: user.id,
+    });
+  }
+}
+
 async function main() {
   await upsertPermissions();
 
@@ -468,6 +622,10 @@ async function main() {
   for (const template of emailTemplates) {
     await upsertEmailTemplate(template);
   }
+
+  await upsertDemoUsers();
+  await archiveRetiredDemoUsers();
+  console.info(`Seeded demo login password: ${DEMO_PASSWORD}`);
 }
 
 main()

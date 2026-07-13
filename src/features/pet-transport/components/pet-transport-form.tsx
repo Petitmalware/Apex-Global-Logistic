@@ -12,26 +12,51 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { CustomerSelectCard } from "@/features/customers/components/customer-select-card";
 import type { PetTransportActionState, PetTransportDetail } from "@/features/pet-transport/types";
+import { formatPetTransportStatus } from "@/features/shipments/status-labels";
+import type { CustomerOption } from "@/features/shipments/types";
 import { initialPetTransportActionState } from "@/features/pet-transport/types";
 
 type PetTransportFormProps = {
   action: (state: PetTransportActionState, formData: FormData) => Promise<PetTransportActionState>;
   cancelHref: Route | string;
+  customerOptions?: CustomerOption[];
   initialPetTransport?: PetTransportDetail;
   mode: "create" | "edit";
 };
 
-function AddressFields({ prefix, title }: { prefix: "destination" | "origin"; title: string }) {
+function AddressFields({
+  prefix,
+  required = true,
+  title,
+}: {
+  prefix: "destination" | "origin";
+  required?: boolean;
+  title: string;
+}) {
+  const isOrigin = prefix === "origin";
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>{title}</CardTitle>
+        <FieldHint>
+          {isOrigin
+            ? "Optional. Leave blank if pickup details are not available yet; the shipment can still be created."
+            : "Required. This is the recipient address or facility where the pet will be delivered."}
+        </FieldHint>
       </CardHeader>
       <CardContent className="grid gap-4 sm:grid-cols-2">
         <Field>
-          <Label htmlFor={`${prefix}.name`}>Contact or facility</Label>
-          <Input id={`${prefix}.name`} name={`${prefix}.name`} placeholder="Apex animal lounge" />
+          <Label htmlFor={`${prefix}.name`}>
+            {isOrigin ? "Sender or pickup facility" : "Recipient or delivery facility"}
+          </Label>
+          <Input
+            id={`${prefix}.name`}
+            name={`${prefix}.name`}
+            placeholder={isOrigin ? "Sender name or kennel" : "Recipient name or residence"}
+          />
         </Field>
         <Field>
           <Label htmlFor={`${prefix}.countryCode`}>Country code</Label>
@@ -40,12 +65,14 @@ function AddressFields({ prefix, title }: { prefix: "destination" | "origin"; ti
             maxLength={2}
             name={`${prefix}.countryCode`}
             placeholder="US"
-            required
+            required={required}
           />
         </Field>
         <Field className="sm:col-span-2">
-          <Label htmlFor={`${prefix}.line1`}>Address line 1</Label>
-          <Input id={`${prefix}.line1`} name={`${prefix}.line1`} required />
+          <Label htmlFor={`${prefix}.line1`}>
+            {isOrigin ? "Pickup address line 1" : "Delivery address line 1"}
+          </Label>
+          <Input id={`${prefix}.line1`} name={`${prefix}.line1`} required={required} />
         </Field>
         <Field className="sm:col-span-2">
           <Label htmlFor={`${prefix}.line2`}>Address line 2</Label>
@@ -53,7 +80,7 @@ function AddressFields({ prefix, title }: { prefix: "destination" | "origin"; ti
         </Field>
         <Field>
           <Label htmlFor={`${prefix}.city`}>City</Label>
-          <Input id={`${prefix}.city`} name={`${prefix}.city`} required />
+          <Input id={`${prefix}.city`} name={`${prefix}.city`} required={required} />
         </Field>
         <Field>
           <Label htmlFor={`${prefix}.state`}>State / region</Label>
@@ -72,20 +99,30 @@ function TransportPlanFields() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Travel plan</CardTitle>
+        <CardTitle>Shipment plan</CardTitle>
+        <FieldHint>
+          Choose the route priority and delivery window. These values create the linked shipment and
+          guide future tracking updates.
+        </FieldHint>
       </CardHeader>
       <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Field>
-          <Label htmlFor="referenceNumber">Reference number</Label>
-          <Input id="referenceNumber" name="referenceNumber" placeholder="Optional" />
+          <Label htmlFor="referenceNumber">Shipment reference</Label>
+          <Input
+            id="referenceNumber"
+            name="referenceNumber"
+            placeholder="Customer or breeder ref"
+          />
+          <FieldHint>Optional external reference from the sender, breeder, or customer.</FieldHint>
         </Field>
         <Field>
-          <Label htmlFor="priority">Priority</Label>
+          <Label htmlFor="priority">Transport priority</Label>
           <Select defaultValue="STANDARD" id="priority" name="priority">
             <option value="STANDARD">Standard</option>
             <option value="EXPEDITED">Expedited</option>
             <option value="URGENT">Urgent</option>
           </Select>
+          <FieldHint>Use urgent only when the route needs immediate handling.</FieldHint>
         </Field>
         <Field>
           <Label htmlFor="mode">Transport mode</Label>
@@ -96,30 +133,26 @@ function TransportPlanFields() {
             <option value="SEA">Sea</option>
             <option value="MULTIMODAL">Multimodal</option>
           </Select>
+          <FieldHint>Choose the main planned movement method for this pet shipment.</FieldHint>
         </Field>
         <Field>
-          <Label htmlFor="pickupWindowStart">Pickup starts</Label>
-          <Input id="pickupWindowStart" name="pickupWindowStart" type="datetime-local" />
-        </Field>
-        <Field>
-          <Label htmlFor="pickupWindowEnd">Pickup ends</Label>
-          <Input id="pickupWindowEnd" name="pickupWindowEnd" type="datetime-local" />
-        </Field>
-        <Field>
-          <Label htmlFor="deliveryWindowStart">Delivery starts</Label>
+          <Label htmlFor="deliveryWindowStart">Estimated delivery window starts</Label>
           <Input id="deliveryWindowStart" name="deliveryWindowStart" type="datetime-local" />
         </Field>
         <Field>
-          <Label htmlFor="deliveryWindowEnd">Delivery ends</Label>
+          <Label htmlFor="deliveryWindowEnd">Estimated delivery window ends</Label>
           <Input id="deliveryWindowEnd" name="deliveryWindowEnd" type="datetime-local" />
         </Field>
         <Field className="sm:col-span-2">
-          <Label htmlFor="notes">Shipment notes</Label>
+          <Label htmlFor="notes">Internal operations notes</Label>
           <Textarea
             id="notes"
             name="notes"
             placeholder="Carrier, routing, or airline handling notes"
           />
+          <FieldHint>
+            For staff routing notes. Customer-facing updates are added from tracking.
+          </FieldHint>
         </Field>
       </CardContent>
     </Card>
@@ -129,11 +162,20 @@ function TransportPlanFields() {
 export function PetTransportForm({
   action,
   cancelHref,
+  customerOptions = [],
   initialPetTransport,
   mode,
 }: PetTransportFormProps) {
   const [state, formAction, isPending] = useActionState(action, initialPetTransportActionState);
   const isEdit = mode === "edit";
+  const petStatusOptions = [
+    "REQUESTED",
+    "DOCUMENTATION_PENDING",
+    "CLEARED",
+    "IN_TRANSIT",
+    "DELIVERED",
+    "CANCELLED",
+  ] as const;
 
   return (
     <form action={formAction} className="space-y-6">
@@ -142,15 +184,30 @@ export function PetTransportForm({
           {state.message}
         </p>
       ) : null}
+      {!isEdit ? (
+        <CustomerSelectCard
+          allowManualRecipient
+          customerOptions={customerOptions}
+          errors={[
+            ...(state.fieldErrors?.customerId ?? []),
+            ...(state.fieldErrors?.manualRecipient ?? []),
+          ]}
+          hint="Select a registered recipient account when available, or enter a manual recipient for pet shipments that must be created without account registration."
+          label="Registered customer account"
+          manualRecipientHint="Use this when the pet recipient does not want an account. The recipient delivery address below is the house or facility where the pet will be delivered."
+          placeholder="Manual recipient / no account"
+          title="Recipient customer"
+        />
+      ) : null}
       <Card>
         <CardHeader className="flex flex-row items-start gap-3">
           <div className="bg-accent/15 text-accent-foreground grid size-10 place-items-center rounded-md">
             <PawPrint aria-hidden="true" className="size-5" />
           </div>
           <div>
-            <CardTitle>Pet profile</CardTitle>
+            <CardTitle>Pet shipment profile</CardTitle>
             <FieldHint>
-              Core pet profile data used by handlers, support, and shipment tracking.
+              Animal identity, sender contact, care requirements, and the starting transport status.
             </FieldHint>
           </div>
         </CardHeader>
@@ -183,7 +240,7 @@ export function PetTransportForm({
             <Input id="breed" name="breed" defaultValue={initialPetTransport?.breed ?? ""} />
           </Field>
           <Field>
-            <Label htmlFor="ageMonths">Age months</Label>
+            <Label htmlFor="ageMonths">Age (months)</Label>
             <Input
               id="ageMonths"
               min="0"
@@ -202,7 +259,7 @@ export function PetTransportForm({
             />
           </Field>
           <Field>
-            <Label htmlFor="weightKg">Weight kg</Label>
+            <Label htmlFor="weightKg">Weight (kg)</Label>
             <Input
               id="weightKg"
               min="0"
@@ -234,7 +291,7 @@ export function PetTransportForm({
             />
           </Field>
           <Field>
-            <Label htmlFor="ownerName">Owner name</Label>
+            <Label htmlFor="ownerName">Sender / pet owner name</Label>
             <Input
               id="ownerName"
               name="ownerName"
@@ -242,7 +299,7 @@ export function PetTransportForm({
             />
           </Field>
           <Field>
-            <Label htmlFor="ownerEmail">Owner email</Label>
+            <Label htmlFor="ownerEmail">Sender email</Label>
             <Input
               id="ownerEmail"
               name="ownerEmail"
@@ -251,7 +308,7 @@ export function PetTransportForm({
             />
           </Field>
           <Field>
-            <Label htmlFor="ownerPhone">Owner phone</Label>
+            <Label htmlFor="ownerPhone">Sender phone</Label>
             <Input
               id="ownerPhone"
               name="ownerPhone"
@@ -259,7 +316,7 @@ export function PetTransportForm({
             />
           </Field>
           <Field>
-            <Label htmlFor="healthCertificateNumber">Health certificate</Label>
+            <Label htmlFor="healthCertificateNumber">Health certificate number</Label>
             <Input
               id="healthCertificateNumber"
               name="healthCertificateNumber"
@@ -267,19 +324,22 @@ export function PetTransportForm({
             />
           </Field>
           <Field>
-            <Label htmlFor="status">Transport status</Label>
+            <Label htmlFor="status">Initial pet travel status</Label>
             <Select
               id="status"
               name="status"
               defaultValue={initialPetTransport?.status ?? "REQUESTED"}
             >
-              <option value="REQUESTED">Requested</option>
-              <option value="DOCUMENTATION_PENDING">Documentation pending</option>
-              <option value="CLEARED">Cleared</option>
-              <option value="IN_TRANSIT">In transit</option>
-              <option value="DELIVERED">Delivered</option>
-              <option value="CANCELLED">Cancelled</option>
+              {petStatusOptions.map((option) => (
+                <option key={option} value={option}>
+                  {formatPetTransportStatus(option)}
+                </option>
+              ))}
             </Select>
+            <FieldHint>
+              Start with requested unless documents are already reviewed or the pet is already in
+              transit.
+            </FieldHint>
           </Field>
           <div className="flex flex-wrap items-center gap-5 pt-6">
             <label className="flex items-center gap-2 text-sm font-medium">
@@ -288,7 +348,7 @@ export function PetTransportForm({
                 name="crateRequired"
                 type="checkbox"
               />
-              Crate required
+              Travel crate required
             </label>
             <label className="flex items-center gap-2 text-sm font-medium">
               <input
@@ -296,7 +356,7 @@ export function PetTransportForm({
                 name="vaccinationVerified"
                 type="checkbox"
               />
-              Vaccines verified
+              Vaccination proof verified
             </label>
           </div>
         </CardContent>
@@ -305,6 +365,10 @@ export function PetTransportForm({
       <Card>
         <CardHeader>
           <CardTitle>Crate and care requirements</CardTitle>
+          <FieldHint>
+            Keep every care detail available for handlers. Leave unknown values blank and update
+            them later from the pet shipment record.
+          </FieldHint>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Field>
@@ -379,8 +443,8 @@ export function PetTransportForm({
         <>
           <TransportPlanFields />
           <div className="grid gap-6 lg:grid-cols-2">
-            <AddressFields prefix="origin" title="Pickup address" />
-            <AddressFields prefix="destination" title="Delivery address" />
+            <AddressFields prefix="origin" required={false} title="Sender pickup address" />
+            <AddressFields prefix="destination" title="Recipient delivery address" />
           </div>
         </>
       ) : null}
@@ -390,7 +454,7 @@ export function PetTransportForm({
           <Link href={cancelHref as Route}>Cancel</Link>
         </Button>
         <Button disabled={isPending} type="submit" variant="accent">
-          {isPending ? "Saving..." : isEdit ? "Save profile" : "Book pet transport"}
+          {isPending ? "Saving..." : isEdit ? "Save profile" : "Create pet shipment"}
           <ArrowRight aria-hidden="true" />
         </Button>
       </div>

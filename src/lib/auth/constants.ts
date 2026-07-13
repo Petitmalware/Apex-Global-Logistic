@@ -16,7 +16,7 @@ export const AUTH_ROLE_LABELS = {
   [AUTH_ROLES.AGENT]: "Agent",
   [AUTH_ROLES.ADMIN]: "Admin",
   [AUTH_ROLES.SUPPORT]: "Support",
-  [AUTH_ROLES.SUPER_ADMIN]: "Super Admin",
+  [AUTH_ROLES.SUPER_ADMIN]: "Admin",
 } as const;
 
 export const AUTH_PUBLIC_PATHS = [
@@ -28,7 +28,9 @@ export const AUTH_PUBLIC_PATHS = [
   "/login",
   "/parcel-delivery",
   "/pet-transportation",
+  "/policy",
   "/pricing",
+  "/privacy",
   "/register",
   "/forgot-password",
   "/reset-password",
@@ -41,6 +43,7 @@ export const AUTH_PUBLIC_PATHS = [
 
 export const AUTH_PUBLIC_API_PREFIXES = [
   "/api/auth",
+  "/api/chat/public",
   "/api/health",
   "/api/metrics",
   "/api/tracking",

@@ -8,6 +8,7 @@ import {
   ServiceGrid,
   TrackingPreview,
 } from "@/features/marketing/components/marketing-sections";
+import { marketingImages } from "@/features/marketing/data/marketing";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/services" },
@@ -23,6 +24,7 @@ export default function ServicesPage() {
         badge="Parcel, pets, freight, and tracking"
         description="Apex coordinates the full movement lifecycle across service types, from customer booking through warehouse handoff, tracking, support, and billing."
         eyebrow="Services"
+        image={marketingImages.services}
         primaryHref="/contact"
         primaryLabel="Plan a shipment"
         title="A connected service portfolio for premium logistics"

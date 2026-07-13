@@ -22,6 +22,7 @@ import type { EmailComposerOptions, EmailPreview } from "@/features/emails/types
 import { secureFetch } from "@/lib/security/client-fetch";
 
 type EmailComposerProps = {
+  initialTemplateId?: string;
   options: EmailComposerOptions;
 };
 
@@ -37,30 +38,48 @@ function getInitialBody(options: EmailComposerOptions) {
   );
 }
 
-export function EmailComposer({ options }: EmailComposerProps) {
-  const defaultTemplate = options.templates.find(
-    (template) => template.slug === "custom-manual-email",
+function getInitialTemplate(options: EmailComposerOptions, initialTemplateId?: string) {
+  return (
+    options.templates.find((template) => template.id === initialTemplateId) ??
+    options.templates.find((template) => template.slug === "custom-manual-email")
   );
-  const [bodyHtml, setBodyHtml] = useState(getInitialBody(options));
+}
+
+export function EmailComposer({ initialTemplateId, options }: EmailComposerProps) {
+  const initialTemplate = getInitialTemplate(options, initialTemplateId);
+  const [bodyHtml, setBodyHtml] = useState(initialTemplate?.bodyHtml ?? getInitialBody(options));
   const [category, setCategory] = useState<EmailCategoryValue>(
-    defaultTemplate?.category ?? "MANUAL",
+    initialTemplate?.category ?? "MANUAL",
   );
   const [message, setMessage] = useState<ComposerMessage | null>(null);
   const [preview, setPreview] = useState<EmailPreview | null>(null);
   const [recipientEmail, setRecipientEmail] = useState("");
   const [recipientName, setRecipientName] = useState("");
   const [recipientUserId, setRecipientUserId] = useState("");
+  const [selectedTemplateId, setSelectedTemplateId] = useState(initialTemplate?.id ?? "");
   const [shipmentId, setShipmentId] = useState("");
-  const [subject, setSubject] = useState(defaultTemplate?.subject ?? "");
-  const [templateId, setTemplateId] = useState(defaultTemplate?.id ?? "");
+  const [subject, setSubject] = useState(initialTemplate?.subject ?? "");
+  const [templateId, setTemplateId] = useState(
+    initialTemplate?.source === "email" ? (initialTemplate.templateId ?? initialTemplate.id) : "",
+  );
   const [testRecipientEmail, setTestRecipientEmail] = useState("");
   const [trackingNumber, setTrackingNumber] = useState("");
-  const [variables, setVariables] = useState<Record<string, string>>({});
+  const [variables, setVariables] = useState<Record<string, string>>(
+    initialTemplate?.defaultVariables ?? {},
+  );
   const [isBusy, setIsBusy] = useState(false);
 
   const selectedTemplate = useMemo(
-    () => options.templates.find((template) => template.id === templateId),
-    [options.templates, templateId],
+    () => options.templates.find((template) => template.id === selectedTemplateId),
+    [options.templates, selectedTemplateId],
+  );
+  const builtInTemplates = useMemo(
+    () => options.templates.filter((template) => template.source === "built_in_client_email"),
+    [options.templates],
+  );
+  const databaseTemplates = useMemo(
+    () => options.templates.filter((template) => template.source === "email"),
+    [options.templates],
   );
   const selectedShipment = useMemo(
     () => options.shipments.find((shipment) => shipment.id === shipmentId),
@@ -80,15 +99,22 @@ export function EmailComposer({ options }: EmailComposerProps) {
   };
 
   function chooseTemplate(nextTemplateId: string) {
-    const template = options.templates.find((item) => item.id === nextTemplateId);
+    const template =
+      options.templates.find((item) => item.id === nextTemplateId) ??
+      options.templates.find((item) => item.slug === "custom-manual-email");
 
-    setTemplateId(nextTemplateId);
+    setSelectedTemplateId(template?.id ?? "");
+    setTemplateId(template?.source === "email" ? (template.templateId ?? template.id) : "");
     setPreview(null);
 
     if (template) {
       setBodyHtml(template.bodyHtml);
       setCategory(template.category);
       setSubject(template.subject);
+      setVariables((current) => ({
+        ...current,
+        ...(template.defaultVariables ?? {}),
+      }));
     }
   }
 
@@ -100,9 +126,20 @@ export function EmailComposer({ options }: EmailComposerProps) {
 
     if (shipment) {
       setTrackingNumber(shipment.shipmentNumber);
+      setRecipientUserId("");
+
+      if (shipment.customerEmail) {
+        setRecipientEmail(shipment.customerEmail);
+      }
+
+      if (shipment.customerName) {
+        setRecipientName(shipment.customerName);
+      }
+
       setVariables((current) => ({
         ...current,
         customerName: shipment.customerName ?? current.customerName ?? "",
+        recipientName: shipment.customerName ?? current.recipientName ?? "",
         shipmentStatus: shipment.status.replaceAll("_", " "),
         trackingNumber: shipment.shipmentNumber,
       }));
@@ -234,15 +271,28 @@ export function EmailComposer({ options }: EmailComposerProps) {
                 <Label htmlFor="templateId">Template</Label>
                 <Select
                   id="templateId"
-                  value={templateId}
+                  value={selectedTemplateId}
                   onChange={(event) => chooseTemplate(event.target.value)}
                 >
                   <option value="">Custom manual email</option>
-                  {options.templates.map((template) => (
-                    <option key={template.id} value={template.id}>
-                      {template.label}
-                    </option>
-                  ))}
+                  {builtInTemplates.length ? (
+                    <optgroup label="Built-in client emails">
+                      {builtInTemplates.map((template) => (
+                        <option key={template.id} value={template.id}>
+                          {template.label}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ) : null}
+                  {databaseTemplates.length ? (
+                    <optgroup label="Editable system templates">
+                      {databaseTemplates.map((template) => (
+                        <option key={template.id} value={template.id}>
+                          {template.label}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ) : null}
                 </Select>
               </Field>
               <Field>
@@ -325,6 +375,10 @@ export function EmailComposer({ options }: EmailComposerProps) {
                     </option>
                   ))}
                 </Select>
+                <FieldHint>
+                  Selecting a shipment fills the tracking number and recipient email stored on the
+                  shipment, including manual recipients without accounts.
+                </FieldHint>
               </Field>
             </div>
 

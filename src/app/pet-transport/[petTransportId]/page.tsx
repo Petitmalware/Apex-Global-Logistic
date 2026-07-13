@@ -14,7 +14,7 @@ type PetTransportPageProps = {
 };
 
 export const metadata: Metadata = {
-  title: "Pet Transport Details | Apex Global Logistics",
+  title: "Pet Shipment Details | Apex Global Logistics",
 };
 
 export default async function PetTransportDetailPage({ params }: PetTransportPageProps) {
@@ -31,14 +31,14 @@ export default async function PetTransportDetailPage({ params }: PetTransportPag
       activeHref="/pet-transport"
       breadcrumbs={[
         { href: "/dashboard", label: "Dashboard" },
-        { href: "/pet-transport", label: "Pet Transport" },
+        { href: "/pet-transport", label: "Pet Shipments" },
         { label: petTransport.petName ?? petTransport.shipmentNumber },
       ]}
-      description="Review profile, health, crate, feeding, temperature, photos, travel history, and shipment tracking."
-      title="Pet Transport Details"
+      description="Review sender, recipient shipment route, pet profile, health, crate, feeding, temperature, photos, travel history, and tracking."
+      title="Pet Shipment Details"
       user={user}
     >
-      <PetTransportDetailView petTransport={petTransport} />
+      <PetTransportDetailView petTransport={petTransport} user={user} />
     </ProtectedShell>
   );
 }

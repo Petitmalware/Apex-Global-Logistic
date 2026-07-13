@@ -11,7 +11,7 @@ export default async function AdminPage() {
     <ProtectedShell
       activeHref="/admin"
       breadcrumbs={[{ href: "/dashboard", label: "Dashboard" }, { label: "Admin" }]}
-      description="Administrative operations for network health, billing queues, warehouses, drivers, and exceptions."
+      description="Create and manage customer shipments, pet shipments, freight movements, billing queues, warehouses, drivers, and exceptions."
       title="Admin Dashboard"
       user={user}
     >

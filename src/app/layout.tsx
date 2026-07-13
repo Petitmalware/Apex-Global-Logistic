@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 
 import { siteConfig } from "@/config/site";
+import { ChatWidget } from "@/features/chat/components/chat-widget";
 
 import "./globals.css";
 
@@ -84,6 +85,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
           Skip to content
         </a>
         {children}
+        <ChatWidget />
       </body>
     </html>
   );

@@ -26,10 +26,19 @@ export function setAuthCookies(response: NextResponse, tokens: AuthCookieTokens)
     expires: tokens.refreshTokenExpiresAt,
     httpOnly: true,
     name: AUTH_COOKIE_NAMES.refreshToken,
-    path: "/api/auth",
+    path: "/",
     sameSite: "lax",
     secure: isProduction,
     value: tokens.refreshToken,
+  });
+  response.cookies.set({
+    httpOnly: true,
+    maxAge: 0,
+    name: AUTH_COOKIE_NAMES.refreshToken,
+    path: "/api/auth",
+    sameSite: "lax",
+    secure: isProduction,
+    value: "",
   });
 }
 
@@ -38,6 +47,15 @@ export function clearAuthCookies(response: NextResponse) {
     httpOnly: true,
     maxAge: 0,
     name: AUTH_COOKIE_NAMES.accessToken,
+    path: "/",
+    sameSite: "lax",
+    secure: isProduction,
+    value: "",
+  });
+  response.cookies.set({
+    httpOnly: true,
+    maxAge: 0,
+    name: AUTH_COOKIE_NAMES.refreshToken,
     path: "/",
     sameSite: "lax",
     secure: isProduction,

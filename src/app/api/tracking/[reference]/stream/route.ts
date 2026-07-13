@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getPublicShipmentTrackingSnapshot } from "@/features/shipments/queries/shipment.queries";
 import { subscribeShipmentTrackingUpdates } from "@/features/shipments/services/shipment-realtime.service";
+import { getDatabaseUnavailableMessage, isDatabaseUnavailableError } from "@/lib/db-errors";
 import { createSseResponse, encodeSseMessage } from "@/lib/realtime/sse";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +17,17 @@ type PublicTrackingStreamContext = {
 export async function GET(request: Request, { params }: PublicTrackingStreamContext) {
   const { reference } = await params;
   const decodedReference = decodeURIComponent(reference);
-  const initialSnapshot = await getPublicShipmentTrackingSnapshot(decodedReference);
+  let initialSnapshot;
+
+  try {
+    initialSnapshot = await getPublicShipmentTrackingSnapshot(decodedReference);
+  } catch (error) {
+    if (isDatabaseUnavailableError(error)) {
+      return NextResponse.json({ message: getDatabaseUnavailableMessage() }, { status: 503 });
+    }
+
+    throw error;
+  }
 
   if (!initialSnapshot) {
     return NextResponse.json({ message: "Shipment not found." }, { status: 404 });
@@ -37,7 +48,9 @@ export async function GET(request: Request, { params }: PublicTrackingStreamCont
         controller.close();
       };
       const sendSnapshot = async () => {
-        const snapshot = await getPublicShipmentTrackingSnapshot(decodedReference);
+        const snapshot = await getPublicShipmentTrackingSnapshot(decodedReference).catch(
+          () => null,
+        );
 
         if (!closed && snapshot) {
           controller.enqueue(encodeSseMessage({ data: snapshot, event: "snapshot" }));
@@ -56,9 +69,13 @@ export async function GET(request: Request, { params }: PublicTrackingStreamCont
 
       void subscribeShipmentTrackingUpdates(initialSnapshot.id, () => {
         void sendSnapshot();
-      }).then((cleanup) => {
-        unsubscribe = cleanup;
-      });
+      })
+        .then((cleanup) => {
+          unsubscribe = cleanup;
+        })
+        .catch(() => {
+          unsubscribe = undefined;
+        });
     },
   });
 

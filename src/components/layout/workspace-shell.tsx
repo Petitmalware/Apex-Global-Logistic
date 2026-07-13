@@ -1,10 +1,8 @@
 import type { ReactNode } from "react";
 import {
   Bell,
-  Boxes,
   Building2,
   ChartNoAxesCombined,
-  Headphones,
   LayoutDashboard,
   Route,
   Settings,
@@ -18,10 +16,8 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 const primaryItems: NavigationItem[] = [
   { href: "/design-system", icon: LayoutDashboard, isActive: true, label: "Overview" },
   { href: "/dashboard", icon: Route, label: "Shipments" },
-  { href: "/agent", badge: "12", icon: Boxes, label: "Packages" },
-  { href: "/support", icon: Headphones, label: "Support" },
   { href: "/admin", icon: Building2, label: "Admin" },
-  { href: "/super-admin", icon: Settings, label: "Settings" },
+  { href: "/admin/settings", icon: Settings, label: "Settings" },
 ];
 
 const sectionItems = [

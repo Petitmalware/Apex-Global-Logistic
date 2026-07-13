@@ -1,3 +1,5 @@
+import Link from "next/link";
+import type { Route } from "next";
 import { ArrowRight, CheckCircle2, CircleAlert, CircleDot, Clock3 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -45,6 +47,33 @@ const taskIcons = {
 } satisfies Record<DashboardTask["status"], typeof CircleDot>;
 
 function RoleHero({ config, user }: { config: DashboardConfig; user: AuthSessionUser }) {
+  const PrimaryAction = config.primaryActionHref ? (
+    <Button asChild variant="accent">
+      <Link href={config.primaryActionHref as Route}>
+        {config.primaryAction}
+        <ArrowRight aria-hidden="true" />
+      </Link>
+    </Button>
+  ) : (
+    <Button variant="accent">
+      {config.primaryAction}
+      <ArrowRight aria-hidden="true" />
+    </Button>
+  );
+  const SecondaryAction = config.secondaryActionHref ? (
+    <Button
+      asChild
+      className="border-primary-foreground/25 bg-primary-foreground/8"
+      variant="outline"
+    >
+      <Link href={config.secondaryActionHref as Route}>{config.secondaryAction}</Link>
+    </Button>
+  ) : (
+    <Button className="border-primary-foreground/25 bg-primary-foreground/8" variant="outline">
+      {config.secondaryAction}
+    </Button>
+  );
+
   return (
     <section className="bg-primary text-primary-foreground shadow-panel overflow-hidden rounded-lg">
       <div className="relative grid gap-8 p-6 md:grid-cols-[1fr_280px] md:p-8">
@@ -60,16 +89,8 @@ function RoleHero({ config, user }: { config: DashboardConfig; user: AuthSession
             {config.description}
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
-            <Button variant="accent">
-              {config.primaryAction}
-              <ArrowRight aria-hidden="true" />
-            </Button>
-            <Button
-              className="border-primary-foreground/25 bg-primary-foreground/8"
-              variant="outline"
-            >
-              {config.secondaryAction}
-            </Button>
+            {PrimaryAction}
+            {SecondaryAction}
           </div>
         </div>
         <div className="border-primary-foreground/15 bg-primary-foreground/8 relative rounded-lg border p-5">

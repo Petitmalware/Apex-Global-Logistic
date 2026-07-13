@@ -8,7 +8,7 @@ import {
   ProcessSection,
   TrackingPreview,
 } from "@/features/marketing/components/marketing-sections";
-import { freightFeatures } from "@/features/marketing/data/marketing";
+import { freightFeatures, marketingImages } from "@/features/marketing/data/marketing";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/freight" },
@@ -24,6 +24,7 @@ export default function FreightPage() {
         badge="Freight command"
         description="Coordinate freight across road, air, sea, rail, and multimodal networks with warehouse handoffs, document control, and exception visibility."
         eyebrow="Freight"
+        image={marketingImages.freight}
         primaryHref="/contact"
         primaryLabel="Request freight plan"
         title="Freight movement for high-value supply chains"

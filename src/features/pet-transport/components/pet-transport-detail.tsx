@@ -16,6 +16,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { AuthSessionUser } from "@/features/auth/services/auth.service";
 import {
   addPetCrateAssignmentAction,
   addPetFeedingScheduleAction,
@@ -38,6 +39,11 @@ import {
 import type { PetTransportDetail } from "@/features/pet-transport/types";
 import { RealtimeShipmentTimeline } from "@/features/shipments/components/realtime-shipment-timeline";
 import { ShipmentStatusBadge } from "@/features/shipments/components/shipment-list";
+import { AUTH_ROLES } from "@/lib/auth/constants";
+
+function canManagePetTransportWorkspace(user: AuthSessionUser) {
+  return user.roles.includes(AUTH_ROLES.ADMIN) || user.roles.includes(AUTH_ROLES.SUPER_ADMIN);
+}
 
 function formatDate(value: string | null) {
   if (!value) {
@@ -73,7 +79,13 @@ function FactGrid({ items }: { items: Array<{ label: string; value: string }> })
   );
 }
 
-function Overview({ petTransport }: { petTransport: PetTransportDetail }) {
+function Overview({
+  canManage,
+  petTransport,
+}: {
+  canManage: boolean;
+  petTransport: PetTransportDetail;
+}) {
   return (
     <section className="bg-primary text-primary-foreground shadow-panel overflow-hidden rounded-lg p-6 md:p-8">
       <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-start">
@@ -82,7 +94,7 @@ function Overview({ petTransport }: { petTransport: PetTransportDetail }) {
             {petTransport.shipmentNumber}
           </Badge>
           <h2 className="mt-5 text-3xl font-semibold tracking-normal md:text-4xl">
-            {petTransport.petName ?? "Unnamed pet"} transport
+            {petTransport.petName ?? "Unnamed pet"} shipment
           </h2>
           <p className="text-primary-foreground/72 mt-3 max-w-2xl text-sm leading-6">
             {petTransport.originCity} to {petTransport.destinationCity} with profile, health, crate,
@@ -102,12 +114,14 @@ function Overview({ petTransport }: { petTransport: PetTransportDetail }) {
               Shipment
             </Link>
           </Button>
-          <Button asChild variant="accent">
-            <Link href={`/pet-transport/${petTransport.id}/edit` as Route}>
-              <Pencil aria-hidden="true" />
-              Edit profile
-            </Link>
-          </Button>
+          {canManage ? (
+            <Button asChild variant="accent">
+              <Link href={`/pet-transport/${petTransport.id}/edit` as Route}>
+                <Pencil aria-hidden="true" />
+                Edit profile
+              </Link>
+            </Button>
+          ) : null}
         </div>
       </div>
       <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -144,7 +158,7 @@ function ProfileCard({ petTransport }: { petTransport: PetTransportDetail }) {
         </div>
         <div>
           <CardTitle>Pet profile</CardTitle>
-          <p className="text-muted-foreground mt-1 text-sm">Identity, owner, and care context.</p>
+          <p className="text-muted-foreground mt-1 text-sm">Identity, sender, and care context.</p>
         </div>
       </CardHeader>
       <CardContent className="space-y-5">
@@ -157,8 +171,9 @@ function ProfileCard({ petTransport }: { petTransport: PetTransportDetail }) {
             { label: "DOB", value: formatShortDate(petTransport.dateOfBirth) },
             { label: "Sex", value: petTransport.sex ?? "Not set" },
             { label: "Color", value: petTransport.color ?? "Not set" },
-            { label: "Owner", value: petTransport.ownerName ?? "Not set" },
-            { label: "Owner phone", value: petTransport.ownerPhone ?? "Not set" },
+            { label: "Sender", value: petTransport.ownerName ?? "Not set" },
+            { label: "Sender phone", value: petTransport.ownerPhone ?? "Not set" },
+            { label: "Sender email", value: petTransport.ownerEmail ?? "Not set" },
           ]}
         />
         <div className="grid gap-4 md:grid-cols-2">
@@ -379,7 +394,13 @@ function TemperaturePanel({ petTransport }: { petTransport: PetTransportDetail }
   );
 }
 
-function PhotosPanel({ petTransport }: { petTransport: PetTransportDetail }) {
+function PhotosPanel({
+  canManage,
+  petTransport,
+}: {
+  canManage: boolean;
+  petTransport: PetTransportDetail;
+}) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-start gap-3">
@@ -394,7 +415,9 @@ function PhotosPanel({ petTransport }: { petTransport: PetTransportDetail }) {
         </div>
       </CardHeader>
       <CardContent className="space-y-5">
-        <PetPhotoForm action={uploadPetPhotoAction.bind(null, petTransport.id)} />
+        {canManage ? (
+          <PetPhotoForm action={uploadPetPhotoAction.bind(null, petTransport.id)} />
+        ) : null}
         {petTransport.photos.length ? (
           <div className="grid grid-cols-2 gap-3">
             {petTransport.photos.map((photo) => (
@@ -475,7 +498,10 @@ function RecordForms({ petTransport }: { petTransport: PetTransportDetail }) {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Add vaccination</CardTitle>
+          <CardTitle>Vaccination record</CardTitle>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Save vaccine proof, clinic references, and expiry dates used for travel clearance.
+          </p>
         </CardHeader>
         <CardContent>
           <VaccinationRecordForm
@@ -485,7 +511,10 @@ function RecordForms({ petTransport }: { petTransport: PetTransportDetail }) {
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle>Add certificate</CardTitle>
+          <CardTitle>Fit-to-travel certificate</CardTitle>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Record the health certificate or CVI that confirms this pet can continue transport.
+          </p>
         </CardHeader>
         <CardContent>
           <MedicalCertificateForm
@@ -495,7 +524,10 @@ function RecordForms({ petTransport }: { petTransport: PetTransportDetail }) {
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle>Add vet check</CardTitle>
+          <CardTitle>Veterinarian check</CardTitle>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Log clinic checks, welfare inspections, vitals, and route clearance decisions.
+          </p>
         </CardHeader>
         <CardContent>
           <VeterinarianCheckForm
@@ -505,7 +537,10 @@ function RecordForms({ petTransport }: { petTransport: PetTransportDetail }) {
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle>Add feeding</CardTitle>
+          <CardTitle>Feeding schedule</CardTitle>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Set the food, portion, timing, and care notes handlers should follow in transit.
+          </p>
         </CardHeader>
         <CardContent>
           <FeedingScheduleForm action={addPetFeedingScheduleAction.bind(null, petTransport.id)} />
@@ -513,7 +548,10 @@ function RecordForms({ petTransport }: { petTransport: PetTransportDetail }) {
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle>Add temperature</CardTitle>
+          <CardTitle>Temperature log</CardTitle>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Record crate, sensor, or facility temperature checks during each travel stage.
+          </p>
         </CardHeader>
         <CardContent>
           <TemperatureLogForm action={addPetTemperatureLogAction.bind(null, petTransport.id)} />
@@ -521,21 +559,57 @@ function RecordForms({ petTransport }: { petTransport: PetTransportDetail }) {
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle>Assign crate</CardTitle>
+          <CardTitle>Crate assignment</CardTitle>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Assign the travel crate and confirm ventilation, water, lining, and dimensions.
+          </p>
         </CardHeader>
         <CardContent>
           <CrateAssignmentForm action={addPetCrateAssignmentAction.bind(null, petTransport.id)} />
         </CardContent>
       </Card>
-      <PhotosPanel petTransport={petTransport} />
+      <PhotosPanel canManage petTransport={petTransport} />
     </div>
   );
 }
 
-export function PetTransportDetailView({ petTransport }: { petTransport: PetTransportDetail }) {
+function CustomerPetAccessPanel() {
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-start gap-3">
+        <div className="bg-success/10 text-success grid size-10 place-items-center rounded-md">
+          <ClipboardCheck aria-hidden="true" className="size-5" />
+        </div>
+        <div>
+          <CardTitle>Customer access</CardTitle>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Apex operations manages care records and route updates.
+          </p>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <p className="text-muted-foreground text-sm leading-6">
+          You can review pet profile details, medical milestones, crate and feeding records,
+          temperature logs, photos, travel history, and shipment tracking. New records are added by
+          the Apex admin team.
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
+export function PetTransportDetailView({
+  petTransport,
+  user,
+}: {
+  petTransport: PetTransportDetail;
+  user: AuthSessionUser;
+}) {
+  const canManage = canManagePetTransportWorkspace(user);
+
   return (
     <div className="space-y-6">
-      <Overview petTransport={petTransport} />
+      <Overview canManage={canManage} petTransport={petTransport} />
       <ProfileCard petTransport={petTransport} />
       <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
         <div className="space-y-6">
@@ -544,7 +618,14 @@ export function PetTransportDetailView({ petTransport }: { petTransport: PetTran
           <TemperaturePanel petTransport={petTransport} />
           <TimelinePanel petTransport={petTransport} />
         </div>
-        <RecordForms petTransport={petTransport} />
+        {canManage ? (
+          <RecordForms petTransport={petTransport} />
+        ) : (
+          <div className="space-y-6">
+            <CustomerPetAccessPanel />
+            <PhotosPanel canManage={false} petTransport={petTransport} />
+          </div>
+        )}
       </div>
     </div>
   );

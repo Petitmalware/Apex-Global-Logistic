@@ -18,16 +18,22 @@ export const emailProviderValues = ["BREVO", "CONSOLE", "RESEND", "SMTP"] as con
 
 export const emailVariableKeys = [
   "customerName",
+  "recipientName",
   "trackingNumber",
   "shipmentStatus",
   "currentLocation",
   "estimatedDeliveryDate",
   "petName",
   "companyName",
+  "deliveryAddress",
+  "documentDate",
   "supportEmail",
   "supportPhone",
+  "website",
   "invoiceNumber",
   "amountDue",
+  "refundTerms",
+  "paymentInstructions",
 ] as const;
 
 export const emailCategoryLabels = {

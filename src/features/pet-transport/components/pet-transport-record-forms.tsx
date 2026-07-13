@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, type ReactNode } from "react";
 import { Camera, ClipboardCheck, FilePlus2, HeartPulse, Snowflake, Utensils } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -32,36 +32,44 @@ function FormMessage({ state }: { state: PetTransportActionState }) {
   ) : null;
 }
 
+function FormIntro({ children }: { children: ReactNode }) {
+  return <p className="text-muted-foreground text-sm leading-6">{children}</p>;
+}
+
 export function VaccinationRecordForm({ action }: { action: RecordAction }) {
   const [state, formAction, isPending] = useActionState(action, initialPetTransportActionState);
 
   return (
-    <form action={formAction} className="space-y-4" encType="multipart/form-data">
+    <form action={formAction} className="space-y-4">
       <FormMessage state={state} />
+      <FormIntro>
+        Add vaccine proof exactly as it appears on the clinic record. Upload the file when available
+        so the health history can be reviewed later.
+      </FormIntro>
       <Field>
-        <Label htmlFor="vaccineName">Vaccine</Label>
+        <Label htmlFor="vaccineName">Vaccine name</Label>
         <Input id="vaccineName" name="vaccineName" placeholder="Rabies, DHPP, FVRCP..." required />
       </Field>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field>
-          <Label htmlFor="administeredAt">Administered</Label>
+          <Label htmlFor="administeredAt">Date administered</Label>
           <Input id="administeredAt" name="administeredAt" type="date" />
         </Field>
         <Field>
-          <Label htmlFor="expiresAt">Expires</Label>
+          <Label htmlFor="expiresAt">Expiration date</Label>
           <Input id="expiresAt" name="expiresAt" type="date" />
         </Field>
       </div>
       <Field>
-        <Label htmlFor="certificateNumber">Certificate number</Label>
-        <Input id="certificateNumber" name="certificateNumber" />
+        <Label htmlFor="certificateNumber">Record or certificate number</Label>
+        <Input id="certificateNumber" name="certificateNumber" placeholder="Optional clinic ref" />
       </Field>
       <Field>
-        <Label htmlFor="veterinarianName">Veterinarian</Label>
-        <Input id="veterinarianName" name="veterinarianName" />
+        <Label htmlFor="veterinarianName">Vet or clinic contact</Label>
+        <Input id="veterinarianName" name="veterinarianName" placeholder="Clinic or veterinarian" />
       </Field>
       <Field>
-        <Label htmlFor="file">Record file</Label>
+        <Label htmlFor="file">Vaccination record file</Label>
         <Input accept=".pdf,.jpg,.jpeg,.png,.webp,.txt" id="file" name="file" type="file" />
         <FieldHint>Optional PDF, image, or text record. Max size 10MB.</FieldHint>
       </Field>
@@ -77,33 +85,42 @@ export function MedicalCertificateForm({ action }: { action: RecordAction }) {
   const [state, formAction, isPending] = useActionState(action, initialPetTransportActionState);
 
   return (
-    <form action={formAction} className="space-y-4" encType="multipart/form-data">
+    <form action={formAction} className="space-y-4">
       <FormMessage state={state} />
+      <FormIntro>
+        Record the official fit-to-travel or health certificate used for route clearance.
+      </FormIntro>
       <Field>
-        <Label htmlFor="certificateNumber">Certificate number</Label>
-        <Input id="certificateNumber" name="certificateNumber" required />
+        <Label htmlFor="certificateNumber">Medical certificate number</Label>
+        <Input
+          id="certificateNumber"
+          name="certificateNumber"
+          placeholder="USDA CVI, airline health certificate..."
+          required
+        />
       </Field>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field>
-          <Label htmlFor="issuedAt">Issued</Label>
+          <Label htmlFor="issuedAt">Issue date</Label>
           <Input id="issuedAt" name="issuedAt" type="date" />
         </Field>
         <Field>
-          <Label htmlFor="expiresAt">Expires</Label>
+          <Label htmlFor="expiresAt">Expiration date</Label>
           <Input id="expiresAt" name="expiresAt" type="date" />
         </Field>
       </div>
       <Field>
-        <Label htmlFor="veterinarianName">Veterinarian</Label>
+        <Label htmlFor="veterinarianName">Issuing vet or clinic</Label>
         <Input id="veterinarianName" name="veterinarianName" />
       </Field>
       <label className="flex items-center gap-2 text-sm font-medium">
         <input name="fitToTravel" type="checkbox" />
-        Fit to travel
+        Mark as fit to travel
       </label>
       <Field>
-        <Label htmlFor="file">Certificate file</Label>
+        <Label htmlFor="file">Health certificate file</Label>
         <Input accept=".pdf,.jpg,.jpeg,.png,.webp,.txt" id="file" name="file" type="file" />
+        <FieldHint>Upload the signed certificate or clearance document when available.</FieldHint>
       </Field>
       <Button disabled={isPending} type="submit" variant="outline">
         <ClipboardCheck aria-hidden="true" />
@@ -119,13 +136,22 @@ export function VeterinarianCheckForm({ action }: { action: RecordAction }) {
   return (
     <form action={formAction} className="space-y-4">
       <FormMessage state={state} />
+      <FormIntro>
+        Add each professional check or checkpoint welfare inspection so handlers and customers can
+        see that the pet remains cleared for transport.
+      </FormIntro>
       <Field>
-        <Label htmlFor="veterinarianName">Veterinarian</Label>
-        <Input id="veterinarianName" name="veterinarianName" required />
+        <Label htmlFor="veterinarianName">Veterinarian or clinic</Label>
+        <Input
+          id="veterinarianName"
+          name="veterinarianName"
+          placeholder="Clinic, vet, or inspector"
+          required
+        />
       </Field>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field>
-          <Label htmlFor="checkedAt">Checked at</Label>
+          <Label htmlFor="checkedAt">Check completed at</Label>
           <Input
             defaultValue={localDateTimeValue()}
             id="checkedAt"
@@ -135,7 +161,7 @@ export function VeterinarianCheckForm({ action }: { action: RecordAction }) {
           />
         </Field>
         <Field>
-          <Label htmlFor="status">Status</Label>
+          <Label htmlFor="status">Vet check result</Label>
           <Select defaultValue="CLEARED" id="status" name="status">
             <option value="SCHEDULED">Scheduled</option>
             <option value="CLEARED">Cleared</option>
@@ -146,21 +172,25 @@ export function VeterinarianCheckForm({ action }: { action: RecordAction }) {
       </div>
       <div className="grid gap-4 sm:grid-cols-3">
         <Field>
-          <Label htmlFor="temperatureC">Temp C</Label>
+          <Label htmlFor="temperatureC">Body temperature (C)</Label>
           <Input id="temperatureC" name="temperatureC" step="0.01" type="number" />
         </Field>
         <Field>
-          <Label htmlFor="heartRateBpm">Heart bpm</Label>
+          <Label htmlFor="heartRateBpm">Heart rate (bpm)</Label>
           <Input id="heartRateBpm" name="heartRateBpm" min="0" type="number" />
         </Field>
         <Field>
-          <Label htmlFor="respirationBpm">Resp bpm</Label>
+          <Label htmlFor="respirationBpm">Respiration (breaths/min)</Label>
           <Input id="respirationBpm" name="respirationBpm" min="0" type="number" />
         </Field>
       </div>
       <Field>
-        <Label htmlFor="notes">Notes</Label>
-        <Textarea id="notes" name="notes" />
+        <Label htmlFor="notes">Care notes for handler/customer</Label>
+        <Textarea
+          id="notes"
+          name="notes"
+          placeholder="Normal check, hydrated, cleared for next leg..."
+        />
       </Field>
       <Button disabled={isPending} type="submit" variant="outline">
         <HeartPulse aria-hidden="true" />
@@ -176,9 +206,18 @@ export function FeedingScheduleForm({ action }: { action: RecordAction }) {
   return (
     <form action={formAction} className="space-y-4">
       <FormMessage state={state} />
+      <FormIntro>
+        Define the feeding plan handlers should follow during holding, layovers, or long-distance
+        ground transport.
+      </FormIntro>
       <Field>
-        <Label htmlFor="foodType">Food type</Label>
-        <Input id="foodType" name="foodType" required />
+        <Label htmlFor="foodType">Food or diet type</Label>
+        <Input
+          id="foodType"
+          name="foodType"
+          placeholder="Dry puppy food, wet food, breeder-provided food..."
+          required
+        />
       </Field>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field>
@@ -186,7 +225,7 @@ export function FeedingScheduleForm({ action }: { action: RecordAction }) {
           <Input id="portion" name="portion" placeholder="120g, 1 cup..." required />
         </Field>
         <Field>
-          <Label htmlFor="frequencyHours">Every hours</Label>
+          <Label htmlFor="frequencyHours">Feed every (hours)</Label>
           <Input
             defaultValue="8"
             id="frequencyHours"
@@ -198,16 +237,20 @@ export function FeedingScheduleForm({ action }: { action: RecordAction }) {
         </Field>
       </div>
       <Field>
-        <Label htmlFor="nextFeedingAt">Next feeding</Label>
+        <Label htmlFor="nextFeedingAt">Next feeding due</Label>
         <Input id="nextFeedingAt" name="nextFeedingAt" type="datetime-local" />
       </Field>
       <label className="flex items-center gap-2 text-sm font-medium">
         <input defaultChecked name="active" type="checkbox" />
-        Active schedule
+        Schedule is active
       </label>
       <Field>
-        <Label htmlFor="instructions">Instructions</Label>
-        <Textarea id="instructions" name="instructions" />
+        <Label htmlFor="instructions">Feeding instructions</Label>
+        <Textarea
+          id="instructions"
+          name="instructions"
+          placeholder="Water access, food restrictions, comfort notes..."
+        />
       </Field>
       <Button disabled={isPending} type="submit" variant="outline">
         <Utensils aria-hidden="true" />
@@ -223,9 +266,13 @@ export function TemperatureLogForm({ action }: { action: RecordAction }) {
   return (
     <form action={formAction} className="space-y-4">
       <FormMessage state={state} />
+      <FormIntro>
+        Record crate or holding-area temperature whenever the pet changes location or a sensor is
+        checked manually.
+      </FormIntro>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field>
-          <Label htmlFor="recordedAt">Recorded at</Label>
+          <Label htmlFor="recordedAt">Temperature recorded at</Label>
           <Input
             defaultValue={localDateTimeValue()}
             id="recordedAt"
@@ -235,7 +282,7 @@ export function TemperatureLogForm({ action }: { action: RecordAction }) {
           />
         </Field>
         <Field>
-          <Label htmlFor="temperatureC">Temperature C</Label>
+          <Label htmlFor="temperatureC">Temperature (C)</Label>
           <Input id="temperatureC" name="temperatureC" required step="0.01" type="number" />
         </Field>
       </div>
@@ -252,17 +299,25 @@ export function TemperatureLogForm({ action }: { action: RecordAction }) {
           />
         </Field>
         <Field>
-          <Label htmlFor="crateSensorId">Sensor ID</Label>
-          <Input id="crateSensorId" name="crateSensorId" />
+          <Label htmlFor="crateSensorId">Crate sensor ID</Label>
+          <Input
+            id="crateSensorId"
+            name="crateSensorId"
+            placeholder="Optional sensor or device ID"
+          />
         </Field>
       </div>
       <Field>
-        <Label htmlFor="location">Location</Label>
-        <Input id="location" name="location" />
+        <Label htmlFor="location">Checkpoint or facility</Label>
+        <Input
+          id="location"
+          name="location"
+          placeholder="Airport animal lounge, driver checkpoint..."
+        />
       </Field>
       <label className="flex items-center gap-2 text-sm font-medium">
         <input name="alertTriggered" type="checkbox" />
-        Alert triggered
+        Temperature alert triggered
       </label>
       <Button disabled={isPending} type="submit" variant="outline">
         <Snowflake aria-hidden="true" />
@@ -278,9 +333,12 @@ export function CrateAssignmentForm({ action }: { action: RecordAction }) {
   return (
     <form action={formAction} className="space-y-4">
       <FormMessage state={state} />
+      <FormIntro>
+        Assign the transport crate and record the safety checks that make it ready for travel.
+      </FormIntro>
       <Field>
-        <Label htmlFor="crateCode">Crate code</Label>
-        <Input id="crateCode" name="crateCode" required />
+        <Label htmlFor="crateCode">Internal crate code</Label>
+        <Input id="crateCode" name="crateCode" placeholder="CRATE-AGL-1024" required />
       </Field>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field>
@@ -294,7 +352,7 @@ export function CrateAssignmentForm({ action }: { action: RecordAction }) {
           />
         </Field>
         <Field>
-          <Label htmlFor="status">Status</Label>
+          <Label htmlFor="status">Crate handling status</Label>
           <Select defaultValue="ASSIGNED" id="status" name="status">
             <option value="ASSIGNED">Assigned</option>
             <option value="INSPECTED">Inspected</option>
@@ -305,22 +363,22 @@ export function CrateAssignmentForm({ action }: { action: RecordAction }) {
       </div>
       <div className="grid gap-4 sm:grid-cols-3">
         <Field>
-          <Label htmlFor="lengthCm">Length cm</Label>
+          <Label htmlFor="lengthCm">Crate length (cm)</Label>
           <Input id="lengthCm" min="0" name="lengthCm" step="0.001" type="number" />
         </Field>
         <Field>
-          <Label htmlFor="widthCm">Width cm</Label>
+          <Label htmlFor="widthCm">Crate width (cm)</Label>
           <Input id="widthCm" min="0" name="widthCm" step="0.001" type="number" />
         </Field>
         <Field>
-          <Label htmlFor="heightCm">Height cm</Label>
+          <Label htmlFor="heightCm">Crate height (cm)</Label>
           <Input id="heightCm" min="0" name="heightCm" step="0.001" type="number" />
         </Field>
       </div>
       <div className="flex flex-wrap gap-5">
         {[
           ["ventilationChecked", "Ventilation checked"],
-          ["waterBowlAttached", "Water attached"],
+          ["waterBowlAttached", "Water bowl attached"],
           ["absorbentLining", "Absorbent lining"],
         ].map(([name, label]) => (
           <label className="flex items-center gap-2 text-sm font-medium" key={name}>
@@ -341,15 +399,19 @@ export function PetPhotoForm({ action }: { action: RecordAction }) {
   const [state, formAction, isPending] = useActionState(action, initialPetTransportActionState);
 
   return (
-    <form action={formAction} className="space-y-4" encType="multipart/form-data">
+    <form action={formAction} className="space-y-4">
       <FormMessage state={state} />
+      <FormIntro>
+        Upload profile, crate, checkpoint, or handoff photos that help prove condition and delivery
+        progress.
+      </FormIntro>
       <Field>
-        <Label htmlFor="file">Pet photo</Label>
+        <Label htmlFor="file">Pet photo or handoff proof</Label>
         <Input accept=".jpg,.jpeg,.png,.webp" id="file" name="file" required type="file" />
         <FieldHint>JPG, PNG, or WebP. Max size 8MB.</FieldHint>
       </Field>
       <Field>
-        <Label htmlFor="caption">Caption</Label>
+        <Label htmlFor="caption">Photo caption</Label>
         <Textarea id="caption" name="caption" placeholder="Condition, crate, or handoff context" />
       </Field>
       <Button disabled={isPending} type="submit" variant="outline">

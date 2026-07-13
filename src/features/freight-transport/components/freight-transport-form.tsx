@@ -12,10 +12,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { CustomerSelectCard } from "@/features/customers/components/customer-select-card";
 import type {
   FreightTransportActionState,
   FreightTransportDetail,
 } from "@/features/freight-transport/types";
+import type { CustomerOption } from "@/features/shipments/types";
 import { initialFreightTransportActionState } from "@/features/freight-transport/types";
 
 type FreightTransportFormProps = {
@@ -24,6 +26,7 @@ type FreightTransportFormProps = {
     formData: FormData,
   ) => Promise<FreightTransportActionState>;
   cancelHref: Route | string;
+  customerOptions?: CustomerOption[];
   initialFreightTransport?: FreightTransportDetail;
   mode: "create" | "edit";
 };
@@ -146,6 +149,7 @@ function ShipmentPlanFields() {
 export function FreightTransportForm({
   action,
   cancelHref,
+  customerOptions = [],
   initialFreightTransport,
   mode,
 }: FreightTransportFormProps) {
@@ -158,6 +162,21 @@ export function FreightTransportForm({
         <p className="border-border bg-secondary text-secondary-foreground rounded-md border px-3 py-2 text-sm">
           {state.message}
         </p>
+      ) : null}
+      {!isEdit ? (
+        <CustomerSelectCard
+          allowManualRecipient
+          customerOptions={customerOptions}
+          errors={[
+            ...(state.fieldErrors?.customerId ?? []),
+            ...(state.fieldErrors?.manualRecipient ?? []),
+          ]}
+          hint="Select a registered customer when available, or enter a manual freight consignee who does not need a portal account."
+          label="Registered customer account"
+          manualRecipientHint="Use this for unregistered freight consignees. The delivery address below is the consignee destination address."
+          placeholder="Manual recipient / no account"
+          title="Freight recipient"
+        />
       ) : null}
 
       <Card>

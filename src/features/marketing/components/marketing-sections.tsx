@@ -14,12 +14,24 @@ import { Textarea } from "@/components/ui/textarea";
 import { Display, Heading, Kicker, Text } from "@/components/ui/typography";
 import {
   capabilityHighlights,
+  accountabilityCards,
+  clientAssuranceCards,
+  clientPreparationLists,
+  documentTrustItems,
   faqs,
+  gettingStartedOptions,
   pricingPlans,
   processSteps,
+  deliveryProofCards,
+  customerJourneySteps,
+  refundableFeeExamples,
+  refundableFeeSteps,
   serviceCards,
+  serviceDetailCards,
   trackingEvents,
   trustSignals,
+  trustPillars,
+  marketingImages,
 } from "@/features/marketing/data/marketing";
 import { cn } from "@/lib/utils";
 
@@ -33,6 +45,10 @@ type PageHeroProps = {
   badge?: string;
   description: string;
   eyebrow: string;
+  image?: {
+    alt: string;
+    src: string;
+  };
   primaryHref?: Route | string;
   primaryLabel?: string;
   secondaryHref?: Route | string;
@@ -69,7 +85,7 @@ export function HomeHero() {
         fill
         priority
         sizes="100vw"
-        src="/images/global-logistics-hero.png"
+        src={marketingImages.hero.src}
       />
       <div className="from-background via-background/72 to-background/8 absolute inset-0 -z-10 bg-linear-to-r" />
       <div className="from-background absolute inset-x-0 bottom-0 -z-10 h-32 bg-linear-to-t to-transparent" />
@@ -78,8 +94,8 @@ export function HomeHero() {
           <Badge variant="accent">Global logistics control tower</Badge>
           <Display className="mt-6 text-5xl sm:text-6xl">Apex Global Logistics</Display>
           <p className="text-muted-foreground mt-6 max-w-2xl text-base leading-8 sm:text-lg">
-            Premium parcel delivery, pet transportation, freight coordination, and tracking built
-            for customers and operations teams that need every handoff to be visible.
+            Premium parcel delivery, pet transportation, freight coordination, refundable deposit
+            documentation, and tracking built for customers who need every handoff to be visible.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Button asChild size="xl" variant="accent">
@@ -110,10 +126,334 @@ export function HomeHero() {
   );
 }
 
+export function DeliveryProofSection() {
+  return (
+    <section className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6">
+      <div className="grid gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-end">
+        <SectionIntro
+          description="Apex presents shipments with professional visuals, service notes, tracking records, and signed documentation so customers know what is happening before, during, and after delivery."
+          eyebrow="Field operations"
+          title="A delivery experience that feels real and verifiable"
+        />
+        <p className="text-muted-foreground max-w-2xl text-sm leading-6 lg:justify-self-end">
+          Photos shown across the site represent the parcel, pet, warehouse, and freight workflows
+          Apex supports. Shipment-specific proof, receipts, documents, and delivery confirmation are
+          generated inside the customer record.
+        </p>
+      </div>
+      <div className="mt-10 grid gap-4 md:grid-cols-3">
+        {deliveryProofCards.map((card) => (
+          <article
+            className="border-border bg-card shadow-panel overflow-hidden rounded-lg border"
+            key={card.label}
+          >
+            <Image
+              alt={card.image.alt}
+              className="aspect-[4/3] w-full object-cover"
+              height={420}
+              sizes="(min-width: 1024px) 33vw, 100vw"
+              src={card.image.src}
+              width={620}
+            />
+            <div className="p-5">
+              <h3 className="text-lg font-semibold tracking-normal">{card.label}</h3>
+              <p className="text-muted-foreground mt-2 text-sm leading-6">{card.text}</p>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+export function ClientAssuranceSection() {
+  return (
+    <section className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6">
+      <div className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
+        <SectionIntro
+          description="Clients should always know who is handling the shipment, what has been paid for, what is still pending, and how to verify movement. Apex turns that into a visible record instead of loose messages."
+          eyebrow="Client confidence"
+          title="What customers can expect from Apex"
+        />
+        <div className="grid gap-4 sm:grid-cols-2">
+          {clientAssuranceCards.map((card) => (
+            <Card className="h-full" key={card.title}>
+              <CardHeader>
+                <div className="bg-accent/15 text-accent grid size-11 place-items-center rounded-md">
+                  <card.icon aria-hidden="true" className="size-5" />
+                </div>
+                <CardTitle>{card.title}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Text>{card.text}</Text>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function GettingStartedGuideSection() {
+  return (
+    <section className="bg-surface py-16">
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6">
+        <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
+          <SectionIntro
+            description="Start with the path that matches your situation. You can track a shipment without registering, create a customer account for ongoing visibility, or ask operations to prepare a shipment that needs special handling."
+            eyebrow="Get started"
+            title="Choose the easiest way to begin"
+          />
+          <div className="grid gap-4 md:grid-cols-3">
+            {gettingStartedOptions.map((option) => (
+              <Link
+                className="border-border bg-card shadow-panel hover:border-accent/60 rounded-lg border p-5 transition-all hover:-translate-y-1"
+                href={option.href as Route}
+                key={option.title}
+              >
+                <div className="bg-accent/15 text-accent grid size-11 place-items-center rounded-md">
+                  <option.icon aria-hidden="true" className="size-5" />
+                </div>
+                <h3 className="mt-5 text-lg font-semibold tracking-normal">{option.title}</h3>
+                <p className="text-muted-foreground mt-2 text-sm leading-6">{option.description}</p>
+                <span className="text-primary mt-5 inline-flex items-center gap-2 text-sm font-semibold">
+                  {option.cta}
+                  <ArrowRight aria-hidden="true" className="size-4" />
+                </span>
+              </Link>
+            ))}
+          </div>
+        </div>
+        <div className="mt-10 grid gap-4 lg:grid-cols-3">
+          {clientPreparationLists.map((list) => (
+            <div className="border-border bg-card rounded-lg border p-5" key={list.title}>
+              <h3 className="text-lg font-semibold tracking-normal">{list.title}</h3>
+              <ul className="mt-4 space-y-3">
+                {list.items.map((item) => (
+                  <li className="flex gap-3 text-sm leading-6" key={item}>
+                    <Check aria-hidden="true" className="text-success mt-1 size-4 shrink-0" />
+                    <span className="text-muted-foreground">{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function RefundableFeesSection() {
+  return (
+    <section className="bg-secondary/60 py-16">
+      <div className="mx-auto grid w-full max-w-7xl gap-8 px-4 sm:px-6 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
+        <div>
+          <SectionIntro
+            description="Some logistics moves need deposits for crates, animal care, insurance, documentation, special handling, or temporary holds. Apex treats those charges as documented, reviewable, and refundable according to the invoice terms."
+            eyebrow="Refundable fees"
+            title="Clear deposit rules before delivery continues"
+          />
+          <div className="border-border bg-background shadow-panel mt-8 rounded-lg border p-5">
+            <h3 className="text-base font-semibold tracking-normal">Refund process</h3>
+            <p className="text-muted-foreground mt-3 text-sm leading-6">
+              When a refundable fee applies, Apex issues an official invoice or service document
+              before payment. After successful delivery, customer signature, and any required
+              equipment or document inspection, eligible refundable balances are returned to the
+              payer account or agreed payment method. Any deduction must be supported by a receipt,
+              inspection note, or signed delivery record.
+            </p>
+            <div className="mt-5 flex flex-wrap gap-2">
+              {refundableFeeExamples.map((fee) => (
+                <Badge key={fee} variant="outline">
+                  {fee}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="grid gap-4">
+          {refundableFeeSteps.map((step) => (
+            <div
+              className="border-border bg-card shadow-panel flex gap-4 rounded-lg border p-5"
+              key={step.title}
+            >
+              <div className="bg-accent/15 text-accent grid size-12 shrink-0 place-items-center rounded-md">
+                <step.icon aria-hidden="true" className="size-5" />
+              </div>
+              <div>
+                <h3 className="font-semibold tracking-normal">{step.title}</h3>
+                <p className="text-muted-foreground mt-2 text-sm leading-6">{step.description}</p>
+              </div>
+            </div>
+          ))}
+          <div className="relative min-h-72 overflow-hidden rounded-lg">
+            <Image
+              alt={marketingImages.compliance.alt}
+              className="object-cover"
+              fill
+              sizes="(min-width: 1024px) 50vw, 100vw"
+              src={marketingImages.compliance.src}
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function ServiceDetailsSection() {
+  return (
+    <section className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6">
+      <SectionIntro
+        align="center"
+        description="Apex is built for the real details clients ask about: what is being moved, who is receiving it, what documents exist, how payment is handled, and how delivery is proven."
+        eyebrow="Service detail"
+        title="What each delivery type can include"
+      />
+      <div className="mt-10 grid gap-5 lg:grid-cols-3">
+        {serviceDetailCards.map((service) => (
+          <article
+            className="border-border bg-card shadow-panel overflow-hidden rounded-lg border"
+            key={service.title}
+          >
+            <Image
+              alt={service.image.alt}
+              className="aspect-[16/10] w-full object-cover"
+              height={360}
+              sizes="(min-width: 1024px) 33vw, 100vw"
+              src={service.image.src}
+              width={560}
+            />
+            <div className="p-5">
+              <h3 className="text-xl font-semibold tracking-normal">{service.title}</h3>
+              <p className="text-muted-foreground mt-3 text-sm leading-6">{service.description}</p>
+              <div className="mt-5 flex flex-wrap gap-2">
+                {service.highlights.map((highlight) => (
+                  <Badge key={highlight} variant="outline">
+                    {highlight}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+export function CustomerJourneySection() {
+  return (
+    <section className="bg-surface py-16">
+      <div className="mx-auto grid w-full max-w-7xl gap-8 px-4 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+        <div>
+          <SectionIntro
+            description="The client experience is designed around simple steps: confirm the shipment, receive a tracking number, follow every update, then close delivery with paperwork and refund processing where applicable."
+            eyebrow="Customer journey"
+            title="A simple process from registration to delivery"
+          />
+          <div className="mt-8 grid gap-3 sm:grid-cols-2">
+            {accountabilityCards.map((card) => (
+              <div className="border-border bg-card rounded-lg border p-4" key={card.label}>
+                <p className="text-muted-foreground text-xs font-semibold uppercase">
+                  {card.label}
+                </p>
+                <p className="mt-2 text-sm leading-6 font-semibold">{card.value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="border-border bg-card shadow-panel rounded-lg border p-5">
+          <div className="space-y-5">
+            {customerJourneySteps.map((step) => (
+              <div
+                className="border-border border-b pb-5 last:border-b-0 last:pb-0"
+                key={step.title}
+              >
+                <h3 className="text-base font-semibold tracking-normal">{step.title}</h3>
+                <p className="text-muted-foreground mt-2 text-sm leading-6">{step.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function DocumentsAndBillingSection() {
+  return (
+    <section className="mx-auto grid w-full max-w-7xl gap-8 px-4 py-16 sm:px-6 lg:grid-cols-[1fr_1fr] lg:items-start">
+      <div>
+        <SectionIntro
+          description="Documents are one of the strongest ways to build trust. Apex records what was created, why it was created, who it belongs to, and how it connects back to the shipment."
+          eyebrow="Documents and billing"
+          title="Clear paperwork before, during, and after delivery"
+        />
+        <div className="border-border bg-card shadow-panel mt-8 rounded-lg border p-5">
+          <h3 className="text-base font-semibold tracking-normal">How official documents help</h3>
+          <p className="text-muted-foreground mt-3 text-sm leading-6">
+            Shipment notices, invoices, receipts, labels, refundable deposit forms, health or care
+            notes, and delivery confirmations can all be prepared from the admin dashboard. This
+            gives customers a consistent paper trail instead of scattered messages.
+          </p>
+          <Button asChild className="mt-5" variant="accent">
+            <Link href={"/services" as Route}>
+              View services
+              <ArrowRight aria-hidden="true" />
+            </Link>
+          </Button>
+        </div>
+      </div>
+      <div className="grid gap-4">
+        {documentTrustItems.map((item) => (
+          <div className="border-border bg-card rounded-lg border p-5" key={item.title}>
+            <h3 className="font-semibold tracking-normal">{item.title}</h3>
+            <p className="text-muted-foreground mt-2 text-sm leading-6">{item.description}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+export function TrustAndSafetySection() {
+  return (
+    <section className="bg-primary text-primary-foreground py-16">
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6">
+        <SectionIntro
+          description="Trust is not only about design. It comes from clear records, controlled access, honest billing language, and support that can explain the next step."
+          eyebrow="Trust and safety"
+          title="Built to make logistics feel accountable"
+        />
+        <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {trustPillars.map((pillar) => (
+            <div
+              className="border-primary-foreground/15 bg-primary-foreground/8 rounded-lg border p-5"
+              key={pillar.title}
+            >
+              <div className="bg-accent text-accent-foreground grid size-11 place-items-center rounded-md">
+                <pillar.icon aria-hidden="true" className="size-5" />
+              </div>
+              <h3 className="mt-5 text-lg font-semibold">{pillar.title}</h3>
+              <p className="text-primary-foreground/72 mt-2 text-sm leading-6">
+                {pillar.description}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function PageHero({
   badge,
   description,
   eyebrow,
+  image = marketingImages.services,
   primaryHref = "/contact",
   primaryLabel = "Talk to logistics",
   secondaryHref = "/pricing",
@@ -121,14 +461,22 @@ export function PageHero({
   title,
 }: PageHeroProps) {
   return (
-    <section className="border-border bg-surface relative overflow-hidden border-b">
-      <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_78%_20%,var(--accent)_0,transparent_28%),linear-gradient(135deg,var(--surface),var(--background))] opacity-20" />
-      <div className="mx-auto grid w-full max-w-7xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[1fr_420px] lg:items-center lg:py-20">
-        <div className="animate-fade-up">
+    <section className="border-border relative isolate min-h-[560px] overflow-hidden border-b">
+      <Image
+        alt={image.alt}
+        className="absolute inset-0 -z-20 size-full object-cover"
+        fill
+        sizes="100vw"
+        src={image.src}
+      />
+      <div className="absolute inset-0 -z-10 bg-linear-to-r from-black/78 via-black/56 to-black/18" />
+      <div className="from-background absolute inset-x-0 bottom-0 -z-10 h-28 bg-linear-to-t to-transparent" />
+      <div className="mx-auto flex min-h-[560px] w-full max-w-7xl items-end px-4 py-14 sm:px-6 lg:py-18">
+        <div className="animate-fade-up max-w-3xl">
           {badge ? <Badge variant="accent">{badge}</Badge> : null}
-          <Kicker className={badge ? "mt-6" : undefined}>{eyebrow}</Kicker>
-          <Display className="mt-4 max-w-4xl">{title}</Display>
-          <Text className="mt-5 max-w-2xl text-base leading-8">{description}</Text>
+          <Kicker className={cn("text-white/72", badge ? "mt-6" : undefined)}>{eyebrow}</Kicker>
+          <Display className="mt-4 max-w-4xl text-white">{title}</Display>
+          <p className="mt-5 max-w-2xl text-base leading-8 text-white/82">{description}</p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Button asChild variant="accent">
               <Link href={primaryHref as Route}>
@@ -140,16 +488,6 @@ export function PageHero({
               <Link href={secondaryHref as Route}>{secondaryLabel}</Link>
             </Button>
           </div>
-        </div>
-        <div className="border-border bg-card shadow-panel rounded-lg border p-4">
-          <Image
-            alt="Apex Global Logistics international warehouse, van, aircraft, and shipping operations"
-            className="aspect-[4/3] rounded-md object-cover"
-            height={720}
-            sizes="(min-width: 1024px) 420px, calc(100vw - 2rem)"
-            src="/images/global-logistics-hero.png"
-            width={960}
-          />
         </div>
       </div>
     </section>
@@ -172,6 +510,16 @@ export function ServiceGrid() {
             href={service.href as Route}
             key={service.title}
           >
+            <div className="border-border/60 -mx-5 -mt-5 mb-5 overflow-hidden rounded-t-lg border-b">
+              <Image
+                alt={service.image.alt}
+                className="aspect-[4/3] w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                height={360}
+                sizes="(min-width: 1280px) 25vw, (min-width: 768px) 50vw, 100vw"
+                src={service.image.src}
+                width={480}
+              />
+            </div>
             <div className="bg-accent/15 text-accent-foreground grid size-11 place-items-center rounded-md">
               <service.icon aria-hidden="true" className="size-5" />
             </div>

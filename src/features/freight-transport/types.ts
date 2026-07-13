@@ -147,8 +147,11 @@ export type FreightTransportDetail = FreightTransportListItem & {
     stopType: FreightRouteStopType;
   }>;
   shipmentTimeline: Array<{
+    currentLocation: string | null;
     eventType: TrackingEventType;
     id: string;
+    latitude: string | null;
+    longitude: string | null;
     message: string | null;
     occurredAt: string;
     packageNumber: string | null;

@@ -209,7 +209,10 @@ async function prepareAdminEmail(
     recipientEmail: recipient.email,
     recipientName: recipient.name,
     shipment: shipmentContext,
-    variables: input.variables,
+    variables: {
+      ...input.variables,
+      trackingNumber: input.variables?.trackingNumber || trackingNumber || undefined,
+    },
   });
   const subject = replaceEmailVariables(input.subject || template?.subject || "", variables);
   const rawBody = replaceEmailVariables(input.bodyHtml || template?.bodyHtml || "", variables);
@@ -427,20 +430,23 @@ export async function sendAdminTestEmail(rawInput: AdminEmailTestInput, actor: A
 
 export async function queueBrandedEmail(input: QueueBrandedEmailInput) {
   const shipmentContext = await getShipmentEmailContext(input.shipmentId ?? undefined);
-  const variables = buildEmailVariables({
-    recipientEmail: input.recipientEmail,
-    recipientName: input.recipientName,
-    shipment: shipmentContext,
-    variables: input.variables,
-  });
-  const subject = replaceEmailVariables(input.subject, variables);
-  const bodyHtml = sanitizeEmailHtml(replaceEmailVariables(input.bodyHtml, variables));
-  const bodyText = htmlToPlainText(bodyHtml);
   const trackingNumber =
     input.trackingNumber ||
     shipmentContext?.trackingNumber ||
     shipmentContext?.shipmentNumber ||
     null;
+  const variables = buildEmailVariables({
+    recipientEmail: input.recipientEmail,
+    recipientName: input.recipientName,
+    shipment: shipmentContext,
+    variables: {
+      ...input.variables,
+      trackingNumber: input.variables?.trackingNumber || trackingNumber || undefined,
+    },
+  });
+  const subject = replaceEmailVariables(input.subject, variables);
+  const bodyHtml = sanitizeEmailHtml(replaceEmailVariables(input.bodyHtml, variables));
+  const bodyText = htmlToPlainText(bodyHtml);
   const renderedHtml = renderBrandedEmail({
     contentHtml: bodyHtml,
     shipment: shipmentContext

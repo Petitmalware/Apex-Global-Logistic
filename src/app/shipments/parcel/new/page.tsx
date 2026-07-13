@@ -1,17 +1,19 @@
 import type { Metadata } from "next";
 
 import { ProtectedShell } from "@/components/layout/protected-shell";
+import { getCustomerOptionsForStaff } from "@/features/customers/queries/customer.queries";
 import { ParcelBookingForm } from "@/features/shipments/components/parcel-booking-form";
 import { createParcelBookingAction } from "@/features/shipments/actions/shipment.actions";
-import { PERMISSIONS } from "@/lib/auth/rbac";
-import { requirePermission } from "@/lib/auth/session";
+import { AUTH_ROLES } from "@/lib/auth/constants";
+import { requireRole } from "@/lib/auth/session";
 
 export const metadata: Metadata = {
   title: "Book Parcel | Apex Global Logistics",
 };
 
 export default async function NewParcelBookingPage() {
-  const user = await requirePermission(PERMISSIONS.SHIPMENTS_CREATE);
+  const user = await requireRole([AUTH_ROLES.ADMIN, AUTH_ROLES.SUPER_ADMIN]);
+  const customerOptions = await getCustomerOptionsForStaff(user);
 
   return (
     <ProtectedShell
@@ -25,7 +27,7 @@ export default async function NewParcelBookingPage() {
       title="Book Parcel"
       user={user}
     >
-      <ParcelBookingForm action={createParcelBookingAction} />
+      <ParcelBookingForm action={createParcelBookingAction} customerOptions={customerOptions} />
     </ProtectedShell>
   );
 }

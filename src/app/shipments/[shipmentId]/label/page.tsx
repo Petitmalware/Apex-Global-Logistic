@@ -70,6 +70,32 @@ export default async function ShipmentLabelPage({ params }: ShipmentLabelPagePro
       id="main-content"
       className="min-h-svh bg-slate-100 px-4 py-6 text-slate-950 print:bg-white print:p-0"
     >
+      <style>
+        {`
+          @media print {
+            @page {
+              size: A4;
+              margin: 8mm;
+            }
+
+            .shipping-label-sheet {
+              max-height: 281mm;
+              overflow: hidden;
+              page-break-after: avoid;
+              page-break-inside: avoid;
+            }
+
+            .shipping-label-sheet h1 {
+              font-size: 26px !important;
+            }
+
+            .shipping-label-sheet .label-compact-block {
+              padding-bottom: 14px !important;
+              padding-top: 14px !important;
+            }
+          }
+        `}
+      </style>
       <div className="mx-auto max-w-4xl space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
           <Button asChild variant="outline">
@@ -80,11 +106,11 @@ export default async function ShipmentLabelPage({ params }: ShipmentLabelPagePro
           </Button>
           <PrintButton label="Print label" />
         </div>
-        <section className="border-border shadow-panel rounded-lg border bg-white p-8 print:rounded-none print:border-0 print:p-0 print:shadow-none">
+        <section className="shipping-label-sheet border-border shadow-panel rounded-lg border bg-white p-8 print:rounded-none print:border-0 print:p-0 print:text-[11px] print:shadow-none">
           <div className="flex flex-wrap items-start justify-between gap-6 border-b-4 border-slate-950 pb-6">
             <div>
               <p className="text-sm font-bold tracking-[0.32em] text-slate-500 uppercase">
-                Apex Global Logistics
+                Apex Global Logistics authorized transport label
               </p>
               <h1 className="mt-2 text-4xl font-black tracking-normal">Shipping Label</h1>
             </div>
@@ -96,12 +122,12 @@ export default async function ShipmentLabelPage({ params }: ShipmentLabelPagePro
             </div>
           </div>
 
-          <div className="grid gap-8 border-b border-slate-300 py-8 md:grid-cols-2">
+          <div className="label-compact-block grid gap-8 border-b border-slate-300 py-8 md:grid-cols-2 print:gap-4">
             <AddressBlock address={shipment.origin} title="From" />
             <AddressBlock address={shipment.destination} title="Ship to" />
           </div>
 
-          <div className="grid gap-8 py-8 md:grid-cols-[1fr_280px]">
+          <div className="label-compact-block grid gap-8 py-8 md:grid-cols-[1fr_280px] print:gap-4">
             <div>
               <p className="text-xs font-bold tracking-[0.24em] text-slate-500 uppercase">
                 Service
@@ -128,13 +154,16 @@ export default async function ShipmentLabelPage({ params }: ShipmentLabelPagePro
             <BarcodeMark value={shipment.shipmentNumber} />
           </div>
 
-          <div className="border-t border-slate-300 pt-6">
+          <div className="border-t border-slate-300 pt-6 print:pt-4">
             <p className="text-xs font-bold tracking-[0.24em] text-slate-500 uppercase">
               Package manifest
             </p>
             <div className="mt-4 divide-y divide-slate-200 border border-slate-300">
               {shipment.packages.map((shipmentPackage) => (
-                <div className="grid gap-3 p-4 text-sm sm:grid-cols-4" key={shipmentPackage.id}>
+                <div
+                  className="grid gap-3 p-4 text-sm sm:grid-cols-4 print:p-2 print:text-[10px]"
+                  key={shipmentPackage.id}
+                >
                   <p className="font-bold">{shipmentPackage.packageNumber}</p>
                   <p>{shipmentPackage.type}</p>
                   <p>{shipmentPackage.weightKg ?? "0"} kg actual</p>

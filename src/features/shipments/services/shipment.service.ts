@@ -9,6 +9,7 @@ import {
   PackageStatus,
   ShipmentStatus,
   TrackingEventType,
+  UserStatus,
   type Prisma,
 } from "@prisma/client";
 
@@ -56,6 +57,18 @@ const packagePhotoUploadRules = {
   tooLargeMessage: "Package photos must be 8MB or smaller.",
   unsupportedTypeMessage: "Package photos must be JPG, PNG, or WebP.",
 };
+const REMOTE_DATABASE_TRANSACTION_OPTIONS = {
+  maxWait: 20_000,
+  timeout: 60_000,
+};
+
+type ManualRecipientMetadata = {
+  email: string | null;
+  name: string | null;
+  phone: string | null;
+};
+
+type OfficeDetailsMetadata = NonNullable<ShipmentFormInput["officeDetails"]>;
 
 function toDecimal(value?: number) {
   return value === undefined ? undefined : value;
@@ -78,6 +91,104 @@ function hasTrackingMutationAccess(user: AuthSessionUser) {
 
 function canAccessOrganization(user: AuthSessionUser, organizationId: string) {
   return user.roles.includes(AUTH_ROLES.SUPER_ADMIN) || user.organizationId === organizationId;
+}
+
+async function getSelectedCustomerId(customerId: string | undefined) {
+  if (!customerId) {
+    return null;
+  }
+
+  const customer = await prisma.user.findFirst({
+    select: {
+      id: true,
+    },
+    where: {
+      deletedAt: null,
+      id: customerId,
+      status: {
+        in: [UserStatus.ACTIVE, UserStatus.INVITED],
+      },
+      userRoles: {
+        some: {
+          role: {
+            key: AUTH_ROLES.CUSTOMER,
+            organizationId: null,
+          },
+        },
+      },
+    },
+  });
+
+  if (!customer) {
+    throw new AuthError(
+      "Selected customer account was not found. Ask the customer to create an account first.",
+      404,
+      "CUSTOMER_NOT_FOUND",
+    );
+  }
+
+  return customer.id;
+}
+
+function getManualRecipientMetadata(
+  manualRecipient: ShipmentFormInput["manualRecipient"] | undefined,
+): ManualRecipientMetadata | null {
+  const name = manualRecipient?.name?.trim();
+  const email = manualRecipient?.email?.trim().toLowerCase();
+  const phone = manualRecipient?.phone?.trim();
+
+  if (!name && !email && !phone) {
+    return null;
+  }
+
+  return {
+    email: email || null,
+    name: name || null,
+    phone: phone || null,
+  };
+}
+
+function getOfficeDetailsMetadata(
+  officeDetails: ShipmentFormInput["officeDetails"] | undefined,
+): OfficeDetailsMetadata | null {
+  if (!officeDetails) {
+    return null;
+  }
+
+  const normalized = Object.fromEntries(
+    Object.entries(officeDetails).map(([key, value]) => [
+      key,
+      typeof value === "string" && value.trim() ? value.trim() : null,
+    ]),
+  ) as OfficeDetailsMetadata;
+
+  return Object.values(normalized).some(Boolean) ? normalized : null;
+}
+
+function getJsonObject(value: Prisma.JsonValue | null): Prisma.InputJsonObject {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Prisma.InputJsonObject)
+    : {};
+}
+
+function getManualRecipientFromMetadata(
+  metadata: Prisma.JsonValue | null,
+): ManualRecipientMetadata | null {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    return null;
+  }
+
+  const value = "manualRecipient" in metadata ? metadata.manualRecipient : null;
+
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const email = "email" in value && typeof value.email === "string" ? value.email : null;
+  const name = "name" in value && typeof value.name === "string" ? value.name : null;
+  const phone = "phone" in value && typeof value.phone === "string" ? value.phone : null;
+
+  return email || name || phone ? { email, name, phone } : null;
 }
 
 async function logShipmentActivity({
@@ -239,8 +350,18 @@ function buildPackageCreateInput(shipmentNumber: string, packages: ShipmentFormI
 
 export async function createShipment(input: ShipmentFormInput, user: AuthSessionUser) {
   const organizationId = await ensureShipmentOrganization(user);
+  const customerId = await getSelectedCustomerId(input.customerId);
+  const manualRecipient = customerId ? null : getManualRecipientMetadata(input.manualRecipient);
+  const destinationInput =
+    manualRecipient?.name && !input.destination.name
+      ? {
+          ...input.destination,
+          name: manualRecipient.name,
+        }
+      : input.destination;
   const shipmentNumber = await generateShipmentNumber(organizationId);
   const status = input.status;
+  const officeDetails = getOfficeDetailsMetadata(input.officeDetails);
 
   const shipment = await prisma.$transaction(async (transaction) => {
     const [originAddress, destinationAddress] = await Promise.all([
@@ -255,7 +376,7 @@ export async function createShipment(input: ShipmentFormInput, user: AuthSession
       }),
       transaction.address.create({
         data: {
-          ...buildAddressCreateInput(input.destination, AddressType.DELIVERY),
+          ...buildAddressCreateInput(destinationInput, AddressType.DELIVERY),
           organizationId,
         },
         select: {
@@ -268,10 +389,17 @@ export async function createShipment(input: ShipmentFormInput, user: AuthSession
       data: {
         ...mapShipmentTimestamps(status),
         createdById: user.id,
-        customerId: user.id,
+        customerId,
         deliveryWindowEnd: input.deliveryWindowEnd,
         deliveryWindowStart: input.deliveryWindowStart,
         destinationAddressId: destinationAddress.id,
+        metadata:
+          manualRecipient || officeDetails
+            ? {
+                manualRecipient,
+                officeDetails,
+              }
+            : undefined,
         mode: input.mode,
         notes: input.notes,
         organizationId,
@@ -285,7 +413,9 @@ export async function createShipment(input: ShipmentFormInput, user: AuthSession
         status,
       },
       select: {
+        customerId: true,
         id: true,
+        metadata: true,
         organizationId: true,
       },
     });
@@ -315,6 +445,7 @@ export async function createShipment(input: ShipmentFormInput, user: AuthSession
         entityId: createdShipment.id,
         entityType: "shipment",
         metadata: {
+          manualRecipient,
           shipmentNumber,
           status,
         },
@@ -323,7 +454,7 @@ export async function createShipment(input: ShipmentFormInput, user: AuthSession
     });
 
     return createdShipment;
-  });
+  }, REMOTE_DATABASE_TRANSACTION_OPTIONS);
 
   return shipment;
 }
@@ -422,6 +553,7 @@ export async function createParcelBooking({
     status: ShipmentStatus.BOOKED,
   };
   const shipment = await createShipment(parcelInput, user);
+  const manualRecipient = getManualRecipientFromMetadata(shipment.metadata);
   const quote = calculateParcelQuote(parcelInput, options);
   const invoiceNumber = await generateInvoiceNumber(shipment.organizationId);
   const dueDate = new Date();
@@ -432,6 +564,7 @@ export async function createParcelBooking({
     await transaction.shipment.update({
       data: {
         metadata: {
+          ...getJsonObject(shipment.metadata),
           bookingType: "PARCEL",
           insuranceRequested: options.insuranceRequested,
           parcelQuote: quote,
@@ -447,7 +580,7 @@ export async function createParcelBooking({
     const invoice = await transaction.invoice.create({
       data: {
         currency: quote.currency,
-        customerId: user.id,
+        customerId: shipment.customerId,
         dueDate,
         invoiceNumber,
         issuedAt: new Date(),
@@ -463,6 +596,14 @@ export async function createParcelBooking({
           })),
         },
         metadata: {
+          billTo: manualRecipient
+            ? {
+                email: manualRecipient.email,
+                name: manualRecipient.name,
+                phone: manualRecipient.phone,
+                source: "manual_shipment_recipient",
+              }
+            : undefined,
           bookingType: "PARCEL",
           quote,
         },
@@ -503,6 +644,7 @@ export async function updateShipment(
   input: ShipmentFormInput,
   user: AuthSessionUser,
 ) {
+  const officeDetails = getOfficeDetailsMetadata(input.officeDetails);
   const existingShipment = await prisma.shipment.findUnique({
     include: {
       packages: true,
@@ -555,6 +697,10 @@ export async function updateShipment(
         deliveryWindowEnd: input.deliveryWindowEnd,
         deliveryWindowStart: input.deliveryWindowStart,
         mode: input.mode,
+        metadata: {
+          ...getJsonObject(existingShipment.metadata),
+          officeDetails,
+        },
         notes: input.notes,
         pickupWindowEnd: input.pickupWindowEnd,
         pickupWindowStart: input.pickupWindowStart,
@@ -698,7 +844,14 @@ export async function updateShipmentStatus(
     await transaction.trackingEvent.create({
       data: {
         eventType: input.eventType || getTrackingEventType(input.status),
+        latitude: input.latitude,
+        longitude: input.longitude,
         message: input.message,
+        metadata: input.location
+          ? {
+              location: input.location,
+            }
+          : undefined,
         occurredAt: input.occurredAt ?? new Date(),
         recordedById: user.id,
         shipmentId,
@@ -714,6 +867,7 @@ export async function updateShipmentStatus(
         entityType: "shipment",
         metadata: {
           fromStatus: shipment.status,
+          location: input.location,
           message: input.message,
           toStatus: input.status,
         },

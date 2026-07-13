@@ -59,7 +59,15 @@ export function hasRole(subject: RbacSubject, allowedRoles: AppRole[]) {
 }
 
 export function hasPermission(subject: RbacSubject, permission: Permission | string) {
-  return subject.roles.includes(AUTH_ROLES.SUPER_ADMIN) || subject.permissions.includes(permission);
+  const [resource, action] = permission.split(":");
+  const managePermission =
+    resource && action && action !== "manage" ? `${resource}:manage` : undefined;
+
+  return (
+    subject.roles.includes(AUTH_ROLES.SUPER_ADMIN) ||
+    subject.permissions.includes(permission) ||
+    Boolean(managePermission && subject.permissions.includes(managePermission))
+  );
 }
 
 export function hasEveryPermission(subject: RbacSubject, permissions: Array<Permission | string>) {
