@@ -9,9 +9,9 @@ import { Input } from "@/components/ui/input";
 import { SideNavigation, TopNavigation } from "@/components/ui/navigation";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { WorkspaceHistoryControls } from "@/components/layout/workspace-history-controls";
-import { SessionKeepAlive } from "@/features/auth/components/session-keep-alive";
 import type { AuthSessionUser } from "@/features/auth/services/auth.service";
 import { LogoutButton } from "@/features/auth/components/logout-button";
+import { SessionKeepAlive } from "@/features/auth/components/session-keep-alive";
 import { ChatWidget } from "@/features/chat/components/chat-widget";
 import {
   getDashboardNavItems,

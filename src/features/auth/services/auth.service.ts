@@ -65,8 +65,6 @@ type UserWithAuth = {
   userRoles: UserRoleRecord[];
 };
 
-const REFRESH_ROTATION_GRACE_MS = 60_000;
-
 function getAuthUserInclude() {
   return {
     userRoles: {
@@ -504,17 +502,6 @@ export async function refreshAuthTokens(refreshToken: string | undefined, meta: 
   }
 
   if (existingToken.revokedAt) {
-    if (
-      existingToken.replacedByTokenId &&
-      Date.now() - existingToken.revokedAt.getTime() <= REFRESH_ROTATION_GRACE_MS
-    ) {
-      throw new AuthError(
-        "The session was already refreshed by another request.",
-        409,
-        "REFRESH_ALREADY_ROTATED",
-      );
-    }
-
     await prisma.refreshToken.updateMany({
       data: {
         revokedAt: new Date(),
@@ -547,8 +534,7 @@ export async function refreshAuthTokens(refreshToken: string | undefined, meta: 
   assertCanAuthenticate(existingToken.user);
 
   const user = buildSessionUser(existingToken.user);
-  const newRefreshToken = createSecureToken(64);
-  const newRefreshTokenExpiresAt = addDays(new Date(), env.AUTH_REFRESH_TOKEN_TTL_DAYS);
+  const refreshTokenExpiresAt = addDays(new Date(), env.AUTH_REFRESH_TOKEN_TTL_DAYS);
   const accessToken = await signAccessToken(
     {
       email: user.email,
@@ -561,45 +547,25 @@ export async function refreshAuthTokens(refreshToken: string | undefined, meta: 
     env.AUTH_ACCESS_TOKEN_TTL_SECONDS,
   );
 
-  const createdRefreshToken = await prisma.$transaction(async (transaction) => {
-    const created = await transaction.refreshToken.create({
-      data: {
-        createdByIp: meta.ipAddress,
-        expiresAt: newRefreshTokenExpiresAt,
-        familyId: existingToken.familyId,
-        tokenHash: hashToken(newRefreshToken),
-        userAgent: meta.userAgent,
-        userId: existingToken.userId,
-      },
-    });
-
-    const rotated = await transaction.refreshToken.updateMany({
-      data: {
-        replacedByTokenId: created.id,
-        revokedAt: new Date(),
-        revokedByIp: meta.ipAddress,
-      },
-      where: {
-        id: existingToken.id,
-        revokedAt: null,
-      },
-    });
-
-    if (rotated.count !== 1) {
-      throw new AuthError(
-        "The session was already refreshed by another request.",
-        409,
-        "REFRESH_ALREADY_ROTATED",
-      );
-    }
-
-    return created;
+  const refreshed = await prisma.refreshToken.updateMany({
+    data: {
+      expiresAt: refreshTokenExpiresAt,
+      userAgent: meta.userAgent,
+    },
+    where: {
+      id: existingToken.id,
+      revokedAt: null,
+    },
   });
+
+  if (refreshed.count !== 1) {
+    throw new AuthError("Session refresh failed.", 401, "INVALID_REFRESH_TOKEN");
+  }
 
   return {
     accessToken,
-    refreshToken: newRefreshToken,
-    refreshTokenExpiresAt: createdRefreshToken.expiresAt,
+    refreshToken,
+    refreshTokenExpiresAt,
     user,
   };
 }

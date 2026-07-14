@@ -19,7 +19,6 @@ import {
   Ship,
   Sparkles,
   Truck,
-  Warehouse,
 } from "lucide-react";
 
 export const marketingNavItems = [
@@ -60,17 +59,25 @@ export const marketingImages = {
     alt: "Courier handling parcel delivery and logistics paperwork",
     src: "/images/courier-parcel-delivery.jpg",
   },
+  parcelOperations: {
+    alt: "Parcel boxes and packing supplies staged for shipment preparation",
+    src: "/images/parcel-sorting-operations.jpg",
+  },
   pet: {
     alt: "Pet care photo representing safe pet transportation service",
     src: "/images/pet-transport-care.jpg",
   },
+  petHandoff: {
+    alt: "Customer carrying a ventilated pet travel carrier",
+    src: "/images/pet-carrier-handoff.jpg",
+  },
   services: {
-    alt: "Cargo containers and freight infrastructure prepared for dispatch",
-    src: "/images/cargo-containers.jpg",
+    alt: "Modern logistics warehouse prepared for parcel and freight dispatch",
+    src: "/images/logistics-warehouse.jpg",
   },
   tracking: {
-    alt: "Freight truck route used for live shipment tracking visibility",
-    src: "/images/freight-truck.jpg",
+    alt: "Logistics operator reviewing shipment movement on a warehouse tablet",
+    src: "/images/shipment-tracking-operations.jpg",
   },
 } as const;
 
@@ -115,10 +122,31 @@ export const serviceCards = [
 ] as const;
 
 export const capabilityHighlights = [
-  { icon: Globe2, label: "Global network", value: "62 countries" },
-  { icon: Clock3, label: "Delivery SLA", value: "98.8%" },
-  { icon: Warehouse, label: "Hub coverage", value: "180+ lanes" },
-  { icon: Headphones, label: "Support", value: "24/7" },
+  { icon: Globe2, label: "Tracking access", value: "Public" },
+  { icon: Clock3, label: "Status visibility", value: "24/7" },
+  { icon: FileCheck2, label: "Billing records", value: "Itemized" },
+  { icon: Headphones, label: "Customer support", value: "Direct" },
+] as const;
+
+export const paymentConfidenceItems = [
+  {
+    description:
+      "Every payment request should reference a numbered invoice, the related shipment, the recipient, the amount, and the service or deposit being charged.",
+    icon: FileCheck2,
+    title: "Verify the invoice",
+  },
+  {
+    description:
+      "Use only the company-approved payment instructions shown on the current invoice. Contact support before paying if any account detail or amount is unexpected.",
+    icon: ShieldCheck,
+    title: "Confirm payment instructions",
+  },
+  {
+    description:
+      "A successful payment must produce a receipt and a visible billing record. Refundable items must also state the refund condition and any permitted deduction.",
+    icon: CircleDollarSign,
+    title: "Keep the receipt and terms",
+  },
 ] as const;
 
 export const processSteps = [
@@ -141,12 +169,12 @@ export const processSteps = [
 
 export const deliveryProofCards = [
   {
-    image: marketingImages.parcel,
+    image: marketingImages.parcelOperations,
     label: "Door-to-door parcel handling",
     text: "Packages are received, labelled, routed, and confirmed through structured handoff records.",
   },
   {
-    image: marketingImages.pet,
+    image: marketingImages.petHandoff,
     label: "Pet travel care",
     text: "Live animal shipments can include crate checks, health documents, temperature notes, and signed release paperwork.",
   },

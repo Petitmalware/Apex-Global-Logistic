@@ -67,6 +67,10 @@ function getPostLoginHref(payload: AuthResponse) {
   return "/customer";
 }
 
+function getSafePostLoginHref(value: string | null, fallback: string) {
+  return value?.startsWith("/") && !value.startsWith("//") ? value : fallback;
+}
+
 function normalizeFieldErrors(errors: AuthResponse["errors"]): FieldErrors {
   if (!errors) {
     return {};
@@ -185,7 +189,9 @@ export function AuthForm({ mode }: AuthFormProps) {
 
     if (mode === "login") {
       const searchParams = new URLSearchParams(window.location.search);
-      window.location.assign(searchParams.get("next") ?? getPostLoginHref(payload));
+      const fallbackHref = getPostLoginHref(payload);
+
+      window.location.assign(getSafePostLoginHref(searchParams.get("next"), fallbackHref));
       return;
     }
 

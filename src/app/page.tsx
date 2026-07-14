@@ -10,6 +10,7 @@ import {
   FinalCta,
   GettingStartedGuideSection,
   HomeHero,
+  PaymentConfidenceSection,
   ProcessSection,
   RefundableFeesSection,
   ServiceDetailsSection,
@@ -54,6 +55,7 @@ export default function HomePage() {
       <CustomerJourneySection />
       <ProcessSection />
       <DocumentsAndBillingSection />
+      <PaymentConfidenceSection />
       <RefundableFeesSection />
       <TrackingPreview />
       <TrustAndSafetySection />

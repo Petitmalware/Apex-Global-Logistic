@@ -12,7 +12,14 @@ type AuthCookieTokens = {
 
 const isProduction = env.APP_ENV === "production";
 
+function preventAuthResponseCaching(response: NextResponse) {
+  response.headers.set("Cache-Control", "private, no-store, max-age=0");
+  response.headers.set("Pragma", "no-cache");
+  response.headers.append("Vary", "Cookie");
+}
+
 export function setAuthCookies(response: NextResponse, tokens: AuthCookieTokens) {
+  preventAuthResponseCaching(response);
   response.cookies.set({
     httpOnly: true,
     maxAge: env.AUTH_ACCESS_TOKEN_TTL_SECONDS,
@@ -43,6 +50,7 @@ export function setAuthCookies(response: NextResponse, tokens: AuthCookieTokens)
 }
 
 export function clearAuthCookies(response: NextResponse) {
+  preventAuthResponseCaching(response);
   response.cookies.set({
     httpOnly: true,
     maxAge: 0,

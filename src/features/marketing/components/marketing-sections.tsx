@@ -29,6 +29,7 @@ import {
   trustSignals,
   trustPillars,
   marketingImages,
+  paymentConfidenceItems,
 } from "@/features/marketing/data/marketing";
 import { cn } from "@/lib/utils";
 
@@ -404,6 +405,45 @@ export function DocumentsAndBillingSection() {
             <p className="text-muted-foreground mt-2 text-sm leading-6">{item.description}</p>
           </div>
         ))}
+      </div>
+    </section>
+  );
+}
+
+export function PaymentConfidenceSection() {
+  return (
+    <section className="bg-surface py-16">
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6">
+        <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
+          <SectionIntro
+            description="Do not rely on an isolated message when money is involved. Confirm the charge against the official shipment and invoice record, then keep the receipt and documented terms."
+            eyebrow="Payment confidence"
+            title="A clear way to verify every payment request"
+          />
+          <div className="grid gap-4 md:grid-cols-3">
+            {paymentConfidenceItems.map((item) => (
+              <div className="border-border bg-card rounded-lg border p-5" key={item.title}>
+                <div className="bg-accent/15 text-accent grid size-11 place-items-center rounded-md">
+                  <item.icon aria-hidden="true" className="size-5" />
+                </div>
+                <h3 className="mt-5 text-lg font-semibold tracking-normal">{item.title}</h3>
+                <p className="text-muted-foreground mt-2 text-sm leading-6">{item.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="border-border bg-background mt-8 flex flex-col gap-3 rounded-lg border p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="font-semibold">Something does not match?</p>
+            <p className="text-muted-foreground mt-1 text-sm leading-6">
+              Pause the payment and verify the invoice number with Apex support using the contact
+              details published on this website.
+            </p>
+          </div>
+          <Button asChild variant="outline">
+            <Link href={"/contact" as Route}>Contact support</Link>
+          </Button>
+        </div>
       </div>
     </section>
   );

@@ -260,7 +260,11 @@ function redirectToLogin(request: NextRequest) {
 
   loginUrl.searchParams.set("next", `${request.nextUrl.pathname}${request.nextUrl.search}`);
 
-  return finalizeResponse(NextResponse.redirect(loginUrl), request);
+  const response = NextResponse.redirect(loginUrl);
+  response.headers.set("Cache-Control", "private, no-store, max-age=0");
+  response.headers.append("Vary", "Cookie");
+
+  return finalizeResponse(response, request);
 }
 
 function redirectToSessionRefresh(request: NextRequest) {
@@ -268,7 +272,12 @@ function redirectToSessionRefresh(request: NextRequest) {
 
   refreshUrl.searchParams.set("next", `${request.nextUrl.pathname}${request.nextUrl.search}`);
 
-  return finalizeResponse(NextResponse.redirect(refreshUrl), request);
+  const response = NextResponse.redirect(refreshUrl);
+
+  response.headers.set("Cache-Control", "private, no-store, max-age=0");
+  response.headers.append("Vary", "Cookie");
+
+  return finalizeResponse(response, request);
 }
 
 function forbiddenResponse(request: NextRequest) {
@@ -303,14 +312,16 @@ function withAuthHeaders(request: NextRequest, payload: AccessTokenPayload) {
   requestHeaders.set("x-apex-user-id", payload.sub);
   requestHeaders.set("x-apex-user-roles", payload.roles.join(","));
 
-  return finalizeResponse(
-    NextResponse.next({
-      request: {
-        headers: requestHeaders,
-      },
-    }),
-    request,
-  );
+  const response = NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  });
+
+  response.headers.set("Cache-Control", "private, no-store, max-age=0");
+  response.headers.append("Vary", "Cookie");
+
+  return finalizeResponse(response, request);
 }
 
 export async function middleware(request: NextRequest) {

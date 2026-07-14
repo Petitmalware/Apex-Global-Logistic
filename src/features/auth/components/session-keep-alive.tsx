@@ -4,37 +4,19 @@ import { useEffect } from "react";
 
 import { secureFetch } from "@/lib/security/client-fetch";
 
-const REFRESH_INTERVAL_MS = 4 * 60 * 1000;
-const REFRESH_COOLDOWN_MS = 90 * 1000;
-const REFRESH_LOCK_MS = 20 * 1000;
-const LOCK_KEY = "apex-session-refresh-lock";
+const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
+const REFRESH_COOLDOWN_MS = 4 * 60 * 1000;
 const STORAGE_KEY = "apex-last-session-refresh";
 
 function getLastRefreshAt() {
-  const value = window.localStorage.getItem(STORAGE_KEY);
-  const timestamp = value ? Number(value) : 0;
+  try {
+    const value = window.localStorage.getItem(STORAGE_KEY);
+    const timestamp = value ? Number(value) : 0;
 
-  return Number.isFinite(timestamp) ? timestamp : 0;
-}
-
-function setLastRefreshAt(value: number) {
-  window.localStorage.setItem(STORAGE_KEY, value.toString());
-}
-
-function claimRefreshLock(now: number) {
-  const existingLock = Number(window.localStorage.getItem(LOCK_KEY) ?? "0");
-
-  if (Number.isFinite(existingLock) && now - existingLock < REFRESH_LOCK_MS) {
-    return false;
+    return Number.isFinite(timestamp) ? timestamp : 0;
+  } catch {
+    return 0;
   }
-
-  window.localStorage.setItem(LOCK_KEY, now.toString());
-
-  return true;
-}
-
-function releaseRefreshLock() {
-  window.localStorage.removeItem(LOCK_KEY);
 }
 
 export function SessionKeepAlive() {
@@ -42,18 +24,10 @@ export function SessionKeepAlive() {
     let cancelled = false;
     let inFlight = false;
 
-    async function refreshSession(force = false) {
-      if (cancelled || inFlight) {
-        return;
-      }
-
+    async function refreshSession() {
       const now = Date.now();
 
-      if (!force && now - getLastRefreshAt() < REFRESH_COOLDOWN_MS) {
-        return;
-      }
-
-      if (!claimRefreshLock(now)) {
+      if (cancelled || inFlight || now - getLastRefreshAt() < REFRESH_COOLDOWN_MS) {
         return;
       }
 
@@ -65,16 +39,21 @@ export function SessionKeepAlive() {
         });
 
         if (response.ok) {
-          setLastRefreshAt(Date.now());
+          try {
+            window.localStorage.setItem(STORAGE_KEY, Date.now().toString());
+          } catch {
+            // The session remains valid when storage is unavailable.
+          }
         }
+      } catch {
+        // A transient network failure must not interrupt dashboard navigation.
       } finally {
         inFlight = false;
-        releaseRefreshLock();
       }
     }
 
     void refreshSession();
-    const interval = window.setInterval(() => refreshSession(), REFRESH_INTERVAL_MS);
+    const interval = window.setInterval(refreshSession, REFRESH_INTERVAL_MS);
 
     function handleVisibilityChange() {
       if (document.visibilityState === "visible") {

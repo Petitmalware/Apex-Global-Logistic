@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { Route } from "next";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import {
   ArrowRight,
   ClipboardList,
@@ -111,8 +111,12 @@ function getDateOnly(value?: string | null) {
 }
 
 function getPackageRows(initialShipment?: ShipmentDetail) {
+  if (!initialShipment) {
+    return [];
+  }
+
   const packages = initialShipment?.packages ?? [];
-  const rowCount = Math.min(Math.max(packages.length + 1, 3), 6);
+  const rowCount = Math.min(Math.max(packages.length + 1, 2), 6);
 
   return Array.from({ length: rowCount }, (_, index) => packages[index]);
 }
@@ -178,6 +182,17 @@ export function ShipmentForm({
   const officeDetails = initialShipment?.officeDetails;
   const currentStatus = initialShipment?.status ?? "DRAFT";
   const isCreateMode = mode === "create";
+  const [recipientName, setRecipientName] = useState(initialShipment?.manualRecipient?.name ?? "");
+  const [recipientEmail, setRecipientEmail] = useState(
+    initialShipment?.manualRecipient?.email ?? initialShipment?.recipientEmail ?? "",
+  );
+
+  function handleCustomerChange(customerId: string) {
+    const customer = customerOptions.find((option) => option.id === customerId);
+
+    setRecipientName(customer?.name ?? "");
+    setRecipientEmail(customer?.email ?? "");
+  }
 
   return (
     <form action={formAction} className="space-y-6">
@@ -194,8 +209,8 @@ export function ShipmentForm({
                 {isCreateMode ? "Create agency shipment" : "Edit agency shipment"}
               </CardTitle>
               <p className="text-muted-foreground mt-2 text-sm leading-6">
-                Capture shipper, receiver, carrier, schedule, package, billing, and comments in one
-                operations record.
+                Enter the receiver, delivery address, shipment contents, and routing details. Sender
+                information is optional and billing is handled separately through invoices.
               </p>
             </div>
             <Badge variant="outline">Current status: {formatShipmentStatus(currentStatus)}</Badge>
@@ -300,6 +315,7 @@ export function ShipmentForm({
                     disabled={!customerOptions.length}
                     id="customerId"
                     name="customerId"
+                    onChange={(event) => handleCustomerChange(event.target.value)}
                   >
                     <option value="">
                       {customerOptions.length
@@ -324,14 +340,18 @@ export function ShipmentForm({
                   Receiver name
                 </Label>
                 <Input
-                  defaultValue={
-                    isCreateMode
-                      ? (initialShipment?.manualRecipient?.name ?? "")
-                      : (initialShipment?.destination.name ?? initialShipment?.recipientName ?? "")
-                  }
                   id={isCreateMode ? "manualRecipient.name" : "destination.name"}
                   name={isCreateMode ? "manualRecipient.name" : "destination.name"}
                   placeholder="Receiver name"
+                  {...(isCreateMode
+                    ? {
+                        onChange: (event) => setRecipientName(event.target.value),
+                        value: recipientName,
+                      }
+                    : {
+                        defaultValue:
+                          initialShipment?.destination.name ?? initialShipment?.recipientName ?? "",
+                      })}
                 />
               </Field>
               <Field>
@@ -357,14 +377,17 @@ export function ShipmentForm({
               <Field>
                 <Label htmlFor="manualRecipient.email">Email</Label>
                 <Input
-                  defaultValue={
-                    initialShipment?.manualRecipient?.email ?? initialShipment?.recipientEmail ?? ""
-                  }
                   disabled={!isCreateMode}
                   id="manualRecipient.email"
                   name="manualRecipient.email"
                   placeholder="receiver@example.com"
                   type="email"
+                  {...(isCreateMode
+                    ? {
+                        onChange: (event) => setRecipientEmail(event.target.value),
+                        value: recipientEmail,
+                      }
+                    : { defaultValue: initialShipment?.recipientEmail ?? "" })}
                 />
                 <ErrorList errors={state.fieldErrors?.manualRecipient} />
               </Field>
@@ -438,7 +461,7 @@ export function ShipmentForm({
           <Field>
             <Label htmlFor="serviceLevel">Type of shipment</Label>
             <Select
-              defaultValue={initialShipment?.serviceLevel ?? "Pet Transport"}
+              defaultValue={initialShipment?.serviceLevel ?? "Parcel Delivery"}
               id="serviceLevel"
               name="serviceLevel"
             >
@@ -518,7 +541,7 @@ export function ShipmentForm({
           <Field>
             <Label htmlFor="packages.0.type">Package type</Label>
             <Select
-              defaultValue={initialShipment?.packages[0]?.type ?? "CRATE"}
+              defaultValue={initialShipment?.packages[0]?.type ?? "BOX"}
               id="packages.0.type"
               name="packages.0.type"
             >
@@ -529,29 +552,38 @@ export function ShipmentForm({
               ))}
             </Select>
           </Field>
-          <Field>
-            <Label htmlFor="officeDetails.paymentMode">Payment mode</Label>
-            <Select
-              defaultValue={officeDetails?.paymentMode ?? "Pending"}
-              id="officeDetails.paymentMode"
-              name="officeDetails.paymentMode"
-            >
-              {paymentModeOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </Select>
-          </Field>
-          <Field>
-            <Label htmlFor="officeDetails.totalFreight">Total freight</Label>
-            <Input
-              defaultValue={officeDetails?.totalFreight ?? ""}
-              id="officeDetails.totalFreight"
-              name="officeDetails.totalFreight"
-              placeholder="$100"
-            />
-          </Field>
+          {isCreateMode ? (
+            <>
+              <input name="officeDetails.paymentMode" type="hidden" value="Pending" />
+              <input name="officeDetails.totalFreight" type="hidden" value="" />
+            </>
+          ) : (
+            <>
+              <Field>
+                <Label htmlFor="officeDetails.paymentMode">Payment status</Label>
+                <Select
+                  defaultValue={officeDetails?.paymentMode ?? "Pending"}
+                  id="officeDetails.paymentMode"
+                  name="officeDetails.paymentMode"
+                >
+                  {paymentModeOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Field>
+                <Label htmlFor="officeDetails.totalFreight">Recorded freight amount</Label>
+                <Input
+                  defaultValue={officeDetails?.totalFreight ?? ""}
+                  id="officeDetails.totalFreight"
+                  name="officeDetails.totalFreight"
+                  placeholder="$100"
+                />
+              </Field>
+            </>
+          )}
           <Field>
             <Label htmlFor="referenceNumber">Carrier reference no.</Label>
             <Input
@@ -561,20 +593,24 @@ export function ShipmentForm({
               placeholder="COLIS-EXPRESS-TX-206"
             />
           </Field>
-          <Field>
-            <Label htmlFor="packages.0.status">Package status</Label>
-            <Select
-              defaultValue={initialShipment?.packages[0]?.status ?? "PENDING"}
-              id="packages.0.status"
-              name="packages.0.status"
-            >
-              {packageStatusOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option.replaceAll("_", " ")}
-                </option>
-              ))}
-            </Select>
-          </Field>
+          {isCreateMode ? (
+            <input name="packages.0.status" type="hidden" value="PENDING" />
+          ) : (
+            <Field>
+              <Label htmlFor="packages.0.status">Package status</Label>
+              <Select
+                defaultValue={initialShipment?.packages[0]?.status ?? "PENDING"}
+                id="packages.0.status"
+                name="packages.0.status"
+              >
+                {packageStatusOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option.replaceAll("_", " ")}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          )}
           <input
             name="packages.0.id"
             type="hidden"
@@ -607,22 +643,13 @@ export function ShipmentForm({
             <div>
               <CardTitle>Carrier and schedule</CardTitle>
               <p className="text-muted-foreground mt-1 text-sm">
-                Use this section for manual routing, partner carrier details, and customer-facing
-                delivery timing.
+                Add the assigned carrier, expected delivery, and any customer-facing handling note.
               </p>
             </div>
           </div>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <Field>
-            <Label htmlFor="officeDetails.courier">Courier</Label>
-            <Input
-              defaultValue={officeDetails?.courier ?? ""}
-              id="officeDetails.courier"
-              name="officeDetails.courier"
-              placeholder="Delta Pet Cargo"
-            />
-          </Field>
+          <input name="officeDetails.courier" type="hidden" value={officeDetails?.courier ?? ""} />
           <Field>
             <Label htmlFor="officeDetails.carrier">Carrier</Label>
             <Select
@@ -638,15 +665,11 @@ export function ShipmentForm({
               ))}
             </Select>
           </Field>
-          <Field>
-            <Label htmlFor="officeDetails.carrierReference">Carrier reference no.</Label>
-            <Input
-              defaultValue={officeDetails?.carrierReference ?? ""}
-              id="officeDetails.carrierReference"
-              name="officeDetails.carrierReference"
-              placeholder="Partner reference"
-            />
-          </Field>
+          <input
+            name="officeDetails.carrierReference"
+            type="hidden"
+            value={officeDetails?.carrierReference ?? ""}
+          />
           <Field>
             <Label htmlFor="officeDetails.departureTime">Departure time</Label>
             <Input
@@ -656,24 +679,16 @@ export function ShipmentForm({
               placeholder="11:30 am"
             />
           </Field>
-          <Field>
-            <Label htmlFor="pickupWindowStart">Pickup date</Label>
-            <Input
-              defaultValue={getDateOnly(initialShipment?.pickupWindowStart)}
-              id="pickupWindowStart"
-              name="pickupWindowStart"
-              type="date"
-            />
-          </Field>
-          <Field>
-            <Label htmlFor="officeDetails.pickupTime">Pickup time</Label>
-            <Input
-              defaultValue={officeDetails?.pickupTime ?? ""}
-              id="officeDetails.pickupTime"
-              name="officeDetails.pickupTime"
-              placeholder="06:00 am"
-            />
-          </Field>
+          <input
+            name="pickupWindowStart"
+            type="hidden"
+            value={getDateOnly(initialShipment?.pickupWindowStart)}
+          />
+          <input
+            name="officeDetails.pickupTime"
+            type="hidden"
+            value={officeDetails?.pickupTime ?? ""}
+          />
           <Field>
             <Label htmlFor="deliveryWindowStart">Expected delivery date</Label>
             <Input
@@ -697,112 +712,114 @@ export function ShipmentForm({
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-start gap-3">
-            <div className="bg-warning/15 text-warning-foreground grid size-10 place-items-center rounded-md">
-              <PackagePlus aria-hidden="true" className="size-5" />
-            </div>
-            <div>
-              <CardTitle>Additional package details</CardTitle>
-              <p className="text-muted-foreground mt-1 text-sm">
-                Optional. Add extra rows only when the shipment has more than one piece.
-              </p>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-5">
-          {packageRows.slice(1).map((shipmentPackage, packageIndex) => {
-            const index = packageIndex + 1;
-
-            return (
-              <div
-                className="border-border bg-surface rounded-lg border p-4"
-                key={shipmentPackage?.id ?? index}
-              >
-                <input
-                  name={`packages.${index}.id`}
-                  type="hidden"
-                  value={shipmentPackage?.id ?? ""}
-                />
-                <div className="mb-4 flex items-center gap-2">
-                  <PackagePlus aria-hidden="true" className="text-accent size-4" />
-                  <h3 className="text-sm font-semibold">Package {index + 1}</h3>
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                  <Field>
-                    <Label htmlFor={`packages.${index}.packageNumber`}>Package number</Label>
-                    <Input
-                      defaultValue={shipmentPackage?.packageNumber ?? ""}
-                      id={`packages.${index}.packageNumber`}
-                      name={`packages.${index}.packageNumber`}
-                      placeholder="Auto-generated if blank"
-                    />
-                  </Field>
-                  <Field>
-                    <Label htmlFor={`packages.${index}.type`}>Type</Label>
-                    <Select
-                      defaultValue={shipmentPackage?.type ?? "BOX"}
-                      id={`packages.${index}.type`}
-                      name={`packages.${index}.type`}
-                    >
-                      {packageTypeOptions.map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </Select>
-                  </Field>
-                  <Field>
-                    <Label htmlFor={`packages.${index}.status`}>Package status</Label>
-                    <Select
-                      defaultValue={shipmentPackage?.status ?? "PENDING"}
-                      id={`packages.${index}.status`}
-                      name={`packages.${index}.status`}
-                    >
-                      {packageStatusOptions.map((option) => (
-                        <option key={option} value={option}>
-                          {option.replaceAll("_", " ")}
-                        </option>
-                      ))}
-                    </Select>
-                  </Field>
-                  <Field>
-                    <Label htmlFor={`packages.${index}.weightKg`}>Weight kg</Label>
-                    <Input
-                      defaultValue={shipmentPackage?.weightKg ?? ""}
-                      id={`packages.${index}.weightKg`}
-                      min="0"
-                      name={`packages.${index}.weightKg`}
-                      step="0.001"
-                      type="number"
-                    />
-                  </Field>
-                  <Field className="sm:col-span-2 xl:col-span-4">
-                    <Label htmlFor={`packages.${index}.description`}>Description</Label>
-                    <Textarea
-                      defaultValue={shipmentPackage?.description ?? ""}
-                      id={`packages.${index}.description`}
-                      name={`packages.${index}.description`}
-                      placeholder="Optional extra package description"
-                    />
-                  </Field>
-                  <input
-                    name={`packages.${index}.currency`}
-                    type="hidden"
-                    value={shipmentPackage?.currency ?? "USD"}
-                  />
-                  <input
-                    name={`packages.${index}.barcode`}
-                    type="hidden"
-                    value={shipmentPackage?.barcode ?? ""}
-                  />
-                </div>
+      {packageRows.length > 1 ? (
+        <Card>
+          <CardHeader>
+            <div className="flex items-start gap-3">
+              <div className="bg-warning/15 text-warning-foreground grid size-10 place-items-center rounded-md">
+                <PackagePlus aria-hidden="true" className="size-5" />
               </div>
-            );
-          })}
-        </CardContent>
-      </Card>
+              <div>
+                <CardTitle>Additional package details</CardTitle>
+                <p className="text-muted-foreground mt-1 text-sm">
+                  Optional. Add extra rows only when the shipment has more than one piece.
+                </p>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            {packageRows.slice(1).map((shipmentPackage, packageIndex) => {
+              const index = packageIndex + 1;
+
+              return (
+                <div
+                  className="border-border bg-surface rounded-lg border p-4"
+                  key={shipmentPackage?.id ?? index}
+                >
+                  <input
+                    name={`packages.${index}.id`}
+                    type="hidden"
+                    value={shipmentPackage?.id ?? ""}
+                  />
+                  <div className="mb-4 flex items-center gap-2">
+                    <PackagePlus aria-hidden="true" className="text-accent size-4" />
+                    <h3 className="text-sm font-semibold">Package {index + 1}</h3>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                    <Field>
+                      <Label htmlFor={`packages.${index}.packageNumber`}>Package number</Label>
+                      <Input
+                        defaultValue={shipmentPackage?.packageNumber ?? ""}
+                        id={`packages.${index}.packageNumber`}
+                        name={`packages.${index}.packageNumber`}
+                        placeholder="Auto-generated if blank"
+                      />
+                    </Field>
+                    <Field>
+                      <Label htmlFor={`packages.${index}.type`}>Type</Label>
+                      <Select
+                        defaultValue={shipmentPackage?.type ?? "BOX"}
+                        id={`packages.${index}.type`}
+                        name={`packages.${index}.type`}
+                      >
+                        {packageTypeOptions.map((option) => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </Select>
+                    </Field>
+                    <Field>
+                      <Label htmlFor={`packages.${index}.status`}>Package status</Label>
+                      <Select
+                        defaultValue={shipmentPackage?.status ?? "PENDING"}
+                        id={`packages.${index}.status`}
+                        name={`packages.${index}.status`}
+                      >
+                        {packageStatusOptions.map((option) => (
+                          <option key={option} value={option}>
+                            {option.replaceAll("_", " ")}
+                          </option>
+                        ))}
+                      </Select>
+                    </Field>
+                    <Field>
+                      <Label htmlFor={`packages.${index}.weightKg`}>Weight kg</Label>
+                      <Input
+                        defaultValue={shipmentPackage?.weightKg ?? ""}
+                        id={`packages.${index}.weightKg`}
+                        min="0"
+                        name={`packages.${index}.weightKg`}
+                        step="0.001"
+                        type="number"
+                      />
+                    </Field>
+                    <Field className="sm:col-span-2 xl:col-span-4">
+                      <Label htmlFor={`packages.${index}.description`}>Description</Label>
+                      <Textarea
+                        defaultValue={shipmentPackage?.description ?? ""}
+                        id={`packages.${index}.description`}
+                        name={`packages.${index}.description`}
+                        placeholder="Optional extra package description"
+                      />
+                    </Field>
+                    <input
+                      name={`packages.${index}.currency`}
+                      type="hidden"
+                      value={shipmentPackage?.currency ?? "USD"}
+                    />
+                    <input
+                      name={`packages.${index}.barcode`}
+                      type="hidden"
+                      value={shipmentPackage?.barcode ?? ""}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card>
         <CardHeader>
