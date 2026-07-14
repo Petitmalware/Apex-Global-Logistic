@@ -35,6 +35,7 @@ import type { AuthSessionUser } from "@/features/auth/services/auth.service";
 import type { ShipmentDetail } from "@/features/shipments/types";
 import type { ShipmentTrackingSnapshot } from "@/features/shipments/types";
 import { AUTH_ROLES } from "@/lib/auth/constants";
+import { kilogramsToPoundsString } from "@/lib/measurements";
 
 function canManageShipmentWorkspace(user: AuthSessionUser) {
   return user.roles.includes(AUTH_ROLES.ADMIN) || user.roles.includes(AUTH_ROLES.SUPER_ADMIN);
@@ -273,13 +274,22 @@ function WeightSummary({ shipment }: { shipment: ShipmentDetail }) {
       </CardHeader>
       <CardContent className="grid gap-3 sm:grid-cols-3">
         {[
-          { label: "Actual", value: shipment.weightSummary.actualWeightKg },
-          { label: "Dimensional", value: shipment.weightSummary.dimensionalWeightKg },
-          { label: "Chargeable", value: shipment.weightSummary.chargeableWeightKg },
+          {
+            label: "Actual",
+            value: kilogramsToPoundsString(shipment.weightSummary.actualWeightKg),
+          },
+          {
+            label: "Dimensional",
+            value: kilogramsToPoundsString(shipment.weightSummary.dimensionalWeightKg),
+          },
+          {
+            label: "Chargeable",
+            value: kilogramsToPoundsString(shipment.weightSummary.chargeableWeightKg),
+          },
         ].map((item) => (
           <div className="border-border bg-surface rounded-lg border p-4" key={item.label}>
             <p className="text-muted-foreground text-xs font-semibold uppercase">{item.label}</p>
-            <p className="mt-2 text-2xl font-semibold">{item.value} kg</p>
+            <p className="mt-2 text-2xl font-semibold">{item.value} lb</p>
           </div>
         ))}
       </CardContent>
@@ -393,8 +403,10 @@ function PackageCards({ shipment }: { shipment: ShipmentDetail }) {
               {shipmentPackage.description ?? "No package description provided."}
             </p>
             <div className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
-              <span>Weight: {shipmentPackage.weightKg ?? "n/a"} kg</span>
-              <span>Dimensional: {shipmentPackage.volumetricWeightKg} kg</span>
+              <span>Weight: {kilogramsToPoundsString(shipmentPackage.weightKg) || "n/a"} lb</span>
+              <span>
+                Dimensional: {kilogramsToPoundsString(shipmentPackage.volumetricWeightKg)} lb
+              </span>
               <span>
                 Dimensions:{" "}
                 {shipmentPackage.lengthCm && shipmentPackage.widthCm && shipmentPackage.heightCm

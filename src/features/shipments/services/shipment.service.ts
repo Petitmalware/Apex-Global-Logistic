@@ -31,6 +31,7 @@ import { AUTH_ROLES } from "@/lib/auth/constants";
 import { PERMISSIONS, hasPermission } from "@/lib/auth/rbac";
 import { AuthError } from "@/lib/auth/errors";
 import { prisma } from "@/lib/db";
+import { kilogramsToPounds } from "@/lib/measurements";
 import {
   DOCUMENT_EXTENSIONS,
   DOCUMENT_MIME_TYPES,
@@ -460,9 +461,11 @@ export async function createShipment(input: ShipmentFormInput, user: AuthSession
 }
 
 function getInvoiceLines(quote: ParcelQuote) {
+  const chargeableWeightLb = kilogramsToPounds(quote.chargeableWeightKg).toFixed(2);
+
   return [
     {
-      description: `Parcel line haul - ${quote.chargeableWeightKg} kg chargeable weight`,
+      description: `Parcel line haul - ${chargeableWeightLb} lb chargeable weight`,
       lineType: InvoiceLineType.SERVICE,
       quantity: quote.chargeableWeightKg,
       sortOrder: 1,

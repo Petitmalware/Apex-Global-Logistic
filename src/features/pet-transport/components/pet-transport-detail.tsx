@@ -27,6 +27,7 @@ import {
   uploadPetPhotoAction,
 } from "@/features/pet-transport/actions/pet-transport.actions";
 import { PetTransportStatusBadge } from "@/features/pet-transport/components/pet-transport-list";
+import { kilogramsToPoundsString } from "@/lib/measurements";
 import {
   CrateAssignmentForm,
   FeedingScheduleForm,
@@ -130,7 +131,9 @@ function Overview({
           { label: "Breed", value: petTransport.breed ?? "Not set" },
           {
             label: "Weight",
-            value: petTransport.weightKg ? `${petTransport.weightKg} kg` : "Not set",
+            value: petTransport.weightKg
+              ? `${kilogramsToPoundsString(petTransport.weightKg)} lb`
+              : "Not set",
           },
           { label: "Microchip", value: petTransport.microchipNumber ?? "Not set" },
         ].map((item) => (

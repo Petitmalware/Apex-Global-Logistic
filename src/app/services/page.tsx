@@ -6,7 +6,6 @@ import {
   PageHero,
   ProcessSection,
   ServiceGrid,
-  TrackingPreview,
 } from "@/features/marketing/components/marketing-sections";
 import { marketingImages } from "@/features/marketing/data/marketing";
 
@@ -31,7 +30,6 @@ export default function ServicesPage() {
       />
       <ServiceGrid />
       <ProcessSection />
-      <TrackingPreview />
       <FinalCta />
     </MarketingShell>
   );

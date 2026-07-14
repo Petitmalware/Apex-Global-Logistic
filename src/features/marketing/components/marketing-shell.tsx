@@ -5,6 +5,7 @@ import { ArrowRight, Mail, MapPin, Menu, Phone, Truck, type LucideIcon } from "l
 
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { siteConfig } from "@/config/site";
 import {
   companyNavItems,
   marketingNavItems,
@@ -121,7 +122,7 @@ function getAddressLines(profile: CompanyProfileInput) {
 
 function getFooterContactItems(profile: CompanyProfileInput) {
   const address = getAddressLines(profile).join(", ");
-  const items: Array<{ icon: LucideIcon; value: string }> = [];
+  const items: Array<{ href?: string; icon: LucideIcon; label?: string; value: string }> = [];
 
   if (address) {
     items.push({ icon: MapPin, value: address });
@@ -135,7 +136,31 @@ function getFooterContactItems(profile: CompanyProfileInput) {
     items.push({ icon: Mail, value: profile.email });
   }
 
-  return items;
+  items.push(
+    {
+      href: `mailto:${siteConfig.emails.general}`,
+      icon: Mail,
+      label: "General inquiries",
+      value: siteConfig.emails.general,
+    },
+    {
+      href: `mailto:${siteConfig.emails.operations}`,
+      icon: Mail,
+      label: "Shipment coordination",
+      value: siteConfig.emails.operations,
+    },
+    {
+      href: `mailto:${siteConfig.emails.support}`,
+      icon: Mail,
+      label: "Customer support",
+      value: siteConfig.emails.support,
+    },
+  );
+
+  return items.filter(
+    (item, index, allItems) =>
+      allItems.findIndex((candidate) => candidate.value === item.value) === index,
+  );
 }
 
 export async function MarketingFooter() {
@@ -156,7 +181,18 @@ export async function MarketingFooter() {
               {contactItems.map((item) => (
                 <span className="inline-flex items-start gap-2" key={item.value}>
                   <item.icon aria-hidden="true" className="text-accent mt-0.5 size-4 shrink-0" />
-                  <span>{item.value}</span>
+                  <span>
+                    {item.label ? (
+                      <span className="text-foreground block">{item.label}</span>
+                    ) : null}
+                    {item.href ? (
+                      <a className="hover:text-foreground" href={item.href}>
+                        {item.value}
+                      </a>
+                    ) : (
+                      item.value
+                    )}
+                  </span>
                 </span>
               ))}
             </div>

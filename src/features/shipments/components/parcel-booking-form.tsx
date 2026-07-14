@@ -17,6 +17,7 @@ import { CustomerSelectCard } from "@/features/customers/components/customer-sel
 import { calculateParcelQuote } from "@/features/shipments/services/parcel-pricing";
 import type { CustomerOption, ShipmentActionState } from "@/features/shipments/types";
 import { initialShipmentActionState } from "@/features/shipments/types";
+import { kilogramsToPounds, poundsToKilograms } from "@/lib/measurements";
 
 type ParcelBookingFormProps = {
   action: (state: ShipmentActionState, formData: FormData) => Promise<ShipmentActionState>;
@@ -30,7 +31,7 @@ type PackageDraft = {
   hazardous: boolean;
   heightCm: string;
   lengthCm: string;
-  weightKg: string;
+  weightLb: string;
   widthCm: string;
 };
 
@@ -42,7 +43,7 @@ const defaultPackages: PackageDraft[] = [
     hazardous: false,
     heightCm: "",
     lengthCm: "",
-    weightKg: "",
+    weightLb: "",
     widthCm: "",
   },
   {
@@ -52,7 +53,7 @@ const defaultPackages: PackageDraft[] = [
     hazardous: false,
     heightCm: "",
     lengthCm: "",
-    weightKg: "",
+    weightLb: "",
     widthCm: "",
   },
   {
@@ -62,7 +63,7 @@ const defaultPackages: PackageDraft[] = [
     hazardous: false,
     heightCm: "",
     lengthCm: "",
-    weightKg: "",
+    weightLb: "",
     widthCm: "",
   },
 ];
@@ -138,22 +139,26 @@ export function ParcelBookingForm({ action, customerOptions = [] }: ParcelBookin
   const [packages, setPackages] = useState(defaultPackages);
 
   const quote = useMemo(() => {
-    const quotedPackages = packages.filter(hasPackageData).map((shipmentPackage, index) => ({
-      barcode: undefined,
-      currency: "USD",
-      declaredValue: getNumber(shipmentPackage.declaredValue),
-      description: shipmentPackage.description || `Parcel package ${index + 1}`,
-      fragile: shipmentPackage.fragile,
-      hazardous: shipmentPackage.hazardous,
-      heightCm: getNumber(shipmentPackage.heightCm),
-      id: undefined,
-      lengthCm: getNumber(shipmentPackage.lengthCm),
-      packageNumber: undefined,
-      status: "PENDING" as const,
-      type: "BOX" as const,
-      weightKg: getNumber(shipmentPackage.weightKg),
-      widthCm: getNumber(shipmentPackage.widthCm),
-    }));
+    const quotedPackages = packages.filter(hasPackageData).map((shipmentPackage, index) => {
+      const weightLb = getNumber(shipmentPackage.weightLb);
+
+      return {
+        barcode: undefined,
+        currency: "USD",
+        declaredValue: getNumber(shipmentPackage.declaredValue),
+        description: shipmentPackage.description || `Parcel package ${index + 1}`,
+        fragile: shipmentPackage.fragile,
+        hazardous: shipmentPackage.hazardous,
+        heightCm: getNumber(shipmentPackage.heightCm),
+        id: undefined,
+        lengthCm: getNumber(shipmentPackage.lengthCm),
+        packageNumber: undefined,
+        status: "PENDING" as const,
+        type: "BOX" as const,
+        weightKg: weightLb ? poundsToKilograms(weightLb) : undefined,
+        widthCm: getNumber(shipmentPackage.widthCm),
+      };
+    });
 
     return calculateParcelQuote(
       {
@@ -325,16 +330,16 @@ export function ParcelBookingForm({ action, customerOptions = [] }: ParcelBookin
                   <input name={`packages.${index}.type`} type="hidden" value="BOX" />
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <Field>
-                      <Label htmlFor={`packages.${index}.weightKg`}>Weight kg</Label>
+                      <Label htmlFor={`packages.${index}.weightLb`}>Weight (lb)</Label>
                       <Input
-                        id={`packages.${index}.weightKg`}
+                        id={`packages.${index}.weightLb`}
                         min="0"
-                        name={`packages.${index}.weightKg`}
-                        onChange={(event) => updatePackage(index, { weightKg: event.target.value })}
+                        name={`packages.${index}.weightLb`}
+                        onChange={(event) => updatePackage(index, { weightLb: event.target.value })}
                         required={index === 0}
                         step="0.001"
                         type="number"
-                        value={shipmentPackage.weightKg}
+                        value={shipmentPackage.weightLb}
                       />
                     </Field>
                     <Field>
@@ -449,9 +454,15 @@ export function ParcelBookingForm({ action, customerOptions = [] }: ParcelBookin
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
               {[
-                ["Actual weight", `${quote.actualWeightKg} kg`],
-                ["Dimensional weight", `${quote.dimensionalWeightKg} kg`],
-                ["Chargeable weight", `${quote.chargeableWeightKg} kg`],
+                ["Actual weight", `${kilogramsToPounds(quote.actualWeightKg).toFixed(2)} lb`],
+                [
+                  "Dimensional weight",
+                  `${kilogramsToPounds(quote.dimensionalWeightKg).toFixed(2)} lb`,
+                ],
+                [
+                  "Chargeable weight",
+                  `${kilogramsToPounds(quote.chargeableWeightKg).toFixed(2)} lb`,
+                ],
                 ["Line haul", `$${quote.lineHaul.toFixed(2)}`],
                 ["Fuel surcharge", `$${quote.fuelSurcharge.toFixed(2)}`],
                 [

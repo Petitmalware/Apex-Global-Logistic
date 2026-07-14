@@ -15,7 +15,6 @@ import {
   RefundableFeesSection,
   ServiceDetailsSection,
   ServiceGrid,
-  TrackingPreview,
   TrustAndSafetySection,
   TrustBar,
 } from "@/features/marketing/components/marketing-sections";
@@ -57,7 +56,6 @@ export default function HomePage() {
       <DocumentsAndBillingSection />
       <PaymentConfidenceSection />
       <RefundableFeesSection />
-      <TrackingPreview />
       <TrustAndSafetySection />
       <ContactPanel />
       <FinalCta />

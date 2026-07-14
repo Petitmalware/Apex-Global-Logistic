@@ -24,6 +24,7 @@ import { AUTH_ROLES } from "@/lib/auth/constants";
 import { AuthError } from "@/lib/auth/errors";
 import { requireAuthenticatedUser, requireRole } from "@/lib/auth/session";
 import { getDatabaseUnavailableMessage, isDatabaseUnavailableError } from "@/lib/db-errors";
+import { poundsToKilogramsString } from "@/lib/measurements";
 
 function getString(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -40,7 +41,7 @@ function hasOptionalPackageData(formData: FormData, index: number) {
     "id",
     "packageNumber",
     "barcode",
-    "weightKg",
+    "weightLb",
     "lengthCm",
     "widthCm",
     "heightCm",
@@ -67,7 +68,7 @@ function parseShipmentFormData(formData: FormData, { recipientRequired = true } 
       packageNumber: getString(formData, `packages.${index}.packageNumber`),
       status: getString(formData, `packages.${index}.status`) || "PENDING",
       type: getString(formData, `packages.${index}.type`) || "BOX",
-      weightKg: getString(formData, `packages.${index}.weightKg`),
+      weightKg: poundsToKilogramsString(getString(formData, `packages.${index}.weightLb`)),
       widthCm: getString(formData, `packages.${index}.widthCm`),
     }));
 

@@ -10,6 +10,7 @@ import { getShipmentForUser } from "@/features/shipments/queries/shipment.querie
 import type { ShipmentDetail } from "@/features/shipments/types";
 import { PERMISSIONS } from "@/lib/auth/rbac";
 import { requirePermission } from "@/lib/auth/session";
+import { kilogramsToPoundsString } from "@/lib/measurements";
 
 type ShipmentLabelPageProps = {
   params: Promise<{
@@ -147,7 +148,9 @@ export default async function ShipmentLabelPage({ params }: ShipmentLabelPagePro
                 </div>
                 <div className="rounded-md border border-slate-300 p-4">
                   <p className="text-xs text-slate-500">Chargeable weight</p>
-                  <p className="mt-1 font-bold">{shipment.weightSummary.chargeableWeightKg} kg</p>
+                  <p className="mt-1 font-bold">
+                    {kilogramsToPoundsString(shipment.weightSummary.chargeableWeightKg)} lb
+                  </p>
                 </div>
               </div>
             </div>
@@ -166,8 +169,10 @@ export default async function ShipmentLabelPage({ params }: ShipmentLabelPagePro
                 >
                   <p className="font-bold">{shipmentPackage.packageNumber}</p>
                   <p>{shipmentPackage.type}</p>
-                  <p>{shipmentPackage.weightKg ?? "0"} kg actual</p>
-                  <p>{shipmentPackage.volumetricWeightKg} kg dimensional</p>
+                  <p>{kilogramsToPoundsString(shipmentPackage.weightKg) || "0"} lb actual</p>
+                  <p>
+                    {kilogramsToPoundsString(shipmentPackage.volumetricWeightKg)} lb dimensional
+                  </p>
                 </div>
               ))}
             </div>

@@ -6,7 +6,6 @@ import {
   FinalCta,
   PageHero,
   ProcessSection,
-  TrackingPreview,
 } from "@/features/marketing/components/marketing-sections";
 import { freightFeatures, marketingImages } from "@/features/marketing/data/marketing";
 
@@ -31,7 +30,6 @@ export default function FreightPage() {
       />
       <FeatureBand features={freightFeatures} title="Freight features" />
       <ProcessSection />
-      <TrackingPreview />
       <FinalCta />
     </MarketingShell>
   );

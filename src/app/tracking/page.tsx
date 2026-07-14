@@ -1,11 +1,7 @@
 import type { Metadata } from "next";
 
 import { MarketingShell } from "@/features/marketing/components/marketing-shell";
-import {
-  FinalCta,
-  PageHero,
-  TrackingPreview,
-} from "@/features/marketing/components/marketing-sections";
+import { FinalCta, PageHero } from "@/features/marketing/components/marketing-sections";
 import { TrackingLookup } from "@/features/marketing/components/tracking-lookup";
 
 export const metadata: Metadata = {
@@ -29,7 +25,6 @@ export default function TrackingPage() {
         title="Track every shipment with confidence"
       />
       <TrackingLookup />
-      <TrackingPreview />
       <FinalCta />
     </MarketingShell>
   );

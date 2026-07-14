@@ -25,7 +25,6 @@ import {
   refundableFeeSteps,
   serviceCards,
   serviceDetailCards,
-  trackingEvents,
   trustSignals,
   trustPillars,
   marketingImages,
@@ -635,62 +634,6 @@ export function ProcessSection() {
   );
 }
 
-export function TrackingPreview() {
-  return (
-    <section className="mx-auto grid w-full max-w-7xl gap-8 px-4 py-16 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
-      <div>
-        <SectionIntro
-          description="Give customers a clean milestone view while operations teams see exceptions, ownership, and next actions."
-          eyebrow="Tracking"
-          title="Every handoff stays visible"
-        />
-        <Button asChild className="mt-8" variant="accent">
-          <Link href={"/tracking" as Route}>
-            Track a shipment
-            <ArrowRight aria-hidden="true" />
-          </Link>
-        </Button>
-      </div>
-      <div className="border-border bg-card shadow-panel rounded-lg border p-5">
-        <div className="border-border flex items-center gap-3 border-b pb-4">
-          <div className="bg-accent/15 grid size-11 place-items-center rounded-md">
-            <PackageSearch aria-hidden="true" className="text-accent size-5" />
-          </div>
-          <div>
-            <p className="font-semibold">AGL-2026-0148</p>
-            <p className="text-muted-foreground text-sm">Lagos to Accra - Priority parcel</p>
-          </div>
-        </div>
-        <div className="mt-5 space-y-4">
-          {trackingEvents.map((event) => (
-            <div className="flex gap-4" key={event.status}>
-              <div className="flex flex-col items-center">
-                <span className="bg-accent size-3 rounded-full" />
-                <span className="bg-border mt-2 h-10 w-px last:hidden" />
-              </div>
-              <div className="flex-1">
-                <p className="font-semibold">{event.status}</p>
-                <p className="text-muted-foreground text-sm">{event.time}</p>
-              </div>
-              <Badge
-                variant={
-                  event.tone === "warning"
-                    ? "warning"
-                    : event.tone === "success"
-                      ? "success"
-                      : "info"
-                }
-              >
-                Live
-              </Badge>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
 export function PricingCards() {
   return (
     <section className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6">
@@ -775,6 +718,27 @@ export function TrustBar() {
 }
 
 export function ContactPanel() {
+  const emailChannels = [
+    {
+      description: "Company information, service questions, and general business inquiries.",
+      email: siteConfig.emails.general,
+      label: "General inquiries",
+      subject: "Apex Global Logistics inquiry",
+    },
+    {
+      description: "New shipment coordination, recipient details, documents, and route updates.",
+      email: siteConfig.emails.operations,
+      label: "Shipment coordination",
+      subject: "Apex shipment coordination request",
+    },
+    {
+      description: "Account access, verification, password reset, billing, and customer care.",
+      email: siteConfig.emails.support,
+      label: "Customer support",
+      subject: "Apex customer support request",
+    },
+  ] as const;
+
   return (
     <section className="mx-auto grid w-full max-w-7xl gap-8 px-4 py-16 sm:px-6 lg:grid-cols-[0.9fr_1.1fr]">
       <div>
@@ -789,19 +753,21 @@ export function ContactPanel() {
         </p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
-        <a
-          className="border-border bg-card shadow-panel hover:border-accent/60 rounded-lg border p-5 transition-colors"
-          href={`mailto:${siteConfig.email}?subject=Apex%20Global%20Logistics%20support%20request`}
-        >
-          <div className="bg-accent/15 text-accent grid size-11 place-items-center rounded-md">
-            <Mail aria-hidden="true" className="size-5" />
-          </div>
-          <h3 className="mt-5 text-lg font-semibold tracking-normal">Email operations</h3>
-          <p className="text-muted-foreground mt-2 text-sm leading-6">
-            Send shipment details, documents, billing questions, or account verification issues to
-            {` ${siteConfig.email}`}.
-          </p>
-        </a>
+        {emailChannels.map((channel) => (
+          <a
+            className="border-border bg-card shadow-panel hover:border-accent/60 rounded-lg border p-5 transition-colors"
+            href={`mailto:${channel.email}?subject=${encodeURIComponent(channel.subject)}`}
+            key={channel.email}
+          >
+            <div className="bg-accent/15 text-accent grid size-11 place-items-center rounded-md">
+              <Mail aria-hidden="true" className="size-5" />
+            </div>
+            <h3 className="mt-5 text-lg font-semibold tracking-normal">{channel.label}</h3>
+            <p className="text-muted-foreground mt-2 text-sm leading-6">
+              {channel.description} Write to {channel.email}.
+            </p>
+          </a>
+        ))}
         <Link
           className="border-border bg-card shadow-panel hover:border-accent/60 rounded-lg border p-5 transition-colors"
           href={"/tracking" as Route}

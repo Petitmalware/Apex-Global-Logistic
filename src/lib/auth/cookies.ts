@@ -18,6 +18,20 @@ function preventAuthResponseCaching(response: NextResponse) {
   response.headers.append("Vary", "Cookie");
 }
 
+function appendLegacyRefreshCookieDeletion(response: NextResponse) {
+  const attributes = [
+    `${AUTH_COOKIE_NAMES.refreshToken}=`,
+    "Path=/api/auth",
+    "Expires=Thu, 01 Jan 1970 00:00:00 GMT",
+    "Max-Age=0",
+    "HttpOnly",
+    "SameSite=Lax",
+    isProduction ? "Secure" : "",
+  ].filter(Boolean);
+
+  response.headers.append("Set-Cookie", attributes.join("; "));
+}
+
 export function setAuthCookies(response: NextResponse, tokens: AuthCookieTokens) {
   preventAuthResponseCaching(response);
   response.cookies.set({
@@ -38,15 +52,8 @@ export function setAuthCookies(response: NextResponse, tokens: AuthCookieTokens)
     secure: isProduction,
     value: tokens.refreshToken,
   });
-  response.cookies.set({
-    httpOnly: true,
-    maxAge: 0,
-    name: AUTH_COOKIE_NAMES.refreshToken,
-    path: "/api/auth",
-    sameSite: "lax",
-    secure: isProduction,
-    value: "",
-  });
+
+  appendLegacyRefreshCookieDeletion(response);
 }
 
 export function clearAuthCookies(response: NextResponse) {
@@ -69,13 +76,6 @@ export function clearAuthCookies(response: NextResponse) {
     secure: isProduction,
     value: "",
   });
-  response.cookies.set({
-    httpOnly: true,
-    maxAge: 0,
-    name: AUTH_COOKIE_NAMES.refreshToken,
-    path: "/api/auth",
-    sameSite: "lax",
-    secure: isProduction,
-    value: "",
-  });
+
+  appendLegacyRefreshCookieDeletion(response);
 }

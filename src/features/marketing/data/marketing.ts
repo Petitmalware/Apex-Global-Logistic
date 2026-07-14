@@ -320,13 +320,6 @@ export const faqs = [
   },
 ] as const;
 
-export const trackingEvents = [
-  { status: "Booked", time: "08:12", tone: "success" },
-  { status: "Warehouse check-in", time: "09:30", tone: "info" },
-  { status: "In transit", time: "10:45", tone: "accent" },
-  { status: "Delivery window", time: "14:00-16:00", tone: "warning" },
-] as const;
-
 export const trustSignals = [
   { icon: ShieldCheck, text: "Secure role-based access" },
   { icon: Sparkles, text: "Premium customer experience" },

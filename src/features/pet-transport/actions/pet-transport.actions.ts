@@ -31,6 +31,7 @@ import { AUTH_ROLES } from "@/lib/auth/constants";
 import { AuthError } from "@/lib/auth/errors";
 import { requireAuthenticatedUser, requireRole } from "@/lib/auth/session";
 import { getDatabaseUnavailableMessage, isDatabaseUnavailableError } from "@/lib/db-errors";
+import { poundsToKilogramsString } from "@/lib/measurements";
 
 function getString(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -72,7 +73,7 @@ function parsePetProfileFormData(formData: FormData) {
     species: getString(formData, "species"),
     status: getString(formData, "status") || "REQUESTED",
     vaccinationVerified: getBoolean(formData, "vaccinationVerified"),
-    weightKg: getString(formData, "weightKg"),
+    weightKg: poundsToKilogramsString(getString(formData, "weightLb")),
   });
 }
 
@@ -144,7 +145,7 @@ function parsePetShipmentFormData(formData: FormData) {
         lengthCm: getString(formData, "crateLengthCm"),
         status: "PENDING",
         type: "OTHER",
-        weightKg: getString(formData, "weightKg"),
+        weightKg: poundsToKilogramsString(getString(formData, "weightLb")),
         widthCm: getString(formData, "crateWidthCm"),
       },
     ],

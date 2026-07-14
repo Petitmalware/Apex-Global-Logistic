@@ -29,6 +29,7 @@ import type {
   ShipmentDetail,
 } from "@/features/shipments/types";
 import { initialShipmentActionState } from "@/features/shipments/types";
+import { kilogramsToPoundsString } from "@/lib/measurements";
 
 const shipmentStatusOptions = [
   "DRAFT",
@@ -507,17 +508,17 @@ export function ShipmentForm({
             </Select>
           </Field>
           <Field>
-            <Label htmlFor="packages.0.weightKg">Weight</Label>
+            <Label htmlFor="packages.0.weightLb">Weight (lb)</Label>
             <Input
-              defaultValue={initialShipment?.packages[0]?.weightKg ?? ""}
-              id="packages.0.weightKg"
+              defaultValue={kilogramsToPoundsString(initialShipment?.packages[0]?.weightKg)}
+              id="packages.0.weightLb"
               min="0"
-              name="packages.0.weightKg"
+              name="packages.0.weightLb"
               placeholder="2"
               step="0.001"
               type="number"
             />
-            <FieldHint>Stored in kilograms. Use the comments if the customer quoted lbs.</FieldHint>
+            <FieldHint>Enter the shipment weight in pounds.</FieldHint>
           </Field>
           <Field>
             <Label htmlFor="officeDetails.quantity">Quantity</Label>
@@ -784,12 +785,12 @@ export function ShipmentForm({
                       </Select>
                     </Field>
                     <Field>
-                      <Label htmlFor={`packages.${index}.weightKg`}>Weight kg</Label>
+                      <Label htmlFor={`packages.${index}.weightLb`}>Weight (lb)</Label>
                       <Input
-                        defaultValue={shipmentPackage?.weightKg ?? ""}
-                        id={`packages.${index}.weightKg`}
+                        defaultValue={kilogramsToPoundsString(shipmentPackage?.weightKg)}
+                        id={`packages.${index}.weightLb`}
                         min="0"
-                        name={`packages.${index}.weightKg`}
+                        name={`packages.${index}.weightLb`}
                         step="0.001"
                         type="number"
                       />

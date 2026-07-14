@@ -11,6 +11,7 @@ import { formatShipmentStatus } from "@/features/shipments/status-labels";
 import type { ShipmentDetail } from "@/features/shipments/types";
 import { PERMISSIONS } from "@/lib/auth/rbac";
 import { requirePermission } from "@/lib/auth/session";
+import { kilogramsToPoundsString } from "@/lib/measurements";
 
 type ShipmentReceiptPageProps = {
   params: Promise<{
@@ -139,7 +140,10 @@ export default async function ShipmentReceiptPage({ params }: ShipmentReceiptPag
               { label: "Status", value: formatShipmentStatus(shipment.status) },
               { label: "Service", value: shipment.serviceLevel ?? "Parcel Standard" },
               { label: "Packages", value: String(shipment.packageCount) },
-              { label: "Chargeable", value: `${shipment.weightSummary.chargeableWeightKg} kg` },
+              {
+                label: "Chargeable",
+                value: `${kilogramsToPoundsString(shipment.weightSummary.chargeableWeightKg)} lb`,
+              },
             ].map((item) => (
               <div className="rounded-md border border-slate-300 p-4 print:p-2" key={item.label}>
                 <p className="text-xs font-bold tracking-[0.16em] text-slate-500 uppercase">

@@ -17,6 +17,7 @@ import type { PetTransportActionState, PetTransportDetail } from "@/features/pet
 import { formatPetTransportStatus } from "@/features/shipments/status-labels";
 import type { CustomerOption } from "@/features/shipments/types";
 import { initialPetTransportActionState } from "@/features/pet-transport/types";
+import { kilogramsToPoundsString } from "@/lib/measurements";
 
 type PetTransportFormProps = {
   action: (state: PetTransportActionState, formData: FormData) => Promise<PetTransportActionState>;
@@ -259,14 +260,14 @@ export function PetTransportForm({
             />
           </Field>
           <Field>
-            <Label htmlFor="weightKg">Weight (kg)</Label>
+            <Label htmlFor="weightLb">Weight (lb)</Label>
             <Input
-              id="weightKg"
+              id="weightLb"
               min="0"
-              name="weightKg"
+              name="weightLb"
               step="0.001"
               type="number"
-              defaultValue={initialPetTransport?.weightKg ?? ""}
+              defaultValue={kilogramsToPoundsString(initialPetTransport?.weightKg)}
             />
           </Field>
           <Field>

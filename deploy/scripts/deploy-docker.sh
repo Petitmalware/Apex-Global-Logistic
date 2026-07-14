@@ -27,5 +27,24 @@ docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" run --rm migrate
 echo "Starting application and object storage initialization..."
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d app minio-init
 
-echo "Deployment complete."
+APP_PORT="$(sed -n 's/^APP_PORT=//p' "$ENV_FILE" | tail -n 1 | tr -d '\r')"
+APP_PORT="${APP_PORT:-3000}"
+HEALTH_URL="http://127.0.0.1:${APP_PORT}/api/health"
+
+echo "Waiting for application health at $HEALTH_URL..."
+for attempt in {1..30}; do
+  if curl --fail --silent --show-error --max-time 10 "$HEALTH_URL" >/dev/null; then
+    echo "Application is healthy."
+    echo "Deployment complete."
+    docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" ps
+    exit 0
+  fi
+
+  echo "Health check attempt $attempt/30 is not ready yet."
+  sleep 5
+done
+
+echo "Application did not become healthy within 150 seconds." >&2
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" ps
+docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" logs --tail=200 app >&2
+exit 1

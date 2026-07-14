@@ -5,7 +5,6 @@ import {
   FeatureBand,
   FinalCta,
   PageHero,
-  TrackingPreview,
 } from "@/features/marketing/components/marketing-sections";
 import { marketingImages, parcelFeatures } from "@/features/marketing/data/marketing";
 
@@ -29,7 +28,6 @@ export default function ParcelDeliveryPage() {
         title="Parcel delivery built for speed and accountability"
       />
       <FeatureBand features={parcelFeatures} title="Parcel delivery features" />
-      <TrackingPreview />
       <FinalCta />
     </MarketingShell>
   );
