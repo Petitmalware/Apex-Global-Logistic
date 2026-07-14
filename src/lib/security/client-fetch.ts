@@ -26,7 +26,9 @@ export function getCsrfToken() {
   return rawToken ? decodeURIComponent(rawToken) : null;
 }
 
-export function secureFetch(input: RequestInfo | URL, init: RequestInit = {}) {
+let sessionRefreshPromise: Promise<Response> | null = null;
+
+function buildSecureInit(input: RequestInfo | URL, init: RequestInit) {
   const method = (init.method ?? "GET").toUpperCase();
   const headers = new Headers(init.headers);
 
@@ -38,9 +40,44 @@ export function secureFetch(input: RequestInfo | URL, init: RequestInit = {}) {
     }
   }
 
-  return fetch(input, {
+  return {
     ...init,
     credentials: init.credentials ?? "same-origin",
     headers,
+  } satisfies RequestInit;
+}
+
+function isAuthEndpoint(input: RequestInfo | URL) {
+  const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+
+  return new URL(url, window.location.origin).pathname.startsWith("/api/auth/");
+}
+
+function refreshSession() {
+  sessionRefreshPromise ??= fetch(
+    "/api/auth/refresh",
+    buildSecureInit("/api/auth/refresh", { method: "POST" }),
+  ).finally(() => {
+    sessionRefreshPromise = null;
   });
+
+  return sessionRefreshPromise;
+}
+
+export async function secureFetch(input: RequestInfo | URL, init: RequestInit = {}) {
+  const firstInput = input instanceof Request ? input.clone() : input;
+  const retryInput = input instanceof Request ? input.clone() : input;
+  const response = await fetch(firstInput, buildSecureInit(firstInput, init));
+
+  if (response.status !== 401 || isAuthEndpoint(input)) {
+    return response;
+  }
+
+  const refreshResponse = await refreshSession();
+
+  if (!refreshResponse.ok) {
+    return response;
+  }
+
+  return fetch(retryInput, buildSecureInit(retryInput, init));
 }

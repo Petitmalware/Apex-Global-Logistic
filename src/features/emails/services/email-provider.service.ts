@@ -142,6 +142,7 @@ async function sendWithSmtp(input: SendEmailInput): Promise<SendEmailResult> {
       name: "Apex Global Logistics",
     },
     html: input.html,
+    replyTo: env.SUPPORT_EMAIL,
     subject: input.subject,
     text: input.text ?? undefined,
     to: input.recipientName

@@ -2,22 +2,11 @@ import "server-only";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-import type { AuthSessionUser } from "@/features/auth/services/auth.service";
+import { getAuthUserById, type AuthSessionUser } from "@/features/auth/services/auth.service";
 import { AUTH_COOKIE_NAMES, type AppRole } from "@/lib/auth/constants";
 import { AuthError } from "@/lib/auth/errors";
-import { verifyAccessToken, type AccessTokenPayload } from "@/lib/auth/jwt";
+import { verifyAccessToken } from "@/lib/auth/jwt";
 import { hasPermission, hasRole, type Permission } from "@/lib/auth/rbac";
-
-function getSessionUserFromToken(payload: AccessTokenPayload): AuthSessionUser {
-  return {
-    email: payload.email,
-    id: payload.sub,
-    name: payload.name,
-    organizationId: payload.organizationId,
-    permissions: payload.permissions,
-    roles: payload.roles,
-  };
-}
 
 export async function getCurrentSessionUser() {
   const cookieStore = await cookies();
@@ -33,7 +22,7 @@ export async function getCurrentSessionUser() {
     return null;
   }
 
-  return getSessionUserFromToken(payload);
+  return getAuthUserById(payload.sub);
 }
 
 export async function requireAuthenticatedUser() {

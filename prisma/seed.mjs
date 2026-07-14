@@ -528,6 +528,7 @@ async function upsertProductionAdmin() {
     },
     update: {
       emailVerifiedAt: new Date(),
+      hashedPassword: hashPassword(adminConfig.password),
       name: adminConfig.name,
       organizationId: organization.id,
       status: UserStatus.ACTIVE,

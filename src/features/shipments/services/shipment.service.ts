@@ -317,9 +317,9 @@ function getTrackingEventType(status: ShipmentStatus) {
 
 function buildAddressCreateInput(address: ShipmentFormInput["origin"], type: AddressType) {
   return {
-    city: address.city,
-    countryCode: address.countryCode,
-    line1: address.line1,
+    city: address.city || "Location not provided",
+    countryCode: address.countryCode || "XX",
+    line1: address.line1 || "Address not provided",
     line2: address.line2,
     name: address.name,
     postalCode: address.postalCode,

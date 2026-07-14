@@ -56,6 +56,21 @@ export const shipmentAddressSchema = z.object({
   state: optionalString(120),
 });
 
+const shipmentOriginAddressSchema = z.object({
+  city: optionalString(120),
+  countryCode: z
+    .preprocess(
+      emptyToUndefined,
+      z.string().trim().length(2, "Use a 2-letter country code.").optional(),
+    )
+    .transform((value) => value?.toUpperCase()),
+  line1: optionalString(255),
+  line2: optionalString(255),
+  name: optionalString(120),
+  postalCode: optionalString(32),
+  state: optionalString(120),
+});
+
 export const shipmentPackageSchema = z.object({
   barcode: optionalString(120),
   currency: z
@@ -108,7 +123,7 @@ export const shipmentFormSchema = z
       .default({}),
     notes: optionalString(2000),
     officeDetails: shipmentOfficeDetailsSchema,
-    origin: shipmentAddressSchema,
+    origin: shipmentOriginAddressSchema,
     packages: z.array(shipmentPackageSchema).min(1, "Add at least one package."),
     pickupWindowEnd: optionalDate,
     pickupWindowStart: optionalDate,

@@ -68,6 +68,7 @@ export function renderBrandedEmail(input: RenderBrandedEmailInput) {
   const preheader = escapeHtml(input.preheader || input.subject);
   const supportEmail = escapeHtml(env.SUPPORT_EMAIL);
   const supportPhone = escapeHtml(env.SUPPORT_PHONE);
+  const supportContact = supportPhone ? `${supportEmail} or ${supportPhone}` : supportEmail;
   const trackingUrl = getTrackingUrl(input.trackingNumber);
 
   return `<!doctype html>
@@ -101,7 +102,7 @@ export function renderBrandedEmail(input: RenderBrandedEmailInput) {
             <tr>
               <td style="border-top:1px solid #dce3ee;padding:22px 32px;">
                 <p style="color:#111827;font-size:14px;font-weight:700;margin:0 0 8px;">Need help?</p>
-                <p style="color:#64748b;font-size:13px;line-height:21px;margin:0;">Contact Apex Global Logistics support at ${supportEmail} or ${supportPhone}. Our team is available for shipment, billing, freight, and pet transportation questions.</p>
+                <p style="color:#64748b;font-size:13px;line-height:21px;margin:0;">Contact Apex Global Logistics support at ${supportContact}. Our team is available for shipment, billing, freight, and pet transportation questions.</p>
               </td>
             </tr>
             <tr>

@@ -96,4 +96,4 @@ postgresql://apex:apex_password@localhost:5432/apex_global_logistics?schema=publ
 
 Business features should be added as vertical slices under `src/features/<feature-name>`. Shared domain rules belong under `src/core/domain`, use cases and ports under `src/core/application`, and framework or third-party adapters under `src/core/infrastructure`.
 
-See `docs/ARCHITECTURE.md`, `docs/AUTHENTICATION.md`, `docs/DESIGN_SYSTEM.md`, `docs/AI.md`, `docs/SECURITY_AUDIT.md`, `docs/PRODUCTION_OPTIMIZATION.md`, `docs/DEPLOYMENT.md`, and `docs/CODING_STANDARDS.md` before extending the platform.
+See `docs/ARCHITECTURE.md`, `docs/AUTHENTICATION.md`, `docs/DESIGN_SYSTEM.md`, `docs/AI.md`, `docs/SECURITY_AUDIT.md`, `docs/PRODUCTION_OPTIMIZATION.md`, `docs/DEPLOYMENT.md`, `docs/EMAIL_DELIVERABILITY.md`, and `docs/CODING_STANDARDS.md` before extending the platform.

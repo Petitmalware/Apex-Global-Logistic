@@ -140,8 +140,13 @@ function errorState(error: unknown): ShipmentActionState {
     };
   }
 
+  console.error("Shipment mutation failed", {
+    code: typeof error === "object" && error !== null && "code" in error ? error.code : null,
+    name: error instanceof Error ? error.name : typeof error,
+  });
+
   return {
-    message: "Something went wrong. Please review the form and try again.",
+    message: "Shipment could not be saved. Please try again or contact support if it continues.",
     status: "error",
   };
 }

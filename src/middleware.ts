@@ -263,6 +263,14 @@ function redirectToLogin(request: NextRequest) {
   return finalizeResponse(NextResponse.redirect(loginUrl), request);
 }
 
+function redirectToSessionRefresh(request: NextRequest) {
+  const refreshUrl = new URL("/api/auth/refresh", request.url);
+
+  refreshUrl.searchParams.set("next", `${request.nextUrl.pathname}${request.nextUrl.search}`);
+
+  return finalizeResponse(NextResponse.redirect(refreshUrl), request);
+}
+
 function forbiddenResponse(request: NextRequest) {
   if (request.nextUrl.pathname.startsWith("/api/")) {
     return finalizeResponse(
@@ -349,6 +357,10 @@ export async function middleware(request: NextRequest) {
         ),
         request,
       );
+    }
+
+    if (request.cookies.has(AUTH_COOKIE_NAMES.refreshToken)) {
+      return redirectToSessionRefresh(request);
     }
 
     return redirectToLogin(request);

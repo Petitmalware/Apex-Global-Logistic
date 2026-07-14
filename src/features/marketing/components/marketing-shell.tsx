@@ -57,13 +57,6 @@ function MobileMenuSection({
 }
 
 export function MarketingHeader() {
-  const serviceNavItems = marketingNavItems.filter(
-    (item) => !primaryMarketingNavItems.some((primaryItem) => primaryItem.href === item.href),
-  );
-  const companyMenuItems = companyNavItems.filter(
-    (item) => !primaryMarketingNavItems.some((primaryItem) => primaryItem.href === item.href),
-  );
-
   return (
     <header className="border-border bg-background/88 sticky top-0 z-50 border-b backdrop-blur-xl">
       <div className="mx-auto flex min-h-18 w-full max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
@@ -96,10 +89,8 @@ export function MarketingHeader() {
             <Menu aria-hidden="true" className="size-5" />
             <span className="sr-only">Open menu</span>
           </summary>
-          <div className="border-border bg-popover text-popover-foreground shadow-panel absolute top-12 right-0 w-80 max-w-[calc(100vw-2rem)] space-y-4 rounded-lg border p-3">
-            <MobileMenuSection items={primaryMarketingNavItems} title="Main" />
-            <MobileMenuSection items={serviceNavItems} title="Services" />
-            <MobileMenuSection items={companyMenuItems} title="Company" />
+          <div className="border-border bg-popover text-popover-foreground shadow-panel absolute top-12 right-0 w-72 max-w-[calc(100vw-2rem)] space-y-4 rounded-lg border p-3">
+            <MobileMenuSection items={primaryMarketingNavItems} title="Navigation" />
             <div className="border-border mt-3 grid gap-2 border-t pt-3">
               <div className="flex items-center justify-between px-3 py-1">
                 <span className="text-muted-foreground text-sm font-semibold">Appearance</span>

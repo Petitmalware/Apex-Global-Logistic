@@ -65,6 +65,8 @@ type UserWithAuth = {
   userRoles: UserRoleRecord[];
 };
 
+const REFRESH_ROTATION_GRACE_MS = 60_000;
+
 function getAuthUserInclude() {
   return {
     userRoles: {
@@ -502,6 +504,17 @@ export async function refreshAuthTokens(refreshToken: string | undefined, meta: 
   }
 
   if (existingToken.revokedAt) {
+    if (
+      existingToken.replacedByTokenId &&
+      Date.now() - existingToken.revokedAt.getTime() <= REFRESH_ROTATION_GRACE_MS
+    ) {
+      throw new AuthError(
+        "The session was already refreshed by another request.",
+        409,
+        "REFRESH_ALREADY_ROTATED",
+      );
+    }
+
     await prisma.refreshToken.updateMany({
       data: {
         revokedAt: new Date(),
@@ -560,7 +573,7 @@ export async function refreshAuthTokens(refreshToken: string | undefined, meta: 
       },
     });
 
-    await transaction.refreshToken.update({
+    const rotated = await transaction.refreshToken.updateMany({
       data: {
         replacedByTokenId: created.id,
         revokedAt: new Date(),
@@ -568,8 +581,17 @@ export async function refreshAuthTokens(refreshToken: string | undefined, meta: 
       },
       where: {
         id: existingToken.id,
+        revokedAt: null,
       },
     });
+
+    if (rotated.count !== 1) {
+      throw new AuthError(
+        "The session was already refreshed by another request.",
+        409,
+        "REFRESH_ALREADY_ROTATED",
+      );
+    }
 
     return created;
   });

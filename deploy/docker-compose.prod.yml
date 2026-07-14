@@ -20,6 +20,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      storage-init:
+        condition: service_completed_successfully
     env_file:
       - ../.env.production
     environment:
@@ -32,6 +34,16 @@ services:
     ports:
       - "127.0.0.1:${APP_PORT:-3000}:3000"
     restart: unless-stopped
+    volumes:
+      - ../storage:/app/storage
+
+  storage-init:
+    image: alpine:3.21
+    command: ["sh", "-c", "mkdir -p /app/storage && chown -R 1001:1001 /app/storage"]
+    logging: *default-logging
+    networks:
+      - apex_private
+    restart: "no"
     volumes:
       - ../storage:/app/storage
 

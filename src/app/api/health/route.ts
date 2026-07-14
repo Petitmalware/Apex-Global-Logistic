@@ -1,7 +1,11 @@
+import { constants } from "node:fs";
+import { access, mkdir } from "node:fs/promises";
+
 import { NextResponse } from "next/server";
 
 import { env } from "@/config/env.server";
 import { prisma } from "@/lib/db";
+import { getLocalStorageRoot } from "@/lib/storage/local-storage";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -9,6 +13,7 @@ export const runtime = "nodejs";
 export async function GET() {
   const startedAt = Date.now();
   let database = "ok";
+  let storage = env.STORAGE_DRIVER === "local" ? "writable" : "configured";
 
   try {
     await prisma.$queryRaw`SELECT 1`;
@@ -17,7 +22,21 @@ export async function GET() {
     database = "error";
   }
 
-  const healthy = database === "ok";
+  if (env.STORAGE_DRIVER === "local") {
+    try {
+      const storageRoot = getLocalStorageRoot();
+
+      await mkdir(storageRoot, { recursive: true });
+      await access(storageRoot, constants.W_OK);
+    } catch (error) {
+      console.error("Health check storage probe failed", {
+        code: typeof error === "object" && error !== null && "code" in error ? error.code : null,
+      });
+      storage = "error";
+    }
+  }
+
+  const healthy = database === "ok" && storage !== "error";
 
   return NextResponse.json(
     {
@@ -30,7 +49,7 @@ export async function GET() {
               : "smtp_incomplete"
             : env.EMAIL_PROVIDER,
         redis: env.REDIS_URL ? "configured" : "not_configured",
-        storage: env.STORAGE_DRIVER,
+        storage,
       },
       latencyMs: Date.now() - startedAt,
       status: healthy ? "ok" : "degraded",

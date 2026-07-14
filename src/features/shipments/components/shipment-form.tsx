@@ -133,13 +133,15 @@ function CountrySelect({
   defaultValue,
   id,
   name,
+  required = true,
 }: {
   defaultValue?: string | null;
   id: string;
   name: string;
+  required?: boolean;
 }) {
   return (
-    <Select defaultValue={defaultValue ?? "US"} id={id} name={name} required>
+    <Select defaultValue={defaultValue ?? "US"} id={id} name={name} required={required}>
       {countryOptions.map((country) => (
         <option key={country.value} value={country.value}>
           {country.label}
@@ -228,8 +230,10 @@ export function ShipmentForm({
                   id="origin.line1"
                   name="origin.line1"
                   placeholder="Street address or sender location"
-                  required
                 />
+                <FieldHint>
+                  Optional. Leave blank if pickup details are not yet available.
+                </FieldHint>
               </Field>
               <Field>
                 <Label htmlFor="officeDetails.shipperEmail">Email</Label>
@@ -249,7 +253,6 @@ export function ShipmentForm({
                   id="origin.city"
                   name="origin.city"
                   placeholder="Rosenberg"
-                  required
                 />
               </Field>
               <Field>
@@ -275,6 +278,7 @@ export function ShipmentForm({
                   defaultValue={initialShipment?.origin.countryCode}
                   id="origin.countryCode"
                   name="origin.countryCode"
+                  required={false}
                 />
               </Field>
               <input
