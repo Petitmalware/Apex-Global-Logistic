@@ -26,7 +26,7 @@ const optionalCountryCode = z
   )
   .transform((value) => value?.toUpperCase());
 
-const money = z.coerce.number().nonnegative("Amount cannot be negative.");
+const money = z.coerce.number().positive("Unit price must be greater than zero.");
 
 export const invoiceLineInputSchema = z.object({
   description: requiredString("Description", 500),
@@ -56,18 +56,6 @@ const billingAddressSchema = z
   })
   .default({});
 
-function hasAddressData(value: z.infer<typeof billingAddressSchema>) {
-  return Boolean(
-    value.name ||
-    value.line1 ||
-    value.line2 ||
-    value.city ||
-    value.state ||
-    value.postalCode ||
-    value.countryCode,
-  );
-}
-
 export const issueInvoiceSchema = z
   .object({
     billingAddress: billingAddressSchema,
@@ -80,10 +68,9 @@ export const issueInvoiceSchema = z
     shipmentId: optionalUuid,
   })
   .superRefine((value, context) => {
-    const isManualCustomer = !value.customerId;
-    const addressWasEntered = hasAddressData(value.billingAddress);
+    const needsManualContact = !value.customerId && !value.shipmentId;
 
-    if (isManualCustomer && !value.manualBillingContact.name) {
+    if (needsManualContact && !value.manualBillingContact.name) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         message: "Enter the bill-to customer name.",
@@ -91,7 +78,7 @@ export const issueInvoiceSchema = z
       });
     }
 
-    if (isManualCustomer && !value.manualBillingContact.email) {
+    if (needsManualContact && !value.manualBillingContact.email) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         message: "Enter the bill-to customer email.",
@@ -99,27 +86,11 @@ export const issueInvoiceSchema = z
       });
     }
 
-    if ((isManualCustomer || addressWasEntered) && !value.billingAddress.line1) {
+    if (!value.lineItems.some((line) => line.lineType !== InvoiceLineType.DISCOUNT)) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Enter the bill-to street address.",
-        path: ["billingAddress", "line1"],
-      });
-    }
-
-    if ((isManualCustomer || addressWasEntered) && !value.billingAddress.city) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Enter the bill-to city.",
-        path: ["billingAddress", "city"],
-      });
-    }
-
-    if ((isManualCustomer || addressWasEntered) && !value.billingAddress.countryCode) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Enter the bill-to country code.",
-        path: ["billingAddress", "countryCode"],
+        message: "Add at least one service or charge before applying a discount.",
+        path: ["lineItems"],
       });
     }
   });

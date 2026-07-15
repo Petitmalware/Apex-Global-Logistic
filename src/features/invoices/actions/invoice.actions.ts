@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { Route } from "next";
+import type { ZodError } from "zod";
 
 import { issueInvoiceSchema } from "@/features/invoices/schemas/invoice.schemas";
 import { issueInvoice } from "@/features/invoices/services/invoice.service";
@@ -59,6 +60,21 @@ function parseInvoiceFormData(formData: FormData) {
   });
 }
 
+function getValidationErrors(error: ZodError) {
+  const fieldErrors: Record<string, string[]> = {};
+
+  for (const issue of error.issues) {
+    const path = issue.path.join(".");
+    const topLevelPath = String(issue.path[0] ?? "form");
+
+    for (const key of new Set([path || "form", topLevelPath])) {
+      fieldErrors[key] = [...(fieldErrors[key] ?? []), issue.message];
+    }
+  }
+
+  return fieldErrors;
+}
+
 function errorState(error: unknown): InvoiceActionState {
   if (error instanceof AuthError) {
     return {
@@ -88,8 +104,15 @@ export async function issueInvoiceAction(
   const parsed = parseInvoiceFormData(formData);
 
   if (!parsed.success) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn(
+        "Invoice validation failed",
+        parsed.error.issues.map((issue) => ({ message: issue.message, path: issue.path })),
+      );
+    }
+
     return {
-      fieldErrors: parsed.error.flatten().fieldErrors,
+      fieldErrors: getValidationErrors(parsed.error),
       message: "Please fix the highlighted invoice details.",
       status: "error",
     };

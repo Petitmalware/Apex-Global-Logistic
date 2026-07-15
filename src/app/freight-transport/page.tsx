@@ -20,6 +20,7 @@ export default async function FreightTransportPage() {
   const freightTransports = await getFreightTransportsForUser(user);
   const canCreateFreightTransports =
     user.roles.includes(AUTH_ROLES.ADMIN) || user.roles.includes(AUTH_ROLES.SUPER_ADMIN);
+  const canBookFreight = user.roles.includes(AUTH_ROLES.CUSTOMER);
 
   return (
     <ProtectedShell
@@ -41,17 +42,18 @@ export default async function FreightTransportPage() {
               Showing the latest 50 freight transports available to your role.
             </p>
           </div>
-          {canCreateFreightTransports ? (
+          {canCreateFreightTransports || canBookFreight ? (
             <Button asChild variant="accent">
               <Link href={"/freight-transport/new" as Route}>
                 <Truck aria-hidden="true" />
-                Book freight
+                {canBookFreight ? "Request freight transport" : "Create freight shipment"}
               </Link>
             </Button>
           ) : null}
         </div>
         <FreightTransportList
-          canCreate={canCreateFreightTransports}
+          canCreate={canCreateFreightTransports || canBookFreight}
+          customerBooking={canBookFreight}
           freightTransports={freightTransports}
         />
       </div>

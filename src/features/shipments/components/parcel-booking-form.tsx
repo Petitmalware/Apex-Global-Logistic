@@ -22,6 +22,7 @@ import { kilogramsToPounds, poundsToKilograms } from "@/lib/measurements";
 type ParcelBookingFormProps = {
   action: (state: ShipmentActionState, formData: FormData) => Promise<ShipmentActionState>;
   customerOptions?: CustomerOption[];
+  workflow?: "admin_creation" | "customer_booking";
 };
 
 type PackageDraft = {
@@ -130,13 +131,18 @@ function AddressFields({ prefix, title }: { prefix: "destination" | "origin"; ti
   );
 }
 
-export function ParcelBookingForm({ action, customerOptions = [] }: ParcelBookingFormProps) {
+export function ParcelBookingForm({
+  action,
+  customerOptions = [],
+  workflow = "admin_creation",
+}: ParcelBookingFormProps) {
   const [state, formAction, isPending] = useActionState(action, initialShipmentActionState);
   const [priority, setPriority] = useState("STANDARD");
   const [mode, setMode] = useState("ROAD");
   const [signatureRequired, setSignatureRequired] = useState(false);
   const [insuranceRequested, setInsuranceRequested] = useState(false);
   const [packages, setPackages] = useState(defaultPackages);
+  const isCustomerBooking = workflow === "customer_booking";
 
   const quote = useMemo(() => {
     const quotedPackages = packages.filter(hasPackageData).map((shipmentPackage, index) => {
@@ -205,21 +211,23 @@ export function ParcelBookingForm({ action, customerOptions = [] }: ParcelBookin
 
   return (
     <form action={formAction} className="space-y-6">
-      <input name="status" type="hidden" value="BOOKED" />
+      <input name="status" type="hidden" value={isCustomerBooking ? "DRAFT" : "BOOKED"} />
       <input name="serviceLevel" type="hidden" value="Parcel Standard" />
-      <CustomerSelectCard
-        allowManualRecipient
-        customerOptions={customerOptions}
-        errors={[
-          ...(state.fieldErrors?.customerId ?? []),
-          ...(state.fieldErrors?.manualRecipient ?? []),
-        ]}
-        hint="Select a registered customer when available, or enter a manual parcel recipient who does not need a portal account."
-        label="Registered customer account"
-        manualRecipientHint="Use this for unregistered parcel recipients. The delivery address below is the recipient house or business address."
-        placeholder="Manual recipient / no account"
-        title="Parcel recipient"
-      />
+      {!isCustomerBooking ? (
+        <CustomerSelectCard
+          allowManualRecipient
+          customerOptions={customerOptions}
+          errors={[
+            ...(state.fieldErrors?.customerId ?? []),
+            ...(state.fieldErrors?.manualRecipient ?? []),
+          ]}
+          hint="Select a registered customer when available, or enter a manual parcel recipient who does not need a portal account."
+          label="Registered customer account"
+          manualRecipientHint="Use this for unregistered parcel recipients. The delivery address below is the recipient house or business address."
+          placeholder="Manual recipient / no account"
+          title="Parcel recipient"
+        />
+      ) : null}
       {state.message ? (
         <p className="border-border bg-secondary text-secondary-foreground rounded-md border px-3 py-2 text-sm">
           {state.message}
@@ -263,14 +271,6 @@ export function ParcelBookingForm({ action, customerOptions = [] }: ParcelBookin
                   <option value="SEA">Sea</option>
                   <option value="MULTIMODAL">Multimodal</option>
                 </Select>
-              </Field>
-              <Field>
-                <Label htmlFor="pickupWindowStart">Pickup starts</Label>
-                <Input id="pickupWindowStart" name="pickupWindowStart" type="datetime-local" />
-              </Field>
-              <Field>
-                <Label htmlFor="pickupWindowEnd">Pickup ends</Label>
-                <Input id="pickupWindowEnd" name="pickupWindowEnd" type="datetime-local" />
               </Field>
               <Field>
                 <Label htmlFor="receiptEmail">Receipt email</Label>
@@ -487,7 +487,11 @@ export function ParcelBookingForm({ action, customerOptions = [] }: ParcelBookin
               <Link href={"/shipments" as Route}>Cancel</Link>
             </Button>
             <Button disabled={isPending} type="submit" variant="accent">
-              {isPending ? "Booking..." : "Book parcel"}
+              {isPending
+                ? "Saving..."
+                : isCustomerBooking
+                  ? "Submit parcel booking"
+                  : "Create parcel shipment"}
               <ArrowRight aria-hidden="true" />
             </Button>
           </div>

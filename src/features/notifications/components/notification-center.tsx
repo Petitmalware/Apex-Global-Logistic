@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import type { Route } from "next";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Bell,
+  BellRing,
   CheckCheck,
   Circle,
   ExternalLink,
@@ -133,6 +134,10 @@ export function NotificationCenter({ initialSnapshot }: NotificationCenterProps)
   const [isMutating, setIsMutating] = useState(false);
   const [snapshot, setSnapshot] = useState(initialSnapshot);
   const [streamState, setStreamState] = useState<"live" | "reconnecting">("live");
+  const [browserPermission, setBrowserPermission] = useState<
+    NotificationPermission | "unsupported"
+  >("unsupported");
+  const knownNotificationIds = useRef(new Set(initialSnapshot.notifications.map(({ id }) => id)));
   const hasNotifications = snapshot.notifications.length > 0;
   const unreadLabel = useMemo(() => {
     if (snapshot.unreadCount > 99) {
@@ -141,6 +146,10 @@ export function NotificationCenter({ initialSnapshot }: NotificationCenterProps)
 
     return String(snapshot.unreadCount);
   }, [snapshot.unreadCount]);
+
+  useEffect(() => {
+    setBrowserPermission("Notification" in window ? Notification.permission : "unsupported");
+  }, []);
 
   useEffect(() => {
     const eventSource = new EventSource("/api/notifications/stream");
@@ -152,7 +161,31 @@ export function NotificationCenter({ initialSnapshot }: NotificationCenterProps)
       setStreamState("reconnecting");
     });
     eventSource.addEventListener("snapshot", (event) => {
-      setSnapshot(JSON.parse((event as MessageEvent).data) as NotificationCenterSnapshot);
+      const nextSnapshot = JSON.parse((event as MessageEvent).data) as NotificationCenterSnapshot;
+
+      if ("Notification" in window && Notification.permission === "granted") {
+        const newNotifications = nextSnapshot.notifications.filter(
+          ({ id, isRead }) => !isRead && !knownNotificationIds.current.has(id),
+        );
+
+        for (const notification of newNotifications) {
+          const browserNotification = new Notification(notification.title, {
+            body: notification.body ?? "You have a new Apex Global Logistics update.",
+            tag: notification.id,
+          });
+
+          browserNotification.onclick = () => {
+            window.focus();
+            if (notification.actionUrl) {
+              window.location.assign(notification.actionUrl);
+            }
+            browserNotification.close();
+          };
+        }
+      }
+
+      knownNotificationIds.current = new Set(nextSnapshot.notifications.map(({ id }) => id));
+      setSnapshot(nextSnapshot);
       setStreamState("live");
     });
 
@@ -160,6 +193,15 @@ export function NotificationCenter({ initialSnapshot }: NotificationCenterProps)
       eventSource.close();
     };
   }, []);
+
+  async function enableBrowserNotifications() {
+    if (!("Notification" in window)) {
+      setBrowserPermission("unsupported");
+      return;
+    }
+
+    setBrowserPermission(await Notification.requestPermission());
+  }
 
   async function updateReadState(notificationId: string, read: boolean) {
     setIsMutating(true);
@@ -259,6 +301,12 @@ export function NotificationCenter({ initialSnapshot }: NotificationCenterProps)
             <Badge variant={streamState === "live" ? "success" : "warning"}>
               {streamState === "live" ? "Live" : "Reconnecting"}
             </Badge>
+            {browserPermission !== "granted" && browserPermission !== "denied" ? (
+              <Button onClick={enableBrowserNotifications} size="sm" type="button" variant="ghost">
+                <BellRing aria-hidden="true" />
+                Browser alerts
+              </Button>
+            ) : null}
             <Button asChild size="sm" variant="ghost">
               <Link href={"/notifications" as Route}>
                 View history

@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
-import { Save } from "lucide-react";
+import { useActionState, useEffect, useState } from "react";
+import { BellRing, Save } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Field, FieldHint } from "@/components/ui/field";
@@ -38,6 +38,22 @@ export function NotificationPreferencesForm({ preferences }: NotificationPrefere
     updateNotificationPreferencesAction,
     initialNotificationActionState,
   );
+  const [browserPermission, setBrowserPermission] = useState<
+    NotificationPermission | "unsupported"
+  >("unsupported");
+
+  useEffect(() => {
+    setBrowserPermission("Notification" in window ? Notification.permission : "unsupported");
+  }, []);
+
+  async function enableBrowserAlerts() {
+    if (!("Notification" in window)) {
+      setBrowserPermission("unsupported");
+      return;
+    }
+
+    setBrowserPermission(await Notification.requestPermission());
+  }
 
   return (
     <form action={formAction} className="space-y-6">
@@ -74,6 +90,33 @@ export function NotificationPreferencesForm({ preferences }: NotificationPrefere
               </span>
             </label>
           ))}
+        </div>
+      </div>
+      <div className="border-border bg-surface rounded-md border p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 className="flex items-center gap-2 text-base font-semibold tracking-normal">
+              <BellRing aria-hidden="true" className="size-4" />
+              Browser alerts
+            </h3>
+            <FieldHint className="mt-1 block">
+              Show live shipment, billing, and support alerts while Apex Global Logistics is open in
+              this browser.
+            </FieldHint>
+          </div>
+          {browserPermission === "default" ? (
+            <Button onClick={enableBrowserAlerts} type="button" variant="outline">
+              Enable alerts
+            </Button>
+          ) : (
+            <span className="border-border bg-background rounded-md border px-3 py-2 text-sm font-semibold">
+              {browserPermission === "granted"
+                ? "Enabled"
+                : browserPermission === "denied"
+                  ? "Blocked in browser settings"
+                  : "Not supported"}
+            </span>
+          )}
         </div>
       </div>
       <div>

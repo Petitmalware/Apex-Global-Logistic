@@ -57,10 +57,10 @@ export type InvoiceDetail = InvoiceListItem & {
   notes: string | null;
   paidAt: string | null;
   shipment: {
-    destinationCity: string;
+    destinationCity: string | null;
     id: string;
     mode: string;
-    originCity: string;
+    originCity: string | null;
     serviceLevel: string | null;
     shipmentNumber: string;
   } | null;

@@ -46,9 +46,11 @@ export function FreightTransportStatusBadge({
 
 export function FreightTransportList({
   canCreate = false,
+  customerBooking = false,
   freightTransports,
 }: {
   canCreate?: boolean;
+  customerBooking?: boolean;
   freightTransports: FreightTransportListItem[];
 }) {
   if (freightTransports.length === 0) {
@@ -67,7 +69,9 @@ export function FreightTransportList({
         </p>
         {canCreate ? (
           <Button asChild className="mt-5" variant="accent">
-            <Link href={"/freight-transport/new" as Route}>Book freight</Link>
+            <Link href={"/freight-transport/new" as Route}>
+              {customerBooking ? "Request freight transport" : "Create freight shipment"}
+            </Link>
           </Button>
         ) : null}
       </div>

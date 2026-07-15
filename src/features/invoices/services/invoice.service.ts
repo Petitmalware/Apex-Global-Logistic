@@ -4,6 +4,7 @@ import {
   ActivityAction,
   AddressType,
   EmailTemplateCategory,
+  InvoiceLineType,
   InvoiceStatus,
   UserStatus,
   type Prisma,
@@ -11,12 +12,18 @@ import {
 import { randomUUID } from "node:crypto";
 
 import type { AuthSessionUser } from "@/features/auth/services/auth.service";
+import { env } from "@/config/env.server";
 import type { IssueInvoiceInput } from "@/features/invoices/schemas/invoice.schemas";
 import { createUserNotification } from "@/features/notifications/services/notification.service";
 import { queueBrandedEmail } from "@/features/emails/services/email.service";
 import { AUTH_ROLES } from "@/lib/auth/constants";
 import { AuthError } from "@/lib/auth/errors";
 import { prisma } from "@/lib/db";
+
+const REMOTE_DATABASE_TRANSACTION_OPTIONS = {
+  maxWait: 20_000,
+  timeout: 60_000,
+};
 
 function canManageInvoices(user: AuthSessionUser) {
   return user.roles.includes(AUTH_ROLES.ADMIN) || user.roles.includes(AUTH_ROLES.SUPER_ADMIN);
@@ -75,8 +82,10 @@ async function generateInvoiceNumber(organizationId: string) {
 
 function calculateInvoiceTotals(input: IssueInvoiceInput) {
   const lines = input.lineItems.map((line, index) => {
-    const subtotal = Math.round(line.quantity * line.unitPrice * 100) / 100;
-    const tax = Math.round(subtotal * (line.taxRate / 100) * 100) / 100;
+    const amount = Math.round(line.quantity * line.unitPrice * 100) / 100;
+    const isDiscount = line.lineType === InvoiceLineType.DISCOUNT;
+    const subtotal = isDiscount ? -amount : amount;
+    const tax = isDiscount ? 0 : Math.round(amount * (line.taxRate / 100) * 100) / 100;
 
     return {
       ...line,
@@ -86,11 +95,20 @@ function calculateInvoiceTotals(input: IssueInvoiceInput) {
       total: subtotal + tax,
     };
   });
-  const subtotal = Math.round(lines.reduce((sum, line) => sum + line.subtotal, 0) * 100) / 100;
+  const subtotal =
+    Math.round(
+      lines.reduce((sum, line) => (line.subtotal > 0 ? sum + line.subtotal : sum), 0) * 100,
+    ) / 100;
+  const discountTotal =
+    Math.round(
+      lines.reduce((sum, line) => (line.subtotal < 0 ? sum + Math.abs(line.subtotal) : sum), 0) *
+        100,
+    ) / 100;
   const taxTotal = Math.round(lines.reduce((sum, line) => sum + line.tax, 0) * 100) / 100;
-  const total = Math.round((subtotal + taxTotal) * 100) / 100;
+  const total = Math.round((subtotal - discountTotal + taxTotal) * 100) / 100;
 
   return {
+    discountTotal,
     lines,
     subtotal,
     taxTotal,
@@ -150,42 +168,69 @@ function getManualBillingContact(input: IssueInvoiceInput) {
   };
 }
 
-function hasBillingAddress(input: IssueInvoiceInput["billingAddress"]) {
-  return Boolean(input.line1 && input.city && input.countryCode);
+type InvoiceShipment = Awaited<ReturnType<typeof getInvoiceShipment>>;
+
+function getManualRecipientFromMetadata(metadata: Prisma.JsonValue | null) {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    return null;
+  }
+
+  const value = "manualRecipient" in metadata ? metadata.manualRecipient : null;
+
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  return {
+    email: "email" in value && typeof value.email === "string" ? value.email : null,
+    name: "name" in value && typeof value.name === "string" ? value.name : null,
+    phone: "phone" in value && typeof value.phone === "string" ? value.phone : null,
+  };
 }
 
 function buildBillingAddressCreateInput({
   input,
   organizationId,
+  shipment,
 }: {
   input: IssueInvoiceInput;
   organizationId: string;
+  shipment: InvoiceShipment;
 }) {
-  if (!hasBillingAddress(input.billingAddress)) {
+  const fallback = shipment?.destinationAddress;
+  const city = input.billingAddress.city ?? fallback?.city;
+  const countryCode = input.billingAddress.countryCode ?? fallback?.countryCode;
+  const line1 = input.billingAddress.line1 ?? fallback?.line1;
+
+  if (!line1 || !city || !countryCode) {
     return null;
   }
 
   return {
-    city: input.billingAddress.city!,
-    countryCode: input.billingAddress.countryCode!,
-    line1: input.billingAddress.line1!,
-    line2: input.billingAddress.line2,
-    name: input.billingAddress.name ?? input.manualBillingContact.name ?? "Billing recipient",
+    city,
+    countryCode,
+    line1,
+    line2: input.billingAddress.line2 ?? fallback?.line2,
+    name:
+      input.billingAddress.name ??
+      input.manualBillingContact.name ??
+      fallback?.name ??
+      "Billing recipient",
     organizationId,
-    postalCode: input.billingAddress.postalCode,
-    state: input.billingAddress.state,
+    postalCode: input.billingAddress.postalCode ?? fallback?.postalCode,
+    state: input.billingAddress.state ?? fallback?.state,
     type: AddressType.BILLING,
   };
 }
 
 async function getInvoiceShipment({
   customerId,
-  organizationId,
   shipmentId,
+  user,
 }: {
   customerId?: string | null;
-  organizationId: string;
   shipmentId?: string;
+  user: AuthSessionUser;
 }) {
   if (!shipmentId) {
     return null;
@@ -193,20 +238,46 @@ async function getInvoiceShipment({
 
   const shipment = await prisma.shipment.findFirst({
     select: {
+      customer: {
+        select: {
+          email: true,
+          id: true,
+          name: true,
+          phone: true,
+        },
+      },
       customerId: true,
+      destinationAddress: {
+        select: {
+          city: true,
+          countryCode: true,
+          line1: true,
+          line2: true,
+          name: true,
+          postalCode: true,
+          state: true,
+        },
+      },
       id: true,
+      metadata: true,
       organizationId: true,
       shipmentNumber: true,
     },
     where: {
       deletedAt: null,
       id: shipmentId,
-      organizationId,
     },
   });
 
   if (!shipment) {
     throw new AuthError("Selected shipment was not found.", 404, "SHIPMENT_NOT_FOUND");
+  }
+
+  if (
+    !user.roles.includes(AUTH_ROLES.SUPER_ADMIN) &&
+    shipment.organizationId !== user.organizationId
+  ) {
+    throw new AuthError("Selected shipment is outside your organization.", 403, "FORBIDDEN");
   }
 
   if (customerId && shipment.customerId && shipment.customerId !== customerId) {
@@ -252,7 +323,7 @@ async function notifyInvoiceIssued({
 
     await queueBrandedEmail({
       bodyHtml: customerId
-        ? `<p>Hello {{customerName}},</p><p>Invoice {{invoiceNumber}} for {{amountDue}} is ready for review.</p><p><a href="/invoices/${invoiceId}">View invoice</a></p>`
+        ? `<p>Hello {{customerName}},</p><p>Invoice {{invoiceNumber}} for {{amountDue}} is ready for review.</p><p><a href="${env.NEXT_PUBLIC_APP_URL}/invoices/${invoiceId}">View invoice</a></p>`
         : `<p>Hello {{customerName}},</p><p>Invoice {{invoiceNumber}} for {{amountDue}} has been issued by Apex Global Logistics.</p><p>The official invoice document can be sent by the Apex operations team without requiring a customer portal account.</p>`,
       category: EmailTemplateCategory.INVOICE,
       organizationId,
@@ -281,26 +352,49 @@ export async function issueInvoice(input: IssueInvoiceInput, user: AuthSessionUs
     throw new AuthError("You do not have permission to issue invoices.", 403, "FORBIDDEN");
   }
 
-  const organizationId = await ensureInvoiceOrganization(user);
   const customer = await getInvoiceCustomer(input.customerId);
+  const shipment = await getInvoiceShipment({
+    customerId: customer?.id,
+    shipmentId: input.shipmentId,
+    user,
+  });
+  const organizationId = shipment?.organizationId ?? (await ensureInvoiceOrganization(user));
   const manualBillingContact = getManualBillingContact(input);
-  const customerEmail = manualBillingContact?.email ?? customer?.email;
-  const customerName = manualBillingContact?.name ?? customer?.name;
-  const customerPhone = manualBillingContact?.phone ?? null;
+  const shipmentManualRecipient = getManualRecipientFromMetadata(shipment?.metadata ?? null);
+  const shipmentCustomer = shipment?.customer;
+  const customerEmail =
+    manualBillingContact?.email ??
+    customer?.email ??
+    shipmentCustomer?.email ??
+    shipmentManualRecipient?.email;
+  const customerName =
+    manualBillingContact?.name ??
+    customer?.name ??
+    shipmentCustomer?.name ??
+    shipmentManualRecipient?.name ??
+    shipment?.destinationAddress.name;
+  const customerPhone =
+    manualBillingContact?.phone ??
+    shipmentCustomer?.phone ??
+    shipmentManualRecipient?.phone ??
+    null;
 
   if (!customerEmail || !customerName) {
     throw new AuthError("Enter a bill-to name and email before issuing this invoice.", 400);
   }
 
-  const shipment = await getInvoiceShipment({
-    customerId: customer?.id,
-    organizationId,
-    shipmentId: input.shipmentId,
-  });
   const invoiceNumber = await generateInvoiceNumber(organizationId);
   const totals = calculateInvoiceTotals(input);
-  const dueDate = input.dueDate ?? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-  const billingAddressData = buildBillingAddressCreateInput({ input, organizationId });
+
+  if (totals.total <= 0) {
+    throw new AuthError("Invoice total must be greater than zero after discounts.", 400);
+  }
+  const dueDate = input.dueDate ?? null;
+  const billingAddressData = buildBillingAddressCreateInput({
+    input,
+    organizationId,
+    shipment,
+  });
 
   const invoice = await prisma.$transaction(async (transaction) => {
     const billingAddress = billingAddressData
@@ -316,7 +410,8 @@ export async function issueInvoice(input: IssueInvoiceInput, user: AuthSessionUs
       data: {
         billingAddressId: billingAddress?.id,
         currency: input.currency,
-        customerId: customer?.id,
+        customerId: customer?.id ?? shipmentCustomer?.id,
+        discountTotal: totals.discountTotal,
         dueDate,
         invoiceNumber,
         issuedAt: new Date(),
@@ -336,7 +431,12 @@ export async function issueInvoice(input: IssueInvoiceInput, user: AuthSessionUs
             email: customerEmail,
             name: customerName,
             phone: customerPhone,
-            source: customer ? "registered_customer" : "manual_customer",
+            source:
+              customer || shipmentCustomer
+                ? "registered_customer"
+                : shipment
+                  ? "shipment_recipient"
+                  : "manual_customer",
           },
           issuedBy: user.id,
           source: "admin_invoice_studio",
@@ -361,7 +461,7 @@ export async function issueInvoice(input: IssueInvoiceInput, user: AuthSessionUs
         entityId: createdInvoice.id,
         entityType: "invoice",
         metadata: {
-          customerId: customer?.id ?? null,
+          customerId: customer?.id ?? shipmentCustomer?.id ?? null,
           manualBillingContact,
           invoiceNumber,
           shipmentId: shipment?.id ?? null,
@@ -372,11 +472,11 @@ export async function issueInvoice(input: IssueInvoiceInput, user: AuthSessionUs
     });
 
     return createdInvoice;
-  });
+  }, REMOTE_DATABASE_TRANSACTION_OPTIONS);
 
   await notifyInvoiceIssued({
     customerEmail,
-    customerId: customer?.id,
+    customerId: customer?.id ?? shipmentCustomer?.id,
     customerName,
     invoiceId: invoice.id,
     invoiceNumber,

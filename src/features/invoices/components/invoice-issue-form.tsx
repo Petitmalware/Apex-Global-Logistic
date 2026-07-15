@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import type { Route } from "next";
-import { useActionState } from "react";
-import { ArrowLeft, ReceiptText, Send } from "lucide-react";
+import { useActionState, useState } from "react";
+import { ArrowLeft, Plus, ReceiptText, Send, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,6 +45,32 @@ export function InvoiceIssueForm({
   shipmentOptions,
 }: InvoiceIssueFormProps) {
   const [state, formAction, isPending] = useActionState(action, initialInvoiceActionState);
+  const [lineRows, setLineRows] = useState([0]);
+  const [customerId, setCustomerId] = useState("");
+  const [shipmentId, setShipmentId] = useState("");
+
+  function addLineRow() {
+    setLineRows((rows) => (rows.length >= 6 ? rows : [...rows, Math.max(...rows, -1) + 1]));
+  }
+
+  function removeLineRow(rowId: number) {
+    setLineRows((rows) => (rows.length === 1 ? rows : rows.filter((id) => id !== rowId)));
+  }
+
+  function selectCustomer(nextCustomerId: string) {
+    setCustomerId(nextCustomerId);
+
+    const selectedShipment = shipmentOptions.find((shipment) => shipment.id === shipmentId);
+    if (selectedShipment?.customerId && selectedShipment.customerId !== nextCustomerId) {
+      setShipmentId("");
+    }
+  }
+
+  function selectShipment(nextShipmentId: string) {
+    setShipmentId(nextShipmentId);
+    const selectedShipment = shipmentOptions.find((shipment) => shipment.id === nextShipmentId);
+    setCustomerId(selectedShipment?.customerId ?? "");
+  }
 
   return (
     <form action={formAction} className="space-y-6">
@@ -65,7 +91,12 @@ export function InvoiceIssueForm({
           <div className="grid gap-4 lg:grid-cols-2">
             <Field>
               <Label htmlFor="customerId">Registered customer account</Label>
-              <Select id="customerId" name="customerId">
+              <Select
+                id="customerId"
+                name="customerId"
+                onChange={(event) => selectCustomer(event.target.value)}
+                value={customerId}
+              >
                 <option value="">Manual bill-to customer</option>
                 {customerOptions.map((customer) => (
                   <option key={customer.id} value={customer.id}>
@@ -82,7 +113,12 @@ export function InvoiceIssueForm({
             </Field>
             <Field>
               <Label htmlFor="shipmentId">Shipment</Label>
-              <Select id="shipmentId" name="shipmentId">
+              <Select
+                id="shipmentId"
+                name="shipmentId"
+                onChange={(event) => selectShipment(event.target.value)}
+                value={shipmentId}
+              >
                 <option value="">No shipment link</option>
                 {shipmentOptions.map((shipment) => (
                   <option key={shipment.id} value={shipment.id}>
@@ -91,8 +127,12 @@ export function InvoiceIssueForm({
                 ))}
               </Select>
               <FieldHint>
-                Optional. The invoice can be linked to a registered or manually addressed shipment.
+                Optional. Selecting a shipment automatically uses its recipient and delivery address
+                unless you enter an override below.
               </FieldHint>
+              {state.fieldErrors?.shipmentId?.[0] ? (
+                <FieldError>{state.fieldErrors.shipmentId[0]}</FieldError>
+              ) : null}
             </Field>
           </div>
 
@@ -100,8 +140,8 @@ export function InvoiceIssueForm({
             <div>
               <p className="text-sm font-semibold">Manual bill-to contact</p>
               <p className="text-muted-foreground mt-1 text-sm leading-6">
-                Use this for customers who only want to receive documents by email or print, without
-                creating a portal account.
+                Optional when a customer account or shipment is selected. Enter these values only to
+                override the selected recipient, or when issuing an invoice without either.
               </p>
             </div>
             <div className="mt-4 grid gap-4 md:grid-cols-3">
@@ -111,7 +151,11 @@ export function InvoiceIssueForm({
                   id="manualBillingContact.name"
                   name="manualBillingContact.name"
                   placeholder="Customer full name"
+                  required={!customerId && !shipmentId}
                 />
+                {state.fieldErrors?.["manualBillingContact.name"]?.[0] ? (
+                  <FieldError>{state.fieldErrors["manualBillingContact.name"][0]}</FieldError>
+                ) : null}
               </Field>
               <Field>
                 <Label htmlFor="manualBillingContact.email">Email address</Label>
@@ -119,8 +163,12 @@ export function InvoiceIssueForm({
                   id="manualBillingContact.email"
                   name="manualBillingContact.email"
                   placeholder="customer@example.com"
+                  required={!customerId && !shipmentId}
                   type="email"
                 />
+                {state.fieldErrors?.["manualBillingContact.email"]?.[0] ? (
+                  <FieldError>{state.fieldErrors["manualBillingContact.email"][0]}</FieldError>
+                ) : null}
               </Field>
               <Field>
                 <Label htmlFor="manualBillingContact.phone">Phone number</Label>
@@ -142,8 +190,8 @@ export function InvoiceIssueForm({
             <div>
               <p className="text-sm font-semibold">Bill-to house address</p>
               <p className="text-muted-foreground mt-1 text-sm leading-6">
-                This address appears on the official invoice and can be used even when no customer
-                account exists.
+                Optional. Leave blank to use the selected shipment delivery address. Incomplete
+                address fields are omitted from the printed invoice.
               </p>
             </div>
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -216,14 +264,29 @@ export function InvoiceIssueForm({
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Invoice lines</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between gap-3">
+          <div>
+            <CardTitle>Invoice lines</CardTitle>
+            <FieldHint>
+              Add only the services and charges that should appear on the invoice.
+            </FieldHint>
+          </div>
+          <Button
+            disabled={lineRows.length >= 6}
+            onClick={addLineRow}
+            size="sm"
+            type="button"
+            variant="outline"
+          >
+            <Plus aria-hidden="true" />
+            Add line
+          </Button>
         </CardHeader>
         <CardContent className="space-y-4">
-          {[0, 1, 2, 3, 4, 5].map((index) => (
+          {lineRows.map((rowId, index) => (
             <div
-              className="border-border grid gap-3 rounded-lg border p-3 lg:grid-cols-[1.4fr_150px_120px_140px_120px]"
-              key={index}
+              className="border-border grid gap-3 rounded-lg border p-3 lg:grid-cols-[1.4fr_150px_120px_140px_120px_auto]"
+              key={rowId}
             >
               <Field>
                 <Label htmlFor={`lineItems.${index}.description`}>
@@ -262,6 +325,7 @@ export function InvoiceIssueForm({
                   id={`lineItems.${index}.quantity`}
                   min="0.001"
                   name={`lineItems.${index}.quantity`}
+                  required
                   step="0.001"
                   type="number"
                 />
@@ -270,8 +334,9 @@ export function InvoiceIssueForm({
                 <Label htmlFor={`lineItems.${index}.unitPrice`}>Unit price</Label>
                 <Input
                   id={`lineItems.${index}.unitPrice`}
-                  min="0"
+                  min="0.01"
                   name={`lineItems.${index}.unitPrice`}
+                  required
                   step="0.01"
                   type="number"
                 />
@@ -287,6 +352,18 @@ export function InvoiceIssueForm({
                   type="number"
                 />
               </Field>
+              <Button
+                aria-label={`Remove invoice line ${index + 1}`}
+                className="self-end"
+                disabled={lineRows.length === 1}
+                onClick={() => removeLineRow(rowId)}
+                size="icon"
+                title="Remove line"
+                type="button"
+                variant="ghost"
+              >
+                <Trash2 aria-hidden="true" />
+              </Button>
             </div>
           ))}
 

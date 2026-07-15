@@ -8,12 +8,14 @@ import { AUTH_ROLES } from "@/lib/auth/constants";
 import { requireRole } from "@/lib/auth/session";
 
 export const metadata: Metadata = {
-  title: "Create Pet Shipment | Apex Global Logistics",
+  title: "Pet Transport | Apex Global Logistics",
 };
 
 export default async function NewPetTransportPage() {
-  const user = await requireRole([AUTH_ROLES.ADMIN, AUTH_ROLES.SUPER_ADMIN]);
-  const customerOptions = await getCustomerOptionsForStaff(user);
+  const user = await requireRole([AUTH_ROLES.ADMIN, AUTH_ROLES.SUPER_ADMIN, AUTH_ROLES.CUSTOMER]);
+  const isCustomer = user.roles.includes(AUTH_ROLES.CUSTOMER);
+  const customerOptions = isCustomer ? [] : await getCustomerOptionsForStaff(user);
+  const title = isCustomer ? "Request Pet Transport" : "Create Pet Shipment";
 
   return (
     <ProtectedShell
@@ -21,10 +23,14 @@ export default async function NewPetTransportPage() {
       breadcrumbs={[
         { href: "/dashboard", label: "Dashboard" },
         { href: "/pet-transport", label: "Pet Shipments" },
-        { label: "Create shipment" },
+        { label: isCustomer ? "Request transport" : "Create shipment" },
       ]}
-      description="Create a pet shipment for a registered customer or an unregistered manual recipient, with sender, pet profile, care, crate, pickup, and delivery details."
-      title="Create Pet Shipment"
+      description={
+        isCustomer
+          ? "Submit a pet transportation request with the animal, sender, care, and delivery information required for an operations review."
+          : "Create an operational pet shipment for a registered or manual recipient, then manage health, crate, care, and tracking records."
+      }
+      title={title}
       user={user}
     >
       <PetTransportForm
@@ -32,6 +38,7 @@ export default async function NewPetTransportPage() {
         cancelHref="/pet-transport"
         customerOptions={customerOptions}
         mode="create"
+        workflow={isCustomer ? "customer_booking" : "admin_creation"}
       />
     </ProtectedShell>
   );

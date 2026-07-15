@@ -8,12 +8,13 @@ import { AUTH_ROLES } from "@/lib/auth/constants";
 import { requireRole } from "@/lib/auth/session";
 
 export const metadata: Metadata = {
-  title: "Book Parcel | Apex Global Logistics",
+  title: "Parcel Shipment | Apex Global Logistics",
 };
 
 export default async function NewParcelBookingPage() {
-  const user = await requireRole([AUTH_ROLES.ADMIN, AUTH_ROLES.SUPER_ADMIN]);
-  const customerOptions = await getCustomerOptionsForStaff(user);
+  const user = await requireRole([AUTH_ROLES.ADMIN, AUTH_ROLES.SUPER_ADMIN, AUTH_ROLES.CUSTOMER]);
+  const isCustomer = user.roles.includes(AUTH_ROLES.CUSTOMER);
+  const customerOptions = isCustomer ? [] : await getCustomerOptionsForStaff(user);
 
   return (
     <ProtectedShell
@@ -21,13 +22,21 @@ export default async function NewParcelBookingPage() {
       breadcrumbs={[
         { href: "/dashboard", label: "Dashboard" },
         { href: "/shipments", label: "Shipments" },
-        { label: "Book parcel" },
+        { label: isCustomer ? "Book parcel" : "Create parcel shipment" },
       ]}
-      description="Book a parcel with package dimensions, chargeable weight calculation, invoice generation, and tracking number assignment."
-      title="Book Parcel"
+      description={
+        isCustomer
+          ? "Submit a parcel booking with addresses, package details, and an estimated quote for operations review."
+          : "Create a parcel shipment with package dimensions, chargeable weight, invoice, and tracking number."
+      }
+      title={isCustomer ? "Book Parcel Transport" : "Create Parcel Shipment"}
       user={user}
     >
-      <ParcelBookingForm action={createParcelBookingAction} customerOptions={customerOptions} />
+      <ParcelBookingForm
+        action={createParcelBookingAction}
+        customerOptions={customerOptions}
+        workflow={isCustomer ? "customer_booking" : "admin_creation"}
+      />
     </ProtectedShell>
   );
 }

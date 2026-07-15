@@ -20,6 +20,7 @@ export default async function PetTransportPage() {
   const petTransports = await getPetTransportsForUser(user);
   const canCreatePetTransports =
     user.roles.includes(AUTH_ROLES.ADMIN) || user.roles.includes(AUTH_ROLES.SUPER_ADMIN);
+  const canBookPetTransport = user.roles.includes(AUTH_ROLES.CUSTOMER);
 
   return (
     <ProtectedShell
@@ -41,16 +42,20 @@ export default async function PetTransportPage() {
               Showing the latest 50 pet shipments available to your role.
             </p>
           </div>
-          {canCreatePetTransports ? (
+          {canCreatePetTransports || canBookPetTransport ? (
             <Button asChild variant="accent">
               <Link href={"/pet-transport/new" as Route}>
                 <PawPrint aria-hidden="true" />
-                Create pet shipment
+                {canBookPetTransport ? "Request pet transport" : "Create pet shipment"}
               </Link>
             </Button>
           ) : null}
         </div>
-        <PetTransportList canCreate={canCreatePetTransports} petTransports={petTransports} />
+        <PetTransportList
+          canCreate={canCreatePetTransports || canBookPetTransport}
+          customerBooking={canBookPetTransport}
+          petTransports={petTransports}
+        />
       </div>
     </ProtectedShell>
   );

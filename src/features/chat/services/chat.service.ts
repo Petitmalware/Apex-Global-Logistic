@@ -5,6 +5,8 @@ import {
   ActivityAction,
   ChatConversationStatus,
   ChatMessageAuthorType,
+  EmailTemplateCategory,
+  UserStatus,
   type Prisma,
 } from "@prisma/client";
 
@@ -16,6 +18,9 @@ import type {
 } from "@/features/chat/schemas/chat.schemas";
 import type { ChatAttachmentView, ChatMessageView } from "@/features/chat/types";
 import { generateAiText } from "@/features/ai/services/ai-provider.service";
+import { queueBrandedEmail } from "@/features/emails/services/email.service";
+import { createUserNotification } from "@/features/notifications/services/notification.service";
+import { env } from "@/config/env.server";
 import { AUTH_ROLES } from "@/lib/auth/constants";
 import { AuthError } from "@/lib/auth/errors";
 import { prisma } from "@/lib/db";
@@ -138,6 +143,112 @@ function normalizeChatBody(body: string | undefined | null, attachments: ChatAtt
   const [attachment] = attachments;
 
   return attachment ? `Attachment sent: ${attachment.fileName}` : "Attachments sent.";
+}
+
+function escapeEmailText(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;")
+    .replaceAll("\n", "<br />");
+}
+
+async function notifyCustomerOfStaffReply({
+  body,
+  conversation,
+}: {
+  body: string;
+  conversation: {
+    customer: { email: string; id: string; name: string } | null;
+    id: string;
+    organizationId: string | null;
+    subject: string;
+    visitorEmail: string | null;
+    visitorName: string | null;
+  };
+}) {
+  const recipientEmail = conversation.customer?.email ?? conversation.visitorEmail;
+  const recipientName = conversation.customer?.name ?? conversation.visitorName ?? "Customer";
+
+  if (conversation.customer) {
+    await createUserNotification({
+      actionUrl: "/dashboard",
+      body: "Apex Support replied to your live chat conversation.",
+      channels: ["inApp"],
+      organizationId: conversation.organizationId,
+      title: "New live chat reply",
+      tone: "info",
+      topic: "support",
+      userId: conversation.customer.id,
+    });
+  }
+
+  if (!recipientEmail) {
+    return;
+  }
+
+  await queueBrandedEmail({
+    bodyHtml: `<p>Hello ${escapeEmailText(recipientName)},</p><p>Apex Support replied to your live chat conversation:</p><div style="border-left:4px solid #f4b41a;padding:12px 16px;margin:18px 0;background:#f8fafc">${escapeEmailText(body)}</div><p>Return to <a href="{{companyWebsite}}">Apex Global Logistics</a> in the same browser to continue the conversation, or reply to this email to contact support.</p>`,
+    category: EmailTemplateCategory.ADMIN,
+    organizationId: conversation.organizationId,
+    recipientEmail,
+    recipientName,
+    relatedUserId: conversation.customer?.id,
+    replyTo: env.SUPPORT_EMAIL,
+    senderAddress: env.SUPPORT_EMAIL,
+    senderName: "Apex Support",
+    subject: `Apex Support replied: ${conversation.subject}`,
+    variables: {
+      companyWebsite: env.NEXT_PUBLIC_APP_URL,
+    },
+  });
+}
+
+async function notifyStaffOfCustomerMessage({
+  conversationId,
+  organizationId,
+  subject,
+}: {
+  conversationId: string;
+  organizationId: string | null;
+  subject: string;
+}) {
+  const staff = await prisma.user.findMany({
+    select: {
+      id: true,
+    },
+    where: {
+      deletedAt: null,
+      organizationId: organizationId ?? undefined,
+      status: UserStatus.ACTIVE,
+      userRoles: {
+        some: {
+          role: {
+            key: {
+              in: [AUTH_ROLES.ADMIN, AUTH_ROLES.SUPER_ADMIN],
+            },
+          },
+        },
+      },
+    },
+  });
+
+  await Promise.allSettled(
+    staff.map(({ id }) =>
+      createUserNotification({
+        actionUrl: `/admin/chat?conversation=${conversationId}`,
+        body: subject,
+        channels: ["inApp"],
+        organizationId,
+        title: "New live chat message",
+        tone: "info",
+        topic: "support",
+        userId: id,
+      }),
+    ),
+  );
 }
 
 function assertChatMessageHasContent(body: string | undefined | null, attachments: File[]) {
@@ -332,6 +443,11 @@ export async function startChatConversation(
     organizationId: conversation.organizationId,
     user,
   });
+  await notifyStaffOfCustomerMessage({
+    conversationId: conversation.id,
+    organizationId: conversation.organizationId,
+    subject,
+  }).catch(() => null);
 
   return {
     accessKey,
@@ -394,6 +510,24 @@ export async function addPublicChatMessage(
       },
     });
   });
+
+  const conversation = await prisma.chatConversation.findUnique({
+    select: {
+      organizationId: true,
+      subject: true,
+    },
+    where: {
+      id: verifiedConversationId,
+    },
+  });
+
+  if (conversation) {
+    await notifyStaffOfCustomerMessage({
+      conversationId: verifiedConversationId,
+      organizationId: conversation.organizationId,
+      subject: conversation.subject,
+    }).catch(() => null);
+  }
 }
 
 export async function addStaffChatMessage(
@@ -408,8 +542,18 @@ export async function addStaffChatMessage(
 
   const conversation = await prisma.chatConversation.findFirst({
     select: {
+      customer: {
+        select: {
+          email: true,
+          id: true,
+          name: true,
+        },
+      },
       id: true,
       organizationId: true,
+      subject: true,
+      visitorEmail: true,
+      visitorName: true,
     },
     where: {
       id: conversationId,
@@ -456,6 +600,22 @@ export async function addStaffChatMessage(
     metadata: { event: "staff_reply" },
     organizationId: conversation.organizationId,
     user,
+  });
+
+  await notifyCustomerOfStaffReply({
+    body: normalizeChatBody(input.body, attachments),
+    conversation,
+  }).catch(async (error) => {
+    await logChatActivity({
+      action: ActivityAction.UPDATE,
+      conversationId,
+      metadata: {
+        event: "staff_reply_notification_failed",
+        reason: error instanceof Error ? error.message : "Notification delivery failed",
+      },
+      organizationId: conversation.organizationId,
+      user,
+    });
   });
 }
 

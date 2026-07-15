@@ -7,7 +7,7 @@ import { ArrowRight, PawPrint } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Field, FieldHint } from "@/components/ui/field";
+import { Field, FieldError, FieldHint } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
@@ -25,15 +25,18 @@ type PetTransportFormProps = {
   customerOptions?: CustomerOption[];
   initialPetTransport?: PetTransportDetail;
   mode: "create" | "edit";
+  workflow?: "admin_creation" | "customer_booking";
 };
 
 function AddressFields({
   prefix,
   required = true,
+  errors,
   title,
 }: {
   prefix: "destination" | "origin";
   required?: boolean;
+  errors?: Record<string, string[] | undefined>;
   title: string;
 }) {
   const isOrigin = prefix === "origin";
@@ -68,12 +71,19 @@ function AddressFields({
             placeholder="US"
             required={required}
           />
+          {errors?.[`${prefix}.countryCode`]?.[0] ? (
+            <FieldError>{errors[`${prefix}.countryCode`]?.[0]}</FieldError>
+          ) : null}
+          <FieldHint>Use the two-letter ISO code, for example US, GB, or AU.</FieldHint>
         </Field>
         <Field className="sm:col-span-2">
           <Label htmlFor={`${prefix}.line1`}>
             {isOrigin ? "Pickup address line 1" : "Delivery address line 1"}
           </Label>
           <Input id={`${prefix}.line1`} name={`${prefix}.line1`} required={required} />
+          {errors?.[`${prefix}.line1`]?.[0] ? (
+            <FieldError>{errors[`${prefix}.line1`]?.[0]}</FieldError>
+          ) : null}
         </Field>
         <Field className="sm:col-span-2">
           <Label htmlFor={`${prefix}.line2`}>Address line 2</Label>
@@ -82,6 +92,9 @@ function AddressFields({
         <Field>
           <Label htmlFor={`${prefix}.city`}>City</Label>
           <Input id={`${prefix}.city`} name={`${prefix}.city`} required={required} />
+          {errors?.[`${prefix}.city`]?.[0] ? (
+            <FieldError>{errors[`${prefix}.city`]?.[0]}</FieldError>
+          ) : null}
         </Field>
         <Field>
           <Label htmlFor={`${prefix}.state`}>State / region</Label>
@@ -92,23 +105,31 @@ function AddressFields({
           <Input id={`${prefix}.postalCode`} name={`${prefix}.postalCode`} />
         </Field>
       </CardContent>
+      {errors?.[prefix]?.length ? (
+        <FieldError className="px-6 pb-6">{[...new Set(errors[prefix])].join(" ")}</FieldError>
+      ) : null}
     </Card>
   );
 }
 
-function TransportPlanFields() {
+function TransportPlanFields({ workflow }: { workflow: "admin_creation" | "customer_booking" }) {
+  const isCustomerBooking = workflow === "customer_booking";
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Shipment plan</CardTitle>
         <FieldHint>
-          Choose the route priority and delivery window. These values create the linked shipment and
-          guide future tracking updates.
+          {isCustomerBooking
+            ? "Tell the operations team how the pet should travel and when delivery is preferred."
+            : "Set the transport mode, priority, delivery estimate, and internal routing reference."}
         </FieldHint>
       </CardHeader>
       <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Field>
-          <Label htmlFor="referenceNumber">Shipment reference</Label>
+          <Label htmlFor="referenceNumber">
+            {isCustomerBooking ? "Your reference" : "Shipment reference"}
+          </Label>
           <Input
             id="referenceNumber"
             name="referenceNumber"
@@ -136,23 +157,31 @@ function TransportPlanFields() {
           </Select>
           <FieldHint>Choose the main planned movement method for this pet shipment.</FieldHint>
         </Field>
-        <Field>
-          <Label htmlFor="deliveryWindowStart">Estimated delivery window starts</Label>
-          <Input id="deliveryWindowStart" name="deliveryWindowStart" type="datetime-local" />
-        </Field>
-        <Field>
-          <Label htmlFor="deliveryWindowEnd">Estimated delivery window ends</Label>
-          <Input id="deliveryWindowEnd" name="deliveryWindowEnd" type="datetime-local" />
-        </Field>
+        {!isCustomerBooking ? (
+          <>
+            <Field>
+              <Label htmlFor="deliveryWindowStart">Estimated delivery starts</Label>
+              <Input id="deliveryWindowStart" name="deliveryWindowStart" type="datetime-local" />
+            </Field>
+            <Field>
+              <Label htmlFor="deliveryWindowEnd">Estimated delivery ends</Label>
+              <Input id="deliveryWindowEnd" name="deliveryWindowEnd" type="datetime-local" />
+            </Field>
+          </>
+        ) : null}
         <Field className="sm:col-span-2">
-          <Label htmlFor="notes">Internal operations notes</Label>
+          <Label htmlFor="notes">
+            {isCustomerBooking ? "Additional transport instructions" : "Internal operations notes"}
+          </Label>
           <Textarea
             id="notes"
             name="notes"
             placeholder="Carrier, routing, or airline handling notes"
           />
           <FieldHint>
-            For staff routing notes. Customer-facing updates are added from tracking.
+            {isCustomerBooking
+              ? "Include handling, accessibility, or preferred delivery information."
+              : "For staff routing notes. Customer-facing updates are added from tracking."}
           </FieldHint>
         </Field>
       </CardContent>
@@ -166,26 +195,46 @@ export function PetTransportForm({
   customerOptions = [],
   initialPetTransport,
   mode,
+  workflow = "admin_creation",
 }: PetTransportFormProps) {
   const [state, formAction, isPending] = useActionState(action, initialPetTransportActionState);
   const isEdit = mode === "edit";
+  const isCustomerBooking = workflow === "customer_booking";
   const petStatusOptions = [
     "REQUESTED",
     "DOCUMENTATION_PENDING",
+    "AWAITING_PAYMENT",
+    "ON_HOLD",
     "CLEARED",
+    "READY_FOR_TRANSPORT",
     "IN_TRANSIT",
+    "OUT_FOR_DELIVERY",
     "DELIVERED",
     "CANCELLED",
   ] as const;
+  const validationMessages = [
+    ...new Set(
+      Object.values(state.fieldErrors ?? {})
+        .flatMap((messages) => messages ?? [])
+        .filter(Boolean),
+    ),
+  ];
 
   return (
     <form action={formAction} className="space-y-6">
       {state.message ? (
-        <p className="border-border bg-secondary text-secondary-foreground rounded-md border px-3 py-2 text-sm">
-          {state.message}
-        </p>
+        <div className="border-border bg-secondary text-secondary-foreground rounded-md border px-3 py-2 text-sm">
+          <p className="font-semibold">{state.message}</p>
+          {validationMessages.length ? (
+            <ul className="mt-2 list-disc space-y-1 pl-5">
+              {validationMessages.map((message) => (
+                <li key={message}>{message}</li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
       ) : null}
-      {!isEdit ? (
+      {!isEdit && !isCustomerBooking ? (
         <CustomerSelectCard
           allowManualRecipient
           customerOptions={customerOptions}
@@ -206,9 +255,13 @@ export function PetTransportForm({
             <PawPrint aria-hidden="true" className="size-5" />
           </div>
           <div>
-            <CardTitle>Pet shipment profile</CardTitle>
+            <CardTitle>
+              {isCustomerBooking ? "Pet transport request" : "Pet shipment essentials"}
+            </CardTitle>
             <FieldHint>
-              Animal identity, sender contact, care requirements, and the starting transport status.
+              {isCustomerBooking
+                ? "Provide the pet and sender information Apex operations needs to review the request."
+                : "Record the animal identity, sender contact, health readiness, and operational status."}
             </FieldHint>
           </div>
         </CardHeader>
@@ -221,6 +274,9 @@ export function PetTransportForm({
               required
               defaultValue={initialPetTransport?.petName ?? ""}
             />
+            {state.fieldErrors?.petName?.[0] ? (
+              <FieldError>{state.fieldErrors.petName[0]}</FieldError>
+            ) : null}
           </Field>
           <Field>
             <Label htmlFor="species">Species</Label>
@@ -241,7 +297,7 @@ export function PetTransportForm({
             <Input id="breed" name="breed" defaultValue={initialPetTransport?.breed ?? ""} />
           </Field>
           <Field>
-            <Label htmlFor="ageMonths">Age (months)</Label>
+            <Label htmlFor="ageMonths">Age in months (optional)</Label>
             <Input
               id="ageMonths"
               min="0"
@@ -251,7 +307,7 @@ export function PetTransportForm({
             />
           </Field>
           <Field>
-            <Label htmlFor="dateOfBirth">Date of birth</Label>
+            <Label htmlFor="dateOfBirth">Date of birth (optional)</Label>
             <Input
               id="dateOfBirth"
               name="dateOfBirth"
@@ -284,7 +340,7 @@ export function PetTransportForm({
             <Input id="color" name="color" defaultValue={initialPetTransport?.color ?? ""} />
           </Field>
           <Field>
-            <Label htmlFor="microchipNumber">Microchip number</Label>
+            <Label htmlFor="microchipNumber">Microchip number (optional)</Label>
             <Input
               id="microchipNumber"
               name="microchipNumber"
@@ -317,31 +373,35 @@ export function PetTransportForm({
             />
           </Field>
           <Field>
-            <Label htmlFor="healthCertificateNumber">Health certificate number</Label>
+            <Label htmlFor="healthCertificateNumber">Health certificate (optional)</Label>
             <Input
               id="healthCertificateNumber"
               name="healthCertificateNumber"
               defaultValue={initialPetTransport?.healthCertificateNumber ?? ""}
             />
           </Field>
-          <Field>
-            <Label htmlFor="status">Initial pet travel status</Label>
-            <Select
-              id="status"
-              name="status"
-              defaultValue={initialPetTransport?.status ?? "REQUESTED"}
-            >
-              {petStatusOptions.map((option) => (
-                <option key={option} value={option}>
-                  {formatPetTransportStatus(option)}
-                </option>
-              ))}
-            </Select>
-            <FieldHint>
-              Start with requested unless documents are already reviewed or the pet is already in
-              transit.
-            </FieldHint>
-          </Field>
+          {!isCustomerBooking ? (
+            <Field>
+              <Label htmlFor="status">Operational status</Label>
+              <Select
+                id="status"
+                name="status"
+                defaultValue={initialPetTransport?.status ?? "REQUESTED"}
+              >
+                {petStatusOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {formatPetTransportStatus(option)}
+                  </option>
+                ))}
+              </Select>
+              <FieldHint>
+                Use awaiting payment or on hold only when the record has a documented billing or
+                operational dependency.
+              </FieldHint>
+            </Field>
+          ) : (
+            <input name="status" type="hidden" value="REQUESTED" />
+          )}
           <div className="flex flex-wrap items-center gap-5 pt-6">
             <label className="flex items-center gap-2 text-sm font-medium">
               <input
@@ -364,88 +424,99 @@ export function PetTransportForm({
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Crate and care requirements</CardTitle>
-          <FieldHint>
-            Keep every care detail available for handlers. Leave unknown values blank and update
-            them later from the pet shipment record.
-          </FieldHint>
-        </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Field>
-            <Label htmlFor="crateLengthCm">Crate length cm</Label>
-            <Input
-              id="crateLengthCm"
-              min="0"
-              name="crateLengthCm"
-              step="0.001"
-              type="number"
-              defaultValue={initialPetTransport?.crateLengthCm ?? ""}
-            />
-          </Field>
-          <Field>
-            <Label htmlFor="crateWidthCm">Crate width cm</Label>
-            <Input
-              id="crateWidthCm"
-              min="0"
-              name="crateWidthCm"
-              step="0.001"
-              type="number"
-              defaultValue={initialPetTransport?.crateWidthCm ?? ""}
-            />
-          </Field>
-          <Field>
-            <Label htmlFor="crateHeightCm">Crate height cm</Label>
-            <Input
-              id="crateHeightCm"
-              min="0"
-              name="crateHeightCm"
-              step="0.001"
-              type="number"
-              defaultValue={initialPetTransport?.crateHeightCm ?? ""}
-            />
-          </Field>
-          <Field className="sm:col-span-2 lg:col-span-3">
-            <Label htmlFor="knownAllergies">Known allergies</Label>
-            <Textarea
-              id="knownAllergies"
-              name="knownAllergies"
-              defaultValue={initialPetTransport?.knownAllergies ?? ""}
-            />
-          </Field>
-          <Field className="sm:col-span-2 lg:col-span-3">
-            <Label htmlFor="medicationInstructions">Medication instructions</Label>
-            <Textarea
-              id="medicationInstructions"
-              name="medicationInstructions"
-              defaultValue={initialPetTransport?.medicationInstructions ?? ""}
-            />
-          </Field>
-          <Field className="sm:col-span-2 lg:col-span-3">
-            <Label htmlFor="feedingInstructions">Feeding instructions</Label>
-            <Textarea
-              id="feedingInstructions"
-              name="feedingInstructions"
-              defaultValue={initialPetTransport?.feedingInstructions ?? ""}
-            />
-          </Field>
-          <Field className="sm:col-span-2 lg:col-span-3">
-            <Label htmlFor="handlerInstructions">Handler instructions</Label>
-            <Textarea
-              id="handlerInstructions"
-              name="handlerInstructions"
-              defaultValue={initialPetTransport?.handlerInstructions ?? ""}
-            />
-          </Field>
-        </CardContent>
+        <details open={isEdit}>
+          <summary className="cursor-pointer list-none px-6 py-5">
+            <span className="block font-semibold">Optional crate and care requirements</span>
+            <span className="text-muted-foreground mt-1 block text-sm leading-6">
+              Add dimensions, allergies, medication, feeding, and handler instructions now or update
+              them later from the pet shipment record.
+            </span>
+          </summary>
+          <CardContent className="grid gap-4 border-t pt-5 sm:grid-cols-2 lg:grid-cols-3">
+            <Field>
+              <Label htmlFor="crateLengthCm">Crate length cm</Label>
+              <Input
+                id="crateLengthCm"
+                min="0"
+                name="crateLengthCm"
+                step="0.001"
+                type="number"
+                defaultValue={initialPetTransport?.crateLengthCm ?? ""}
+              />
+            </Field>
+            <Field>
+              <Label htmlFor="crateWidthCm">Crate width cm</Label>
+              <Input
+                id="crateWidthCm"
+                min="0"
+                name="crateWidthCm"
+                step="0.001"
+                type="number"
+                defaultValue={initialPetTransport?.crateWidthCm ?? ""}
+              />
+            </Field>
+            <Field>
+              <Label htmlFor="crateHeightCm">Crate height cm</Label>
+              <Input
+                id="crateHeightCm"
+                min="0"
+                name="crateHeightCm"
+                step="0.001"
+                type="number"
+                defaultValue={initialPetTransport?.crateHeightCm ?? ""}
+              />
+            </Field>
+            <Field className="sm:col-span-2 lg:col-span-3">
+              <Label htmlFor="knownAllergies">Known allergies</Label>
+              <Textarea
+                id="knownAllergies"
+                name="knownAllergies"
+                defaultValue={initialPetTransport?.knownAllergies ?? ""}
+              />
+            </Field>
+            <Field className="sm:col-span-2 lg:col-span-3">
+              <Label htmlFor="medicationInstructions">Medication instructions</Label>
+              <Textarea
+                id="medicationInstructions"
+                name="medicationInstructions"
+                defaultValue={initialPetTransport?.medicationInstructions ?? ""}
+              />
+            </Field>
+            <Field className="sm:col-span-2 lg:col-span-3">
+              <Label htmlFor="feedingInstructions">Feeding instructions</Label>
+              <Textarea
+                id="feedingInstructions"
+                name="feedingInstructions"
+                defaultValue={initialPetTransport?.feedingInstructions ?? ""}
+              />
+            </Field>
+            <Field className="sm:col-span-2 lg:col-span-3">
+              <Label htmlFor="handlerInstructions">Handler instructions</Label>
+              <Textarea
+                id="handlerInstructions"
+                name="handlerInstructions"
+                defaultValue={initialPetTransport?.handlerInstructions ?? ""}
+              />
+            </Field>
+          </CardContent>
+        </details>
       </Card>
 
       {!isEdit ? (
         <>
-          <TransportPlanFields />
+          <TransportPlanFields workflow={workflow} />
           <div className="grid gap-6 lg:grid-cols-2">
-            <AddressFields prefix="origin" required={false} title="Sender pickup address" />
-            <AddressFields prefix="destination" title="Recipient delivery address" />
+            <AddressFields
+              errors={state.fieldErrors}
+              prefix="origin"
+              required={false}
+              title="Sender pickup address"
+            />
+            <AddressFields
+              errors={state.fieldErrors}
+              prefix="destination"
+              title="Recipient delivery address"
+            />
           </div>
         </>
       ) : null}
@@ -455,7 +526,13 @@ export function PetTransportForm({
           <Link href={cancelHref as Route}>Cancel</Link>
         </Button>
         <Button disabled={isPending} type="submit" variant="accent">
-          {isPending ? "Saving..." : isEdit ? "Save profile" : "Create pet shipment"}
+          {isPending
+            ? "Saving..."
+            : isEdit
+              ? "Save profile"
+              : isCustomerBooking
+                ? "Submit pet transport request"
+                : "Create pet shipment"}
           <ArrowRight aria-hidden="true" />
         </Button>
       </div>

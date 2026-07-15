@@ -7,11 +7,7 @@ import { PrintButton } from "@/features/shipments/components/print-button";
 import type { InvoiceDetail } from "@/features/invoices/types/invoice.types";
 import type { CompanyProfileInput } from "@/features/settings/schemas/company-profile.schema";
 
-function formatDate(value: string | null) {
-  if (!value) {
-    return "Not set";
-  }
-
+function formatDate(value: string) {
   return new Intl.DateTimeFormat("en", {
     dateStyle: "medium",
   }).format(new Date(value));
@@ -98,15 +94,17 @@ function InvoiceMeta({ invoice }: { invoice: InvoiceDetail }) {
         { label: "Invoice number", value: invoice.invoiceNumber },
         { label: "Status", value: invoice.status.replaceAll("_", " ") },
         { label: "Issued", value: formatDate(invoice.issuedAt ?? invoice.createdAt) },
-        { label: "Due", value: formatDate(invoice.dueDate) },
-      ].map((item) => (
-        <div className="rounded-md border border-slate-300 p-3 print:p-2" key={item.label}>
-          <p className="text-xs font-bold tracking-[0.18em] text-slate-500 uppercase print:text-[8px]">
-            {item.label}
-          </p>
-          <p className="mt-2 font-bold">{item.value}</p>
-        </div>
-      ))}
+        invoice.dueDate ? { label: "Due", value: formatDate(invoice.dueDate) } : null,
+      ]
+        .filter((item): item is { label: string; value: string } => Boolean(item))
+        .map((item) => (
+          <div className="rounded-md border border-slate-300 p-3 print:p-2" key={item.label}>
+            <p className="text-xs font-bold tracking-[0.18em] text-slate-500 uppercase print:text-[8px]">
+              {item.label}
+            </p>
+            <p className="mt-2 font-bold">{item.value}</p>
+          </div>
+        ))}
     </div>
   );
 }
@@ -119,6 +117,24 @@ export function InvoiceDocument({
   profile: CompanyProfileInput;
 }) {
   const balanceDue = Number(invoice.total) - Number(invoice.amountPaid);
+  const hasLineTax = invoice.lineItems.some((lineItem) => Number(lineItem.taxRate) > 0);
+  const shipmentDetails = invoice.shipment
+    ? [
+        { label: "Shipment", value: invoice.shipment.shipmentNumber },
+        invoice.shipment.originCity && invoice.shipment.destinationCity
+          ? {
+              label: "Lane",
+              value: `${invoice.shipment.originCity} to ${invoice.shipment.destinationCity}`,
+            }
+          : invoice.shipment.destinationCity
+            ? { label: "Destination", value: invoice.shipment.destinationCity }
+            : null,
+        { label: "Mode", value: invoice.shipment.mode },
+        invoice.shipment.serviceLevel
+          ? { label: "Service", value: invoice.shipment.serviceLevel }
+          : null,
+      ].filter((item): item is { label: string; value: string } => Boolean(item?.value))
+    : [];
 
   return (
     <main
@@ -179,17 +195,9 @@ export function InvoiceDocument({
             <InvoiceMeta invoice={invoice} />
           </div>
 
-          {invoice.shipment ? (
+          {shipmentDetails.length ? (
             <div className="grid gap-4 border-b border-slate-300 py-8 sm:grid-cols-4 print:gap-2 print:py-4">
-              {[
-                { label: "Shipment", value: invoice.shipment.shipmentNumber },
-                {
-                  label: "Lane",
-                  value: `${invoice.shipment.originCity} to ${invoice.shipment.destinationCity}`,
-                },
-                { label: "Mode", value: invoice.shipment.mode },
-                { label: "Service", value: invoice.shipment.serviceLevel ?? "Standard" },
-              ].map((item) => (
+              {shipmentDetails.map((item) => (
                 <div className="rounded-md border border-slate-300 p-4 print:p-2" key={item.label}>
                   <p className="text-xs font-bold tracking-[0.18em] text-slate-500 uppercase print:text-[8px]">
                     {item.label}
@@ -209,7 +217,7 @@ export function InvoiceDocument({
                     <th className="px-4 py-3 text-left font-bold">Type</th>
                     <th className="px-4 py-3 text-right font-bold">Qty</th>
                     <th className="px-4 py-3 text-right font-bold">Unit</th>
-                    <th className="px-4 py-3 text-right font-bold">Tax</th>
+                    {hasLineTax ? <th className="px-4 py-3 text-right font-bold">Tax</th> : null}
                     <th className="px-4 py-3 text-right font-bold">Total</th>
                   </tr>
                 </thead>
@@ -222,9 +230,11 @@ export function InvoiceDocument({
                       <td className="px-4 py-3 text-right">
                         {formatMoney(lineItem.unitPrice, invoice.currency)}
                       </td>
-                      <td className="px-4 py-3 text-right">
-                        {(Number(lineItem.taxRate) * 100).toFixed(2)}%
-                      </td>
+                      {hasLineTax ? (
+                        <td className="px-4 py-3 text-right">
+                          {(Number(lineItem.taxRate) * 100).toFixed(2)}%
+                        </td>
+                      ) : null}
                       <td className="px-4 py-3 text-right font-bold">
                         {formatMoney(lineItem.total, invoice.currency)}
                       </td>
@@ -237,14 +247,24 @@ export function InvoiceDocument({
                   <span className="text-slate-600">Subtotal</span>
                   <span>{formatMoney(invoice.subtotal, invoice.currency)}</span>
                 </div>
-                <div className="flex items-center justify-between gap-4">
-                  <span className="text-slate-600">Tax</span>
-                  <span>{formatMoney(invoice.taxTotal, invoice.currency)}</span>
-                </div>
-                <div className="flex items-center justify-between gap-4">
-                  <span className="text-slate-600">Paid</span>
-                  <span>{formatMoney(invoice.amountPaid, invoice.currency)}</span>
-                </div>
+                {Number(invoice.taxTotal) > 0 ? (
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-slate-600">Tax</span>
+                    <span>{formatMoney(invoice.taxTotal, invoice.currency)}</span>
+                  </div>
+                ) : null}
+                {Number(invoice.discountTotal) > 0 ? (
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-slate-600">Discount</span>
+                    <span>-{formatMoney(invoice.discountTotal, invoice.currency)}</span>
+                  </div>
+                ) : null}
+                {Number(invoice.amountPaid) > 0 ? (
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-slate-600">Paid</span>
+                    <span>{formatMoney(invoice.amountPaid, invoice.currency)}</span>
+                  </div>
+                ) : null}
                 <div className="flex items-center justify-between gap-4 border-t border-slate-300 pt-3 text-lg font-black">
                   <span>Balance due</span>
                   <span>{formatMoney(balanceDue, invoice.currency)}</span>

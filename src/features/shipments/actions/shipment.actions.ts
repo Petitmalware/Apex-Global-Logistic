@@ -52,7 +52,14 @@ function hasOptionalPackageData(formData: FormData, index: number) {
   return keys.some((key) => getString(formData, `packages.${index}.${key}`).trim().length > 0);
 }
 
-function parseShipmentFormData(formData: FormData, { recipientRequired = true } = {}) {
+function parseShipmentFormData(
+  formData: FormData,
+  {
+    customerId,
+    recipientRequired = true,
+    status,
+  }: { customerId?: string; recipientRequired?: boolean; status?: string } = {},
+) {
   const packages = [0, 1, 2, 3, 4, 5]
     .filter((index) => index === 0 || hasOptionalPackageData(formData, index))
     .map((index) => ({
@@ -73,7 +80,7 @@ function parseShipmentFormData(formData: FormData, { recipientRequired = true } 
     }));
 
   return shipmentFormSchema.safeParse({
-    customerId: getString(formData, "customerId"),
+    customerId: customerId ?? getString(formData, "customerId"),
     deliveryWindowEnd: getString(formData, "deliveryWindowEnd"),
     deliveryWindowStart: getString(formData, "deliveryWindowStart"),
     destination: {
@@ -122,7 +129,7 @@ function parseShipmentFormData(formData: FormData, { recipientRequired = true } 
     referenceNumber: getString(formData, "referenceNumber"),
     recipientRequired,
     serviceLevel: getString(formData, "serviceLevel"),
-    status: getString(formData, "status") || "DRAFT",
+    status: status ?? (getString(formData, "status") || "DRAFT"),
   });
 }
 
@@ -184,8 +191,23 @@ export async function createParcelBookingAction(
   _previousState: ShipmentActionState,
   formData: FormData,
 ): Promise<ShipmentActionState> {
-  const user = await requireRole([AUTH_ROLES.ADMIN, AUTH_ROLES.SUPER_ADMIN]);
-  const parsed = parseShipmentFormData(formData);
+  const user = await requireAuthenticatedUser();
+  const isAdmin =
+    user.roles.includes(AUTH_ROLES.ADMIN) || user.roles.includes(AUTH_ROLES.SUPER_ADMIN);
+  const isCustomer = user.roles.includes(AUTH_ROLES.CUSTOMER);
+
+  if (!isAdmin && !isCustomer) {
+    return {
+      message:
+        "Only customers can request parcel delivery and administrators can create parcel shipments.",
+      status: "error",
+    };
+  }
+
+  const parsed = parseShipmentFormData(formData, {
+    customerId: isCustomer ? user.id : undefined,
+    status: isCustomer ? "DRAFT" : "BOOKED",
+  });
   const parsedOptions = parcelBookingOptionsSchema.safeParse({
     insuranceRequested: getBoolean(formData, "insuranceRequested"),
     receiptEmail: getString(formData, "receiptEmail"),
@@ -215,6 +237,7 @@ export async function createParcelBookingAction(
       input: parsed.data,
       options: parsedOptions.data,
       user,
+      workflow: isCustomer ? "customer_booking" : "admin_creation",
     });
     shipmentId = shipment.id;
   } catch (error) {

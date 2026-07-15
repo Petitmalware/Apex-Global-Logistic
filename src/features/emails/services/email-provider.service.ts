@@ -9,6 +9,9 @@ type SendEmailInput = {
   html: string;
   recipientEmail: string;
   recipientName?: string | null;
+  replyTo?: string | null;
+  senderAddress?: string | null;
+  senderName?: string | null;
   subject: string;
   text?: string | null;
 };
@@ -35,8 +38,11 @@ function getConfiguredProvider() {
   return EmailProvider.CONSOLE;
 }
 
-function getSenderAddress() {
-  return env.EMAIL_PROVIDER === "smtp" && env.SMTP_FROM ? env.SMTP_FROM : env.EMAIL_FROM;
+function getSenderAddress(input?: SendEmailInput) {
+  return (
+    input?.senderAddress ||
+    (env.EMAIL_PROVIDER === "smtp" && env.SMTP_FROM ? env.SMTP_FROM : env.EMAIL_FROM)
+  );
 }
 
 async function sendWithResend(input: SendEmailInput): Promise<SendEmailResult> {
@@ -46,8 +52,9 @@ async function sendWithResend(input: SendEmailInput): Promise<SendEmailResult> {
 
   const response = await fetch("https://api.resend.com/emails", {
     body: JSON.stringify({
-      from: env.EMAIL_FROM,
+      from: getSenderAddress(input),
       html: input.html,
+      reply_to: input.replyTo ?? env.SUPPORT_EMAIL,
       subject: input.subject,
       text: input.text ?? undefined,
       to: [
@@ -83,9 +90,12 @@ async function sendWithBrevo(input: SendEmailInput): Promise<SendEmailResult> {
   const response = await fetch("https://api.brevo.com/v3/smtp/email", {
     body: JSON.stringify({
       htmlContent: input.html,
+      replyTo: {
+        email: input.replyTo ?? env.SUPPORT_EMAIL,
+      },
       sender: {
-        email: env.EMAIL_FROM,
-        name: "Apex Global Logistics",
+        email: getSenderAddress(input),
+        name: input.senderName ?? "Apex Global Logistics",
       },
       subject: input.subject,
       textContent: input.text ?? undefined,
@@ -121,10 +131,11 @@ async function sendWithSmtp(input: SendEmailInput): Promise<SendEmailResult> {
   }
 
   const port = env.SMTP_PORT ?? 587;
+  const isSupportSender = getSenderAddress(input).toLowerCase() === env.SUPPORT_EMAIL.toLowerCase();
   const transporter = nodemailer.createTransport({
     auth: {
-      pass: env.SMTP_PASSWORD,
-      user: env.SMTP_USERNAME,
+      pass: isSupportSender ? (env.SUPPORT_SMTP_PASSWORD ?? env.SMTP_PASSWORD) : env.SMTP_PASSWORD,
+      user: isSupportSender ? (env.SUPPORT_SMTP_USERNAME ?? env.SUPPORT_EMAIL) : env.SMTP_USERNAME,
     },
     connectionTimeout: 30_000,
     greetingTimeout: 30_000,
@@ -138,11 +149,11 @@ async function sendWithSmtp(input: SendEmailInput): Promise<SendEmailResult> {
   });
   const info = await transporter.sendMail({
     from: {
-      address: getSenderAddress(),
-      name: "Apex Global Logistics",
+      address: getSenderAddress(input),
+      name: input.senderName ?? "Apex Global Logistics",
     },
     html: input.html,
-    replyTo: env.SUPPORT_EMAIL,
+    replyTo: input.replyTo ?? env.SUPPORT_EMAIL,
     subject: input.subject,
     text: input.text ?? undefined,
     to: input.recipientName
@@ -169,7 +180,7 @@ async function sendWithConsole(input: SendEmailInput): Promise<SendEmailResult> 
     messageId: `console-${Date.now()}`,
     provider: EmailProvider.CONSOLE,
     response: {
-      from: getSenderAddress(),
+      from: getSenderAddress(input),
       to: input.recipientEmail,
       transport: "console",
     },

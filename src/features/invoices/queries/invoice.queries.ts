@@ -71,6 +71,14 @@ function getManualShipmentRecipient(metadata: Prisma.JsonValue | null) {
   return email || name || phone ? { email, name, phone } : null;
 }
 
+function normalizeShipmentLocation(value: string) {
+  return ["address not provided", "location not provided", "not provided"].includes(
+    value.trim().toLowerCase(),
+  )
+    ? null
+    : value;
+}
+
 function invoiceWhereForUser(user: AuthSessionUser): Prisma.InvoiceWhereInput {
   if (user.roles.includes(AUTH_ROLES.SUPER_ADMIN)) {
     return {
@@ -233,10 +241,10 @@ export async function getInvoiceForUser(
       paidAt: formatDate(invoice.paidAt),
       shipment: invoice.shipment
         ? {
-            destinationCity: invoice.shipment.destinationAddress.city,
+            destinationCity: normalizeShipmentLocation(invoice.shipment.destinationAddress.city),
             id: invoice.shipment.id,
             mode: invoice.shipment.mode,
-            originCity: invoice.shipment.originAddress.city,
+            originCity: normalizeShipmentLocation(invoice.shipment.originAddress.city),
             serviceLevel: invoice.shipment.serviceLevel,
             shipmentNumber: invoice.shipment.shipmentNumber,
           }
@@ -255,6 +263,10 @@ export async function getShipmentInvoiceOptionsForAdmin(
   user: AuthSessionUser,
 ): Promise<ShipmentInvoiceOption[]> {
   if (!canManageInvoices(user)) {
+    return [];
+  }
+
+  if (!user.roles.includes(AUTH_ROLES.SUPER_ADMIN) && !user.organizationId) {
     return [];
   }
 
@@ -305,7 +317,14 @@ export async function getShipmentInvoiceOptionsForAdmin(
               manualRecipient?.email ? ` <${manualRecipient.email}>` : ""
             }`,
         id: shipment.id,
-        label: `${shipment.shipmentNumber} - ${shipment.originAddress.city} to ${shipment.destinationAddress.city}`,
+        label: `${shipment.shipmentNumber} - ${
+          [
+            normalizeShipmentLocation(shipment.originAddress.city),
+            normalizeShipmentLocation(shipment.destinationAddress.city),
+          ]
+            .filter(Boolean)
+            .join(" to ") || "route pending"
+        }`,
       };
     });
   } catch (error) {

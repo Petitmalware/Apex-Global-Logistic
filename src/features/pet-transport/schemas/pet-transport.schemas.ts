@@ -6,6 +6,11 @@ const emptyToUndefined = (value: unknown) => (value === "" ? undefined : value);
 const optionalString = (max = 255) =>
   z.preprocess(emptyToUndefined, z.string().trim().max(max).optional());
 
+const optionalEmail = z.preprocess(
+  emptyToUndefined,
+  z.string().trim().email("Enter a valid sender email address.").max(255).optional(),
+);
+
 const requiredString = (label: string, max = 255) =>
   z.string().trim().min(1, `${label} is required.`).max(max);
 
@@ -45,7 +50,7 @@ export const petTransportProfileSchema = z.object({
   knownAllergies: optionalString(2000),
   medicationInstructions: optionalString(2000),
   microchipNumber: optionalString(120),
-  ownerEmail: optionalString(255),
+  ownerEmail: optionalEmail,
   ownerName: optionalString(160),
   ownerPhone: optionalString(40),
   petName: requiredString("Pet name", 120),

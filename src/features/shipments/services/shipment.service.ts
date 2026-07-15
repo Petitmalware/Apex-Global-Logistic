@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import {
   ActivityAction,
   AddressType,
+  EmailTemplateCategory,
   InvoiceLineType,
   InvoiceStatus,
   PackageStatus,
@@ -26,6 +27,7 @@ import {
   type ParcelQuote,
 } from "@/features/shipments/services/parcel-pricing";
 import { notifyShipmentStatusChanged } from "@/features/notifications/services/notification.service";
+import { queueBrandedEmail } from "@/features/emails/services/email.service";
 import { publishShipmentTrackingUpdate } from "@/features/shipments/services/shipment-realtime.service";
 import { AUTH_ROLES } from "@/lib/auth/constants";
 import { PERMISSIONS, hasPermission } from "@/lib/auth/rbac";
@@ -246,6 +248,37 @@ export async function ensureShipmentOrganization(user: AuthSessionUser) {
   return organization.id;
 }
 
+async function getCustomerBookingOrganizationId(user: AuthSessionUser) {
+  if (user.organizationId) {
+    return user.organizationId;
+  }
+
+  const organization = await prisma.organization.findFirst({
+    orderBy: {
+      createdAt: "asc",
+    },
+    select: {
+      id: true,
+    },
+    where: {
+      deletedAt: null,
+      users: {
+        some: {
+          userRoles: {
+            some: {
+              role: {
+                key: AUTH_ROLES.ADMIN,
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return organization?.id ?? ensureShipmentOrganization(user);
+}
+
 async function generateShipmentNumber(organizationId: string) {
   const now = new Date();
   const prefix = `AGL-${now.getUTCFullYear()}${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
@@ -349,8 +382,14 @@ function buildPackageCreateInput(shipmentNumber: string, packages: ShipmentFormI
   }));
 }
 
-export async function createShipment(input: ShipmentFormInput, user: AuthSessionUser) {
-  const organizationId = await ensureShipmentOrganization(user);
+export async function createShipment(
+  input: ShipmentFormInput,
+  user: AuthSessionUser,
+  options: { customerBooking?: boolean } = {},
+) {
+  const organizationId = options.customerBooking
+    ? await getCustomerBookingOrganizationId(user)
+    : await ensureShipmentOrganization(user);
   const customerId = await getSelectedCustomerId(input.customerId);
   const manualRecipient = customerId ? null : getManualRecipientMetadata(input.manualRecipient);
   const destinationInput =
@@ -395,8 +434,9 @@ export async function createShipment(input: ShipmentFormInput, user: AuthSession
         deliveryWindowStart: input.deliveryWindowStart,
         destinationAddressId: destinationAddress.id,
         metadata:
-          manualRecipient || officeDetails
+          manualRecipient || officeDetails || options.customerBooking
             ? {
+                creationSource: options.customerBooking ? "CUSTOMER_BOOKING" : "ADMIN_CREATED",
                 manualRecipient,
                 officeDetails,
               }
@@ -418,6 +458,7 @@ export async function createShipment(input: ShipmentFormInput, user: AuthSession
         id: true,
         metadata: true,
         organizationId: true,
+        shipmentNumber: true,
       },
     });
 
@@ -456,6 +497,37 @@ export async function createShipment(input: ShipmentFormInput, user: AuthSession
 
     return createdShipment;
   }, REMOTE_DATABASE_TRANSACTION_OPTIONS);
+
+  const creationMessage =
+    status === ShipmentStatus.DRAFT
+      ? `Booking request ${shipment.shipmentNumber} was submitted for operations review.`
+      : `Shipment ${shipment.shipmentNumber} was created and assigned a tracking number.`;
+
+  await notifyShipmentStatusChanged({
+    customerId: shipment.customerId,
+    createdById: user.id,
+    message: creationMessage,
+    organizationId: shipment.organizationId,
+    shipmentId: shipment.id,
+    shipmentNumber: shipment.shipmentNumber,
+    status,
+  }).catch(() => null);
+
+  if (manualRecipient?.email) {
+    await queueBrandedEmail({
+      bodyHtml: `<p>Hello {{customerName}},</p><p>${creationMessage}</p><p>Use tracking number <strong>{{trackingNumber}}</strong> on the Apex Global Logistics tracking page for updates.</p>`,
+      category: EmailTemplateCategory.SHIPMENT,
+      organizationId: shipment.organizationId,
+      recipientEmail: manualRecipient.email,
+      recipientName: manualRecipient.name,
+      shipmentId: shipment.id,
+      subject: `Shipment ${shipment.shipmentNumber} created`,
+      trackingNumber: shipment.shipmentNumber,
+      variables: {
+        customerName: manualRecipient.name ?? "Customer",
+      },
+    }).catch(() => null);
+  }
 
   return shipment;
 }
@@ -544,20 +616,47 @@ export async function createParcelBooking({
   input,
   options,
   user,
+  workflow = "admin_creation",
 }: {
   input: ShipmentFormInput;
   options: ParcelBookingOptionsInput;
   user: AuthSessionUser;
+  workflow?: "admin_creation" | "customer_booking";
 }) {
+  const isCustomerBooking = workflow === "customer_booking";
   const parcelInput: ShipmentFormInput = {
     ...input,
     mode: input.mode,
     serviceLevel: input.serviceLevel || "Parcel Standard",
-    status: ShipmentStatus.BOOKED,
+    status: isCustomerBooking ? ShipmentStatus.DRAFT : ShipmentStatus.BOOKED,
   };
-  const shipment = await createShipment(parcelInput, user);
+  const shipment = await createShipment(parcelInput, user, {
+    customerBooking: isCustomerBooking,
+  });
   const manualRecipient = getManualRecipientFromMetadata(shipment.metadata);
   const quote = calculateParcelQuote(parcelInput, options);
+
+  if (isCustomerBooking) {
+    await prisma.shipment.update({
+      data: {
+        metadata: {
+          ...getJsonObject(shipment.metadata),
+          bookingType: "PARCEL",
+          insuranceRequested: options.insuranceRequested,
+          parcelQuote: quote,
+          receiptEmail: options.receiptEmail,
+          signatureRequired: options.signatureRequired,
+          workflow,
+        },
+      },
+      where: {
+        id: shipment.id,
+      },
+    });
+
+    return shipment;
+  }
+
   const invoiceNumber = await generateInvoiceNumber(shipment.organizationId);
   const dueDate = new Date();
 
@@ -573,6 +672,7 @@ export async function createParcelBooking({
           parcelQuote: quote,
           receiptEmail: options.receiptEmail,
           signatureRequired: options.signatureRequired,
+          workflow,
         },
       },
       where: {

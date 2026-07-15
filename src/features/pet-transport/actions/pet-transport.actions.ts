@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { Route } from "next";
+import type { ZodError } from "zod";
 
 import {
   petCrateAssignmentSchema,
@@ -29,7 +30,7 @@ import type { PetTransportActionState } from "@/features/pet-transport/types";
 import { shipmentFormSchema } from "@/features/shipments/schemas/shipment.schemas";
 import { AUTH_ROLES } from "@/lib/auth/constants";
 import { AuthError } from "@/lib/auth/errors";
-import { requireAuthenticatedUser, requireRole } from "@/lib/auth/session";
+import { requireAuthenticatedUser } from "@/lib/auth/session";
 import { getDatabaseUnavailableMessage, isDatabaseUnavailableError } from "@/lib/db-errors";
 import { poundsToKilogramsString } from "@/lib/measurements";
 
@@ -117,12 +118,15 @@ function getPetShipmentOriginAddress(
   };
 }
 
-function parsePetShipmentFormData(formData: FormData) {
+function parsePetShipmentFormData(
+  formData: FormData,
+  options: { customerId?: string; customerBooking?: boolean } = {},
+) {
   const petName = getString(formData, "petName") || "Pet";
   const destination = getPetShipmentAddress(formData, "destination");
 
   return shipmentFormSchema.safeParse({
-    customerId: getString(formData, "customerId"),
+    customerId: options.customerId ?? getString(formData, "customerId"),
     deliveryWindowEnd: getString(formData, "deliveryWindowEnd"),
     deliveryWindowStart: getString(formData, "deliveryWindowStart"),
     destination,
@@ -154,8 +158,23 @@ function parsePetShipmentFormData(formData: FormData) {
     priority: getString(formData, "priority") || "STANDARD",
     referenceNumber: getString(formData, "referenceNumber"),
     serviceLevel: getString(formData, "serviceLevel") || "Pet Shipment Care",
-    status: "BOOKED",
+    status: options.customerBooking ? "DRAFT" : "BOOKED",
   });
+}
+
+function getValidationErrors(error: ZodError) {
+  const fieldErrors: Record<string, string[]> = {};
+
+  for (const issue of error.issues) {
+    const path = issue.path.join(".");
+    const topLevelPath = String(issue.path[0] ?? "form");
+
+    for (const key of new Set([path || "form", topLevelPath])) {
+      fieldErrors[key] = [...(fieldErrors[key] ?? []), issue.message];
+    }
+  }
+
+  return fieldErrors;
 }
 
 function errorState(error: unknown): PetTransportActionState {
@@ -183,13 +202,27 @@ export async function createPetTransportBookingAction(
   _previousState: PetTransportActionState,
   formData: FormData,
 ): Promise<PetTransportActionState> {
-  const user = await requireRole([AUTH_ROLES.ADMIN, AUTH_ROLES.SUPER_ADMIN]);
+  const user = await requireAuthenticatedUser();
+  const isAdmin =
+    user.roles.includes(AUTH_ROLES.ADMIN) || user.roles.includes(AUTH_ROLES.SUPER_ADMIN);
+  const isCustomer = user.roles.includes(AUTH_ROLES.CUSTOMER);
+
+  if (!isAdmin && !isCustomer) {
+    return {
+      message: "Only customers can submit requests and administrators can create pet shipments.",
+      status: "error",
+    };
+  }
+
   const parsedPet = parsePetProfileFormData(formData);
-  const parsedShipment = parsePetShipmentFormData(formData);
+  const parsedShipment = parsePetShipmentFormData(formData, {
+    customerBooking: isCustomer,
+    customerId: isCustomer ? user.id : undefined,
+  });
 
   if (!parsedPet.success) {
     return {
-      fieldErrors: parsedPet.error.flatten().fieldErrors,
+      fieldErrors: getValidationErrors(parsedPet.error),
       message: "Please fix the highlighted pet profile details.",
       status: "error",
     };
@@ -197,8 +230,8 @@ export async function createPetTransportBookingAction(
 
   if (!parsedShipment.success) {
     return {
-      fieldErrors: parsedShipment.error.flatten().fieldErrors,
-      message: "Please fix the recipient and delivery details.",
+      fieldErrors: getValidationErrors(parsedShipment.error),
+      message: "Please correct the highlighted recipient or delivery fields.",
       status: "error",
     };
   }
@@ -210,6 +243,7 @@ export async function createPetTransportBookingAction(
       pet: parsedPet.data,
       shipmentInput: parsedShipment.data,
       user,
+      workflow: isCustomer ? "customer_booking" : "admin_creation",
     });
     petTransportId = petTransport.id;
   } catch (error) {

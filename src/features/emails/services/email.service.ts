@@ -53,8 +53,11 @@ type QueueBrandedEmailInput = {
   organizationId?: string | null;
   recipientEmail: string;
   recipientName?: string | null;
+  replyTo?: string | null;
   relatedUserId?: string | null;
   sentById?: string | null;
+  senderAddress?: string | null;
+  senderName?: string | null;
   shipmentId?: string | null;
   subject: string;
   templateId?: string | null;
@@ -260,10 +263,28 @@ async function processQueuedEmailLog(emailLogId: string) {
   }
 
   try {
+    const deliveryMetadata =
+      emailLog.metadata &&
+      typeof emailLog.metadata === "object" &&
+      !Array.isArray(emailLog.metadata)
+        ? emailLog.metadata
+        : {};
     const result = await sendEmailWithConfiguredProvider({
       html: emailLog.bodyHtml,
       recipientEmail: emailLog.recipientEmail,
       recipientName: emailLog.recipientName,
+      replyTo:
+        "replyTo" in deliveryMetadata && typeof deliveryMetadata.replyTo === "string"
+          ? deliveryMetadata.replyTo
+          : undefined,
+      senderAddress:
+        "senderAddress" in deliveryMetadata && typeof deliveryMetadata.senderAddress === "string"
+          ? deliveryMetadata.senderAddress
+          : undefined,
+      senderName:
+        "senderName" in deliveryMetadata && typeof deliveryMetadata.senderName === "string"
+          ? deliveryMetadata.senderName
+          : undefined,
       subject: emailLog.subject,
       text: emailLog.bodyText,
     });
@@ -468,6 +489,9 @@ export async function queueBrandedEmail(input: QueueBrandedEmailInput) {
       category: input.category ?? EmailTemplateCategory.SYSTEM,
       metadata: toJsonValue({
         source: "system",
+        replyTo: input.replyTo,
+        senderAddress: input.senderAddress,
+        senderName: input.senderName,
       }),
       organizationId: input.organizationId,
       provider: EmailProvider.CONSOLE,

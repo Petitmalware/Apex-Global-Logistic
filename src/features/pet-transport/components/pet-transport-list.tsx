@@ -16,11 +16,15 @@ import { formatPetTransportStatus } from "@/features/shipments/status-labels";
 import type { PetTransportListItem } from "@/features/pet-transport/types";
 
 const statusVariant = {
+  AWAITING_PAYMENT: "warning",
   CANCELLED: "danger",
   CLEARED: "success",
   DELIVERED: "success",
   DOCUMENTATION_PENDING: "warning",
   IN_TRANSIT: "accent",
+  ON_HOLD: "warning",
+  OUT_FOR_DELIVERY: "accent",
+  READY_FOR_TRANSPORT: "success",
   REQUESTED: "outline",
 } as const;
 
@@ -37,9 +41,11 @@ export function PetTransportStatusBadge({ status }: { status: PetTransportListIt
 
 export function PetTransportList({
   canCreate = false,
+  customerBooking = false,
   petTransports,
 }: {
   canCreate?: boolean;
+  customerBooking?: boolean;
   petTransports: PetTransportListItem[];
 }) {
   if (petTransports.length === 0) {
@@ -49,16 +55,24 @@ export function PetTransportList({
           <PawPrint aria-hidden="true" className="size-6" />
         </div>
         <h2 className="mt-4 text-xl font-semibold tracking-normal">
-          {canCreate ? "No pet shipments yet" : "No assigned pet shipments yet"}
+          {customerBooking
+            ? "No pet transport requests yet"
+            : canCreate
+              ? "No pet shipments yet"
+              : "No assigned pet shipments yet"}
         </h2>
         <p className="text-muted-foreground mx-auto mt-2 max-w-md text-sm leading-6">
-          {canCreate
-            ? "Create a pet shipment for a registered customer recipient, then manage profile records, travel documents, crate handling, feeding, temperature, photos, and tracking."
-            : "Pet shipments assigned to your customer account will appear here after the Apex team creates them."}
+          {customerBooking
+            ? "Submit a request with the pet, sender, care, and delivery details. Apex operations will review it before transport is scheduled."
+            : canCreate
+              ? "Create a pet shipment for a registered or manual recipient, then manage travel documents, crate handling, care, photos, and tracking."
+              : "Pet shipments assigned to your customer account will appear here after the Apex team creates them."}
         </p>
         {canCreate ? (
           <Button asChild className="mt-5" variant="accent">
-            <Link href={"/pet-transport/new" as Route}>Create pet shipment</Link>
+            <Link href={"/pet-transport/new" as Route}>
+              {customerBooking ? "Request pet transport" : "Create pet shipment"}
+            </Link>
           </Button>
         ) : null}
       </div>

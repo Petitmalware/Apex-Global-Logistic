@@ -19,6 +19,7 @@ import type {
 } from "@/features/freight-transport/types";
 import type { CustomerOption } from "@/features/shipments/types";
 import { initialFreightTransportActionState } from "@/features/freight-transport/types";
+import { kilogramsToPoundsString } from "@/lib/measurements";
 
 type FreightTransportFormProps = {
   action: (
@@ -29,6 +30,7 @@ type FreightTransportFormProps = {
   customerOptions?: CustomerOption[];
   initialFreightTransport?: FreightTransportDetail;
   mode: "create" | "edit";
+  workflow?: "admin_creation" | "customer_booking";
 };
 
 function toDateTimeLocal(value?: string | null) {
@@ -88,7 +90,7 @@ function AddressFields({ prefix, title }: { prefix: "destination" | "origin"; ti
   );
 }
 
-function ShipmentPlanFields() {
+function ShipmentPlanFields({ customerBooking }: { customerBooking: boolean }) {
   return (
     <Card>
       <CardHeader>
@@ -99,10 +101,12 @@ function ShipmentPlanFields() {
           <Label htmlFor="referenceNumber">Reference number</Label>
           <Input id="referenceNumber" name="referenceNumber" placeholder="Optional" />
         </Field>
-        <Field>
-          <Label htmlFor="serviceLevel">Service level</Label>
-          <Input id="serviceLevel" name="serviceLevel" placeholder="Long-haul Freight" />
-        </Field>
+        {!customerBooking ? (
+          <Field>
+            <Label htmlFor="serviceLevel">Service level</Label>
+            <Input id="serviceLevel" name="serviceLevel" placeholder="Long-haul Freight" />
+          </Field>
+        ) : null}
         <Field>
           <Label htmlFor="priority">Priority</Label>
           <Select defaultValue="STANDARD" id="priority" name="priority">
@@ -138,7 +142,9 @@ function ShipmentPlanFields() {
           <Input id="deliveryWindowEnd" name="deliveryWindowEnd" type="datetime-local" />
         </Field>
         <Field className="sm:col-span-2">
-          <Label htmlFor="notes">Shipment notes</Label>
+          <Label htmlFor="notes">
+            {customerBooking ? "Booking instructions" : "Shipment notes"}
+          </Label>
           <Textarea id="notes" name="notes" placeholder="Carrier, route, border, or relay notes" />
         </Field>
       </CardContent>
@@ -152,9 +158,11 @@ export function FreightTransportForm({
   customerOptions = [],
   initialFreightTransport,
   mode,
+  workflow = "admin_creation",
 }: FreightTransportFormProps) {
   const [state, formAction, isPending] = useActionState(action, initialFreightTransportActionState);
   const isEdit = mode === "edit";
+  const isCustomerBooking = workflow === "customer_booking";
 
   return (
     <form action={formAction} className="space-y-6">
@@ -163,7 +171,7 @@ export function FreightTransportForm({
           {state.message}
         </p>
       ) : null}
-      {!isEdit ? (
+      {!isEdit && !isCustomerBooking ? (
         <CustomerSelectCard
           allowManualRecipient
           customerOptions={customerOptions}
@@ -185,7 +193,9 @@ export function FreightTransportForm({
             <Truck aria-hidden="true" className="size-5" />
           </div>
           <div>
-            <CardTitle>Freight profile</CardTitle>
+            <CardTitle>
+              {isCustomerBooking ? "Freight booking details" : "Freight shipment profile"}
+            </CardTitle>
             <FieldHint>
               Commodity, cargo class, long-haul handling, and compliance details.
             </FieldHint>
@@ -209,23 +219,27 @@ export function FreightTransportForm({
               <option value="OTHER">Other</option>
             </Select>
           </Field>
-          <Field>
-            <Label htmlFor="status">Freight status</Label>
-            <Select
-              defaultValue={initialFreightTransport?.status ?? "REQUESTED"}
-              id="status"
-              name="status"
-            >
-              <option value="REQUESTED">Requested</option>
-              <option value="PLANNED">Planned</option>
-              <option value="ASSIGNED">Assigned</option>
-              <option value="LOADING">Loading</option>
-              <option value="IN_TRANSIT">In transit</option>
-              <option value="ON_HOLD">On hold</option>
-              <option value="DELIVERED">Delivered</option>
-              <option value="CANCELLED">Cancelled</option>
-            </Select>
-          </Field>
+          {!isCustomerBooking ? (
+            <Field>
+              <Label htmlFor="status">Freight status</Label>
+              <Select
+                defaultValue={initialFreightTransport?.status ?? "REQUESTED"}
+                id="status"
+                name="status"
+              >
+                <option value="REQUESTED">Requested</option>
+                <option value="PLANNED">Planned</option>
+                <option value="ASSIGNED">Assigned</option>
+                <option value="LOADING">Loading</option>
+                <option value="IN_TRANSIT">In transit</option>
+                <option value="ON_HOLD">On hold</option>
+                <option value="DELIVERED">Delivered</option>
+                <option value="CANCELLED">Cancelled</option>
+              </Select>
+            </Field>
+          ) : (
+            <input name="status" type="hidden" value="REQUESTED" />
+          )}
           <Field>
             <Label htmlFor="incoterm">Incoterm</Label>
             <Input
@@ -253,14 +267,14 @@ export function FreightTransportForm({
             />
           </Field>
           <Field>
-            <Label htmlFor="grossWeightKg">Gross weight kg</Label>
+            <Label htmlFor="grossWeightLb">Gross weight (lb)</Label>
             <Input
-              id="grossWeightKg"
+              id="grossWeightLb"
               min="0"
-              name="grossWeightKg"
+              name="grossWeightLb"
               step="0.001"
               type="number"
-              defaultValue={initialFreightTransport?.grossWeightKg ?? ""}
+              defaultValue={kilogramsToPoundsString(initialFreightTransport?.grossWeightKg)}
             />
           </Field>
           <Field>
@@ -355,128 +369,130 @@ export function FreightTransportForm({
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="flex flex-row items-start gap-3">
-          <div className="bg-info/10 text-info grid size-10 place-items-center rounded-md">
-            <RouteIcon aria-hidden="true" className="size-5" />
-          </div>
-          <div>
-            <CardTitle>Route and ETA</CardTitle>
-            <FieldHint>
-              ETA is calculated from planned departure plus duration, or distance divided by average
-              speed when no arrival time is provided.
-            </FieldHint>
-          </div>
-        </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Field>
-            <Label htmlFor="routeName">Route name</Label>
-            <Input
-              id="routeName"
-              name="routeName"
-              placeholder="Lagos to Accra corridor"
-              defaultValue={initialFreightTransport?.routeName ?? ""}
-            />
-          </Field>
-          <Field>
-            <Label htmlFor="routeCode">Route code</Label>
-            <Input
-              id="routeCode"
-              name="routeCode"
-              placeholder="RTE-WA-014"
-              defaultValue={initialFreightTransport?.routeCode ?? ""}
-            />
-          </Field>
-          <Field>
-            <Label htmlFor="distanceKm">Distance km</Label>
-            <Input
-              id="distanceKm"
-              min="0"
-              name="distanceKm"
-              step="0.001"
-              type="number"
-              defaultValue={initialFreightTransport?.distanceKm ?? ""}
-            />
-          </Field>
-          <Field>
-            <Label htmlFor="averageSpeedKph">Average speed kph</Label>
-            <Input
-              id="averageSpeedKph"
-              min="0"
-              name="averageSpeedKph"
-              step="0.01"
-              type="number"
-              defaultValue={initialFreightTransport?.averageSpeedKph ?? ""}
-            />
-          </Field>
-          <Field>
-            <Label htmlFor="estimatedDurationHours">Duration hours</Label>
-            <Input
-              id="estimatedDurationHours"
-              min="0"
-              name="estimatedDurationHours"
-              type="number"
-              defaultValue={initialFreightTransport?.estimatedDurationHours ?? ""}
-            />
-          </Field>
-          <Field>
-            <Label htmlFor="plannedDepartureAt">Planned departure</Label>
-            <Input
-              id="plannedDepartureAt"
-              name="plannedDepartureAt"
-              type="datetime-local"
-              defaultValue={toDateTimeLocal(initialFreightTransport?.plannedDepartureAt)}
-            />
-          </Field>
-          <Field>
-            <Label htmlFor="plannedArrivalAt">Planned arrival</Label>
-            <Input
-              id="plannedArrivalAt"
-              name="plannedArrivalAt"
-              type="datetime-local"
-              defaultValue={toDateTimeLocal(initialFreightTransport?.plannedArrivalAt)}
-            />
-          </Field>
-          <Field>
-            <Label htmlFor="actualDepartureAt">Actual departure</Label>
-            <Input
-              id="actualDepartureAt"
-              name="actualDepartureAt"
-              type="datetime-local"
-              defaultValue={toDateTimeLocal(initialFreightTransport?.actualDepartureAt)}
-            />
-          </Field>
-          <Field>
-            <Label htmlFor="actualArrivalAt">Actual arrival</Label>
-            <Input
-              id="actualArrivalAt"
-              name="actualArrivalAt"
-              type="datetime-local"
-              defaultValue={toDateTimeLocal(initialFreightTransport?.actualArrivalAt)}
-            />
-          </Field>
-          <Field>
-            <Label htmlFor="originTerminal">Origin terminal</Label>
-            <Input
-              id="originTerminal"
-              name="originTerminal"
-              defaultValue={initialFreightTransport?.originTerminal ?? ""}
-            />
-          </Field>
-          <Field>
-            <Label htmlFor="destinationTerminal">Destination terminal</Label>
-            <Input
-              id="destinationTerminal"
-              name="destinationTerminal"
-              defaultValue={initialFreightTransport?.destinationTerminal ?? ""}
-            />
-          </Field>
-        </CardContent>
-      </Card>
+      {!isCustomerBooking ? (
+        <Card>
+          <CardHeader className="flex flex-row items-start gap-3">
+            <div className="bg-info/10 text-info grid size-10 place-items-center rounded-md">
+              <RouteIcon aria-hidden="true" className="size-5" />
+            </div>
+            <div>
+              <CardTitle>Route and ETA</CardTitle>
+              <FieldHint>
+                ETA is calculated from planned departure plus duration, or distance divided by
+                average speed when no arrival time is provided.
+              </FieldHint>
+            </div>
+          </CardHeader>
+          <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <Field>
+              <Label htmlFor="routeName">Route name</Label>
+              <Input
+                id="routeName"
+                name="routeName"
+                placeholder="Lagos to Accra corridor"
+                defaultValue={initialFreightTransport?.routeName ?? ""}
+              />
+            </Field>
+            <Field>
+              <Label htmlFor="routeCode">Route code</Label>
+              <Input
+                id="routeCode"
+                name="routeCode"
+                placeholder="RTE-WA-014"
+                defaultValue={initialFreightTransport?.routeCode ?? ""}
+              />
+            </Field>
+            <Field>
+              <Label htmlFor="distanceKm">Distance km</Label>
+              <Input
+                id="distanceKm"
+                min="0"
+                name="distanceKm"
+                step="0.001"
+                type="number"
+                defaultValue={initialFreightTransport?.distanceKm ?? ""}
+              />
+            </Field>
+            <Field>
+              <Label htmlFor="averageSpeedKph">Average speed kph</Label>
+              <Input
+                id="averageSpeedKph"
+                min="0"
+                name="averageSpeedKph"
+                step="0.01"
+                type="number"
+                defaultValue={initialFreightTransport?.averageSpeedKph ?? ""}
+              />
+            </Field>
+            <Field>
+              <Label htmlFor="estimatedDurationHours">Duration hours</Label>
+              <Input
+                id="estimatedDurationHours"
+                min="0"
+                name="estimatedDurationHours"
+                type="number"
+                defaultValue={initialFreightTransport?.estimatedDurationHours ?? ""}
+              />
+            </Field>
+            <Field>
+              <Label htmlFor="plannedDepartureAt">Planned departure</Label>
+              <Input
+                id="plannedDepartureAt"
+                name="plannedDepartureAt"
+                type="datetime-local"
+                defaultValue={toDateTimeLocal(initialFreightTransport?.plannedDepartureAt)}
+              />
+            </Field>
+            <Field>
+              <Label htmlFor="plannedArrivalAt">Planned arrival</Label>
+              <Input
+                id="plannedArrivalAt"
+                name="plannedArrivalAt"
+                type="datetime-local"
+                defaultValue={toDateTimeLocal(initialFreightTransport?.plannedArrivalAt)}
+              />
+            </Field>
+            <Field>
+              <Label htmlFor="actualDepartureAt">Actual departure</Label>
+              <Input
+                id="actualDepartureAt"
+                name="actualDepartureAt"
+                type="datetime-local"
+                defaultValue={toDateTimeLocal(initialFreightTransport?.actualDepartureAt)}
+              />
+            </Field>
+            <Field>
+              <Label htmlFor="actualArrivalAt">Actual arrival</Label>
+              <Input
+                id="actualArrivalAt"
+                name="actualArrivalAt"
+                type="datetime-local"
+                defaultValue={toDateTimeLocal(initialFreightTransport?.actualArrivalAt)}
+              />
+            </Field>
+            <Field>
+              <Label htmlFor="originTerminal">Origin terminal</Label>
+              <Input
+                id="originTerminal"
+                name="originTerminal"
+                defaultValue={initialFreightTransport?.originTerminal ?? ""}
+              />
+            </Field>
+            <Field>
+              <Label htmlFor="destinationTerminal">Destination terminal</Label>
+              <Input
+                id="destinationTerminal"
+                name="destinationTerminal"
+                defaultValue={initialFreightTransport?.destinationTerminal ?? ""}
+              />
+            </Field>
+          </CardContent>
+        </Card>
+      ) : null}
 
       {!isEdit ? (
         <>
-          <ShipmentPlanFields />
+          <ShipmentPlanFields customerBooking={isCustomerBooking} />
           <div className="grid gap-6 lg:grid-cols-2">
             <AddressFields prefix="origin" title="Pickup address" />
             <AddressFields prefix="destination" title="Delivery address" />
@@ -489,7 +505,13 @@ export function FreightTransportForm({
           <Link href={cancelHref as Route}>Cancel</Link>
         </Button>
         <Button disabled={isPending} type="submit" variant="accent">
-          {isPending ? "Saving..." : isEdit ? "Save freight" : "Book freight"}
+          {isPending
+            ? "Saving..."
+            : isEdit
+              ? "Save freight"
+              : isCustomerBooking
+                ? "Submit freight request"
+                : "Create freight shipment"}
           <ArrowRight aria-hidden="true" />
         </Button>
       </div>

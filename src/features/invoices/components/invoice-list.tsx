@@ -17,7 +17,7 @@ import type { InvoiceListItem } from "@/features/invoices/types/invoice.types";
 
 function formatDate(value: string | null) {
   if (!value) {
-    return "Not set";
+    return "";
   }
 
   return new Intl.DateTimeFormat("en", {
@@ -48,15 +48,18 @@ export function InvoiceList({ invoices }: { invoices: InvoiceListItem[] }) {
     );
   }
 
+  const showDueDate = invoices.some((invoice) => invoice.dueDate);
+  const showShipment = invoices.some((invoice) => invoice.shipmentNumber);
+
   return (
     <Table>
       <TableHeader>
         <TableRow>
           <TableHead>Invoice</TableHead>
           <TableHead>Customer</TableHead>
-          <TableHead>Shipment</TableHead>
+          {showShipment ? <TableHead>Shipment</TableHead> : null}
           <TableHead>Status</TableHead>
-          <TableHead>Due</TableHead>
+          {showDueDate ? <TableHead>Due</TableHead> : null}
           <TableHead>Total</TableHead>
           <TableHead className="text-right">Open</TableHead>
         </TableRow>
@@ -70,18 +73,20 @@ export function InvoiceList({ invoices }: { invoices: InvoiceListItem[] }) {
             </TableCell>
             <TableCell>
               <p>{invoice.customerName ?? "Customer"}</p>
-              <p className="text-muted-foreground text-xs">{invoice.customerEmail ?? "No email"}</p>
+              {invoice.customerEmail ? (
+                <p className="text-muted-foreground text-xs">{invoice.customerEmail}</p>
+              ) : null}
               {invoice.customerPhone ? (
                 <p className="text-muted-foreground text-xs">{invoice.customerPhone}</p>
               ) : null}
             </TableCell>
-            <TableCell className="font-mono text-xs">
-              {invoice.shipmentNumber ?? "Unlinked"}
-            </TableCell>
+            {showShipment ? (
+              <TableCell className="font-mono text-xs">{invoice.shipmentNumber ?? "-"}</TableCell>
+            ) : null}
             <TableCell>
               <Badge variant="outline">{invoice.status.replaceAll("_", " ")}</Badge>
             </TableCell>
-            <TableCell>{formatDate(invoice.dueDate)}</TableCell>
+            {showDueDate ? <TableCell>{formatDate(invoice.dueDate) || "-"}</TableCell> : null}
             <TableCell className="font-semibold">
               {formatMoney(invoice.total, invoice.currency)}
             </TableCell>

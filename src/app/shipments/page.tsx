@@ -20,6 +20,7 @@ export default async function ShipmentsPage() {
   const shipments = await getShipmentsForUser(user);
   const canCreateShipments =
     user.roles.includes(AUTH_ROLES.ADMIN) || user.roles.includes(AUTH_ROLES.SUPER_ADMIN);
+  const canBookParcel = user.roles.includes(AUTH_ROLES.CUSTOMER);
 
   return (
     <ProtectedShell
@@ -41,18 +42,20 @@ export default async function ShipmentsPage() {
               Showing the latest 50 shipments available to your role.
             </p>
           </div>
-          {canCreateShipments ? (
+          {canCreateShipments || canBookParcel ? (
             <div className="flex flex-wrap gap-2">
-              <Button asChild variant="outline">
-                <Link href={"/shipments/new" as Route}>
-                  <Plus aria-hidden="true" />
-                  New shipment
-                </Link>
-              </Button>
+              {canCreateShipments ? (
+                <Button asChild variant="outline">
+                  <Link href={"/shipments/new" as Route}>
+                    <Plus aria-hidden="true" />
+                    Create shipment
+                  </Link>
+                </Button>
+              ) : null}
               <Button asChild variant="accent">
                 <Link href={"/shipments/parcel/new" as Route}>
                   <PackagePlus aria-hidden="true" />
-                  Book parcel
+                  {canBookParcel ? "Book parcel" : "Create parcel shipment"}
                 </Link>
               </Button>
             </div>

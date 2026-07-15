@@ -25,11 +25,15 @@ export const trackingEventLabels = {
 } satisfies Record<TrackingEventType, string>;
 
 export const petTransportStatusLabels = {
+  AWAITING_PAYMENT: "Awaiting payment",
   CANCELLED: "Cancelled",
   CLEARED: "Cleared for travel",
   DELIVERED: "Delivered",
   DOCUMENTATION_PENDING: "Documentation pending",
   IN_TRANSIT: "In transit",
+  ON_HOLD: "On hold",
+  OUT_FOR_DELIVERY: "Out for delivery",
+  READY_FOR_TRANSPORT: "Ready for transport",
   REQUESTED: "Pending review",
 } satisfies Record<PetTransportStatus, string>;
 

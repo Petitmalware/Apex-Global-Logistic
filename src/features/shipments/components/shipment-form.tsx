@@ -181,7 +181,7 @@ export function ShipmentForm({
   const [state, formAction, isPending] = useActionState(action, initialShipmentActionState);
   const packageRows = getPackageRows(initialShipment);
   const officeDetails = initialShipment?.officeDetails;
-  const currentStatus = initialShipment?.status ?? "DRAFT";
+  const currentStatus = initialShipment?.status ?? "BOOKED";
   const isCreateMode = mode === "create";
   const [recipientName, setRecipientName] = useState(initialShipment?.manualRecipient?.name ?? "");
   const [recipientEmail, setRecipientEmail] = useState(

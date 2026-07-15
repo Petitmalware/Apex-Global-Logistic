@@ -348,27 +348,40 @@ export async function createFreightTransportBooking({
   freight,
   shipmentInput,
   user,
+  workflow = "admin_creation",
 }: {
   freight: FreightTransportProfileInput;
   shipmentInput: ShipmentFormInput;
   user: AuthSessionUser;
+  workflow?: "admin_creation" | "customer_booking";
 }) {
+  const isCustomerBooking = workflow === "customer_booking";
+  const freightProfile = isCustomerBooking
+    ? { ...freight, status: FreightTransportStatus.REQUESTED }
+    : freight;
   const shipment = await createShipment(
     {
       ...shipmentInput,
       serviceLevel: shipmentInput.serviceLevel || "Long-haul Freight",
-      status: ShipmentStatus.BOOKED,
+      status: isCustomerBooking ? ShipmentStatus.DRAFT : ShipmentStatus.BOOKED,
     },
     user,
+    { customerBooking: isCustomerBooking },
   );
 
   const freightTransport = await prisma.$transaction(async (transaction) => {
     await transaction.shipment.update({
       data: {
         metadata: {
+          ...(shipment.metadata &&
+          typeof shipment.metadata === "object" &&
+          !Array.isArray(shipment.metadata)
+            ? shipment.metadata
+            : {}),
           bookingType: "FREIGHT_TRANSPORT",
-          freightType: freight.freightType,
-          routeCode: freight.routeCode ?? null,
+          freightType: freightProfile.freightType,
+          routeCode: freightProfile.routeCode ?? null,
+          workflow,
         },
       },
       where: {
@@ -378,7 +391,7 @@ export async function createFreightTransportBooking({
 
     const createdFreightTransport = await transaction.freightTransport.create({
       data: {
-        ...buildFreightProfileData(freight),
+        ...buildFreightProfileData(freightProfile),
         shipmentId: shipment.id,
       },
       select: {
@@ -389,7 +402,9 @@ export async function createFreightTransportBooking({
     await createLinkedTrackingEvent({
       eventType: FreightTrackingEventType.BOOKING_CREATED,
       freightTransportId: createdFreightTransport.id,
-      message: "Freight transport booking created.",
+      message: isCustomerBooking
+        ? "Freight booking request submitted for operations review."
+        : "Freight shipment created.",
       occurredAt: new Date(),
       recordedById: user.id,
       shipmentId: shipment.id,
@@ -404,8 +419,9 @@ export async function createFreightTransportBooking({
         entityId: createdFreightTransport.id,
         entityType: "freight_transport",
         metadata: {
-          freightType: freight.freightType,
+          freightType: freightProfile.freightType,
           shipmentId: shipment.id,
+          workflow,
         },
         organizationId: shipment.organizationId,
       },

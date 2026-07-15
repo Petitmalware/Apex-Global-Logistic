@@ -54,6 +54,8 @@ const serverEnvSchema = z.object({
   STORAGE_DRIVER: z.enum(["local", "s3"]).default("local"),
   STORAGE_LOCAL_PATH: z.string().default("storage"),
   SUPPORT_EMAIL: z.string().email().default("support@apexgloballogistics.example"),
+  SUPPORT_SMTP_PASSWORD: z.string().optional(),
+  SUPPORT_SMTP_USERNAME: z.string().email().optional(),
   SUPPORT_PHONE: z.string().default(""),
 });
 

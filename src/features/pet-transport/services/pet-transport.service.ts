@@ -6,6 +6,7 @@ import {
   PetTravelEventType,
   PetVetCheckStatus,
   ShipmentStatus,
+  TrackingEventType,
   type Prisma,
 } from "@prisma/client";
 
@@ -20,8 +21,10 @@ import type {
   PetVaccinationRecordInput,
   PetVeterinarianCheckInput,
 } from "@/features/pet-transport/schemas/pet-transport.schemas";
-import { createShipment } from "@/features/shipments/services/shipment.service";
 import type { ShipmentFormInput } from "@/features/shipments/schemas/shipment.schemas";
+import { notifyShipmentStatusChanged } from "@/features/notifications/services/notification.service";
+import { publishShipmentTrackingUpdate } from "@/features/shipments/services/shipment-realtime.service";
+import { createShipment } from "@/features/shipments/services/shipment.service";
 import { AUTH_ROLES } from "@/lib/auth/constants";
 import { AuthError } from "@/lib/auth/errors";
 import { PERMISSIONS, hasPermission } from "@/lib/auth/rbac";
@@ -102,6 +105,7 @@ async function getPetTransportForMutation(petTransportId: string, user: AuthSess
           id: true,
           organizationId: true,
           shipmentNumber: true,
+          status: true,
         },
       },
     },
@@ -179,6 +183,47 @@ function getJsonObject(value: Prisma.JsonValue | null): Prisma.InputJsonObject {
     : {};
 }
 
+function getShipmentStatusForPetStatus(status: PetTransportStatus, customerBooking = false) {
+  switch (status) {
+    case PetTransportStatus.DOCUMENTATION_PENDING:
+    case PetTransportStatus.AWAITING_PAYMENT:
+    case PetTransportStatus.ON_HOLD:
+      return ShipmentStatus.HELD;
+    case PetTransportStatus.CLEARED:
+    case PetTransportStatus.READY_FOR_TRANSPORT:
+      return ShipmentStatus.PENDING_PICKUP;
+    case PetTransportStatus.IN_TRANSIT:
+    case PetTransportStatus.OUT_FOR_DELIVERY:
+      return ShipmentStatus.IN_TRANSIT;
+    case PetTransportStatus.DELIVERED:
+      return ShipmentStatus.DELIVERED;
+    case PetTransportStatus.CANCELLED:
+      return ShipmentStatus.CANCELLED;
+    case PetTransportStatus.REQUESTED:
+    default:
+      return customerBooking ? ShipmentStatus.DRAFT : ShipmentStatus.BOOKED;
+  }
+}
+
+function getTrackingEventForPetStatus(status: PetTransportStatus) {
+  switch (status) {
+    case PetTransportStatus.IN_TRANSIT:
+      return TrackingEventType.IN_TRANSIT;
+    case PetTransportStatus.OUT_FOR_DELIVERY:
+      return TrackingEventType.OUT_FOR_DELIVERY;
+    case PetTransportStatus.DELIVERED:
+      return TrackingEventType.DELIVERED;
+    case PetTransportStatus.CANCELLED:
+      return TrackingEventType.CANCELLED;
+    case PetTransportStatus.ON_HOLD:
+    case PetTransportStatus.AWAITING_PAYMENT:
+    case PetTransportStatus.DOCUMENTATION_PENDING:
+      return TrackingEventType.DELAYED;
+    default:
+      return TrackingEventType.CHECKED_IN;
+  }
+}
+
 function buildPetProfileData(input: PetTransportProfileInput) {
   return {
     ageMonths: input.ageMonths,
@@ -211,18 +256,28 @@ export async function createPetTransportBooking({
   pet,
   shipmentInput,
   user,
+  workflow = "admin_creation",
 }: {
   pet: PetTransportProfileInput;
   shipmentInput: ShipmentFormInput;
   user: AuthSessionUser;
+  workflow?: "admin_creation" | "customer_booking";
 }) {
+  const isCustomerBooking = workflow === "customer_booking";
+  const petProfile = isCustomerBooking
+    ? {
+        ...pet,
+        status: PetTransportStatus.REQUESTED,
+      }
+    : pet;
   const shipment = await createShipment(
     {
       ...shipmentInput,
       serviceLevel: shipmentInput.serviceLevel || "Pet Shipment Care",
-      status: ShipmentStatus.BOOKED,
+      status: getShipmentStatusForPetStatus(petProfile.status, isCustomerBooking),
     },
     user,
+    { customerBooking: isCustomerBooking },
   );
 
   const petTransport = await prisma.$transaction(async (transaction) => {
@@ -231,8 +286,9 @@ export async function createPetTransportBooking({
         metadata: {
           ...getJsonObject(shipment.metadata),
           bookingType: "PET_TRANSPORT",
-          petName: pet.petName,
-          species: pet.species,
+          petName: petProfile.petName,
+          workflow,
+          species: petProfile.species,
         },
       },
       where: {
@@ -242,7 +298,7 @@ export async function createPetTransportBooking({
 
     const createdPetTransport = await transaction.petTransport.create({
       data: {
-        ...buildPetProfileData(pet),
+        ...buildPetProfileData(petProfile),
         shipmentId: shipment.id,
       },
       select: {
@@ -253,7 +309,9 @@ export async function createPetTransportBooking({
     await transaction.petTravelHistory.create({
       data: {
         eventType: PetTravelEventType.PROFILE_CREATED,
-        message: "Pet shipment profile created and linked to shipment tracking.",
+        message: isCustomerBooking
+          ? "Pet transport request submitted for operations review."
+          : "Pet shipment profile created and linked to shipment tracking.",
         occurredAt: new Date(),
         petTransportId: createdPetTransport.id,
         recordedById: user.id,
@@ -267,9 +325,10 @@ export async function createPetTransportBooking({
         entityId: createdPetTransport.id,
         entityType: "pet_transport",
         metadata: {
-          petName: pet.petName,
+          petName: petProfile.petName,
           shipmentId: shipment.id,
-          species: pet.species,
+          species: petProfile.species,
+          workflow,
         },
         organizationId: shipment.organizationId,
       },
@@ -287,6 +346,11 @@ export async function updatePetTransportProfile(
   user: AuthSessionUser,
 ) {
   const petTransport = await getPetTransportForMutation(petTransportId, user);
+  const shipmentStatus = getShipmentStatusForPetStatus(input.status);
+  const statusChanged = petTransport.status !== input.status;
+  const statusMessage = `Pet shipment status updated to ${input.status
+    .toLowerCase()
+    .replaceAll("_", " ")}.`;
 
   await prisma.$transaction(async (transaction) => {
     await transaction.petTransport.update({
@@ -305,7 +369,29 @@ export async function updatePetTransportProfile(
         recordedById: user.id,
       },
     });
-  });
+
+    if (statusChanged) {
+      await transaction.shipment.update({
+        data: {
+          status: shipmentStatus,
+        },
+        where: {
+          id: petTransport.shipment.id,
+        },
+      });
+
+      await transaction.trackingEvent.create({
+        data: {
+          eventType: getTrackingEventForPetStatus(input.status),
+          message: statusMessage,
+          occurredAt: new Date(),
+          recordedById: user.id,
+          shipmentId: petTransport.shipment.id,
+          shipmentStatus,
+        },
+      });
+    }
+  }, REMOTE_DATABASE_TRANSACTION_OPTIONS);
 
   await logShipmentActivity({
     action: ActivityAction.UPDATE,
@@ -317,6 +403,21 @@ export async function updatePetTransportProfile(
     organizationId: petTransport.shipment.organizationId,
     user,
   });
+
+  if (statusChanged) {
+    await Promise.allSettled([
+      publishShipmentTrackingUpdate(petTransport.shipment.id),
+      notifyShipmentStatusChanged({
+        createdById: petTransport.shipment.createdById,
+        customerId: petTransport.shipment.customerId,
+        message: statusMessage,
+        organizationId: petTransport.shipment.organizationId,
+        shipmentId: petTransport.shipment.id,
+        shipmentNumber: petTransport.shipment.shipmentNumber,
+        status: shipmentStatus,
+      }),
+    ]);
+  }
 }
 
 export async function addPetVaccinationRecord({
@@ -476,6 +577,8 @@ export async function addPetVeterinarianCheck({
   user: AuthSessionUser;
 }) {
   const petTransport = await getPetTransportForMutation(petTransportId, user);
+  const clearedForTravel = input.status === PetVetCheckStatus.CLEARED;
+  const clearanceMessage = "Veterinarian check completed. Pet cleared for transport.";
 
   await prisma.$transaction(async (transaction) => {
     const check = await transaction.petVeterinarianCheck.create({
@@ -497,13 +600,33 @@ export async function addPetVeterinarianCheck({
       },
     });
 
-    if (input.status === PetVetCheckStatus.CLEARED) {
+    if (clearedForTravel) {
       await transaction.petTransport.update({
         data: {
           status: PetTransportStatus.CLEARED,
         },
         where: {
           id: petTransportId,
+        },
+      });
+
+      await transaction.shipment.update({
+        data: {
+          status: ShipmentStatus.PENDING_PICKUP,
+        },
+        where: {
+          id: petTransport.shipment.id,
+        },
+      });
+
+      await transaction.trackingEvent.create({
+        data: {
+          eventType: TrackingEventType.CHECKED_IN,
+          message: clearanceMessage,
+          occurredAt: input.checkedAt,
+          recordedById: user.id,
+          shipmentId: petTransport.shipment.id,
+          shipmentStatus: ShipmentStatus.PENDING_PICKUP,
         },
       });
     }
@@ -520,7 +643,7 @@ export async function addPetVeterinarianCheck({
         },
       },
     });
-  });
+  }, REMOTE_DATABASE_TRANSACTION_OPTIONS);
 
   await logShipmentActivity({
     action: ActivityAction.CREATE,
@@ -532,6 +655,21 @@ export async function addPetVeterinarianCheck({
     organizationId: petTransport.shipment.organizationId,
     user,
   });
+
+  if (clearedForTravel) {
+    await Promise.allSettled([
+      publishShipmentTrackingUpdate(petTransport.shipment.id),
+      notifyShipmentStatusChanged({
+        createdById: petTransport.shipment.createdById,
+        customerId: petTransport.shipment.customerId,
+        message: clearanceMessage,
+        organizationId: petTransport.shipment.organizationId,
+        shipmentId: petTransport.shipment.id,
+        shipmentNumber: petTransport.shipment.shipmentNumber,
+        status: ShipmentStatus.PENDING_PICKUP,
+      }),
+    ]);
+  }
 }
 
 export async function addPetFeedingSchedule({

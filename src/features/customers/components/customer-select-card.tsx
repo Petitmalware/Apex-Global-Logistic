@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, FieldError, FieldHint } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -30,6 +32,8 @@ export function CustomerSelectCard({
   placeholder?: string;
   title?: string;
 }) {
+  const [selectedCustomerId, setSelectedCustomerId] = useState(defaultCustomerId ?? "");
+
   return (
     <Card>
       <CardHeader>
@@ -40,11 +44,12 @@ export function CustomerSelectCard({
         <Field>
           <Label htmlFor="customerId">{label}</Label>
           <Select
-            defaultValue={defaultCustomerId ?? ""}
             disabled={!customerOptions.length && !allowManualRecipient}
             id="customerId"
             name="customerId"
+            onChange={(event) => setSelectedCustomerId(event.target.value)}
             required={!allowManualRecipient}
+            value={selectedCustomerId}
           >
             <option value="">
               {customerOptions.length || allowManualRecipient ? placeholder : emptyLabel}
@@ -57,7 +62,7 @@ export function CustomerSelectCard({
           </Select>
           {errors?.length ? <FieldError>{errors.join(" ")}</FieldError> : null}
         </Field>
-        {allowManualRecipient ? (
+        {allowManualRecipient && !selectedCustomerId ? (
           <div className="border-border bg-surface grid gap-4 rounded-md border p-4 sm:grid-cols-3">
             <Field className="sm:col-span-3">
               <FieldHint>{manualRecipientHint}</FieldHint>
@@ -68,6 +73,7 @@ export function CustomerSelectCard({
                 id="manualRecipient.name"
                 name="manualRecipient.name"
                 placeholder="Recipient name"
+                required
               />
             </Field>
             <Field>
@@ -76,6 +82,7 @@ export function CustomerSelectCard({
                 id="manualRecipient.email"
                 name="manualRecipient.email"
                 placeholder="client@example.com"
+                required
                 type="email"
               />
             </Field>

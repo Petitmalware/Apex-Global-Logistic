@@ -8,12 +8,13 @@ import { AUTH_ROLES } from "@/lib/auth/constants";
 import { requireRole } from "@/lib/auth/session";
 
 export const metadata: Metadata = {
-  title: "Book Freight Transport | Apex Global Logistics",
+  title: "Freight Transport | Apex Global Logistics",
 };
 
 export default async function NewFreightTransportPage() {
-  const user = await requireRole([AUTH_ROLES.ADMIN, AUTH_ROLES.SUPER_ADMIN]);
-  const customerOptions = await getCustomerOptionsForStaff(user);
+  const user = await requireRole([AUTH_ROLES.ADMIN, AUTH_ROLES.SUPER_ADMIN, AUTH_ROLES.CUSTOMER]);
+  const isCustomer = user.roles.includes(AUTH_ROLES.CUSTOMER);
+  const customerOptions = isCustomer ? [] : await getCustomerOptionsForStaff(user);
 
   return (
     <ProtectedShell
@@ -21,10 +22,14 @@ export default async function NewFreightTransportPage() {
       breadcrumbs={[
         { href: "/dashboard", label: "Dashboard" },
         { href: "/freight-transport", label: "Freight Transport" },
-        { label: "Book" },
+        { label: isCustomer ? "Request transport" : "Create shipment" },
       ]}
-      description="Create a long-haul freight profile and pickup-to-delivery shipment in one workflow."
-      title="Book Freight Transport"
+      description={
+        isCustomer
+          ? "Submit cargo, pickup, delivery, and handling details for an operations review."
+          : "Create a long-haul freight shipment with cargo, route, compliance, and delivery details."
+      }
+      title={isCustomer ? "Request Freight Transport" : "Create Freight Shipment"}
       user={user}
     >
       <FreightTransportForm
@@ -32,6 +37,7 @@ export default async function NewFreightTransportPage() {
         cancelHref="/freight-transport"
         customerOptions={customerOptions}
         mode="create"
+        workflow={isCustomer ? "customer_booking" : "admin_creation"}
       />
     </ProtectedShell>
   );

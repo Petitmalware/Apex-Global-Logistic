@@ -31,8 +31,9 @@ import type { FreightTransportActionState } from "@/features/freight-transport/t
 import { shipmentFormSchema } from "@/features/shipments/schemas/shipment.schemas";
 import { AUTH_ROLES } from "@/lib/auth/constants";
 import { AuthError } from "@/lib/auth/errors";
-import { requireAuthenticatedUser, requireRole } from "@/lib/auth/session";
+import { requireAuthenticatedUser } from "@/lib/auth/session";
 import { getDatabaseUnavailableMessage, isDatabaseUnavailableError } from "@/lib/db-errors";
+import { poundsToKilogramsString } from "@/lib/measurements";
 
 function getString(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -62,7 +63,7 @@ function parseFreightProfileFormData(formData: FormData) {
     distanceKm: getString(formData, "distanceKm"),
     estimatedDurationHours: getString(formData, "estimatedDurationHours"),
     freightType: getString(formData, "freightType") || "FTL",
-    grossWeightKg: getString(formData, "grossWeightKg"),
+    grossWeightKg: poundsToKilogramsString(getString(formData, "grossWeightLb")),
     hazmatClass: getString(formData, "hazmatClass"),
     incoterm: getString(formData, "incoterm"),
     originTerminal: getString(formData, "originTerminal"),
@@ -82,13 +83,16 @@ function parseFreightProfileFormData(formData: FormData) {
   });
 }
 
-function parseFreightShipmentFormData(formData: FormData) {
+function parseFreightShipmentFormData(
+  formData: FormData,
+  options: { customerId?: string; customerBooking?: boolean } = {},
+) {
   const freightType = getString(formData, "freightType") || "FTL";
   const commodityDescription =
     getString(formData, "commodityDescription") || "Long-haul freight consignment";
 
   return shipmentFormSchema.safeParse({
-    customerId: getString(formData, "customerId"),
+    customerId: options.customerId ?? getString(formData, "customerId"),
     deliveryWindowEnd: getString(formData, "deliveryWindowEnd"),
     deliveryWindowStart: getString(formData, "deliveryWindowStart"),
     destination: {
@@ -127,7 +131,7 @@ function parseFreightShipmentFormData(formData: FormData) {
         lengthCm: "",
         status: "PENDING",
         type: freightType === "CONTAINER" ? "CONTAINER" : "PALLET",
-        weightKg: getString(formData, "grossWeightKg"),
+        weightKg: poundsToKilogramsString(getString(formData, "grossWeightLb")),
         widthCm: "",
       },
     ],
@@ -136,7 +140,7 @@ function parseFreightShipmentFormData(formData: FormData) {
     priority: getString(formData, "priority") || "STANDARD",
     referenceNumber: getString(formData, "referenceNumber"),
     serviceLevel: getString(formData, "serviceLevel") || "Long-haul Freight",
-    status: "BOOKED",
+    status: options.customerBooking ? "DRAFT" : "BOOKED",
   });
 }
 
@@ -165,9 +169,24 @@ export async function createFreightTransportBookingAction(
   _previousState: FreightTransportActionState,
   formData: FormData,
 ): Promise<FreightTransportActionState> {
-  const user = await requireRole([AUTH_ROLES.ADMIN, AUTH_ROLES.SUPER_ADMIN]);
+  const user = await requireAuthenticatedUser();
+  const isAdmin =
+    user.roles.includes(AUTH_ROLES.ADMIN) || user.roles.includes(AUTH_ROLES.SUPER_ADMIN);
+  const isCustomer = user.roles.includes(AUTH_ROLES.CUSTOMER);
+
+  if (!isAdmin && !isCustomer) {
+    return {
+      message:
+        "Only customers can submit requests and administrators can create freight shipments.",
+      status: "error",
+    };
+  }
+
   const parsedFreight = parseFreightProfileFormData(formData);
-  const parsedShipment = parseFreightShipmentFormData(formData);
+  const parsedShipment = parseFreightShipmentFormData(formData, {
+    customerBooking: isCustomer,
+    customerId: isCustomer ? user.id : undefined,
+  });
 
   if (!parsedFreight.success) {
     return {
@@ -192,6 +211,7 @@ export async function createFreightTransportBookingAction(
       freight: parsedFreight.data,
       shipmentInput: parsedShipment.data,
       user,
+      workflow: isCustomer ? "customer_booking" : "admin_creation",
     });
     freightTransportId = freightTransport.id;
   } catch (error) {
