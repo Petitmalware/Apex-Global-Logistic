@@ -117,16 +117,40 @@ export function AuthForm({ mode }: AuthFormProps) {
   const showsPasswordRequirements = mode === "register" || mode === "reset-password";
   const validationMessages = getValidationMessages(fieldErrors);
 
-  const secondaryLink = useMemo<{ href: Route; label: string }>(() => {
+  const secondaryLink = useMemo<{ href: Route; label: string } | null>(() => {
     if (mode === "login") {
       return { href: "/forgot-password", label: "Forgot password" };
     }
 
     if (mode === "register") {
-      return { href: "/login", label: "Sign in" };
+      return null;
     }
 
     return { href: "/login", label: "Back to sign in" };
+  }, [mode]);
+
+  const accountLink = useMemo<{
+    href: Route;
+    label: string;
+    prompt: string;
+  } | null>(() => {
+    if (mode === "login") {
+      return {
+        href: "/register",
+        label: "Create an account",
+        prompt: "Don't have an account yet?",
+      };
+    }
+
+    if (mode === "register") {
+      return {
+        href: "/login",
+        label: "Sign in",
+        prompt: "Already have an account?",
+      };
+    }
+
+    return null;
   }, [mode]);
 
   useEffect(() => {
@@ -329,13 +353,24 @@ export function AuthForm({ mode }: AuthFormProps) {
         <Button disabled={isSubmitting} type="submit">
           {isSubmitting ? "Working..." : submitLabels[mode]}
         </Button>
-        <Link
-          className="text-muted-foreground hover:text-foreground text-sm font-medium"
-          href={secondaryLink.href}
-        >
-          {secondaryLink.label}
-        </Link>
+        {secondaryLink ? (
+          <Link
+            className="text-muted-foreground hover:text-foreground text-sm font-medium"
+            href={secondaryLink.href}
+          >
+            {secondaryLink.label}
+          </Link>
+        ) : null}
       </div>
+
+      {accountLink ? (
+        <p className="border-border text-muted-foreground border-t pt-5 text-center text-sm">
+          {accountLink.prompt}{" "}
+          <Link className="text-foreground font-semibold hover:underline" href={accountLink.href}>
+            {accountLink.label}
+          </Link>
+        </p>
+      ) : null}
     </form>
   );
 }

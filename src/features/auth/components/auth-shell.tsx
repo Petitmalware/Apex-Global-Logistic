@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { ArrowLeft } from "lucide-react";
 
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 
@@ -15,6 +16,13 @@ export function AuthShell({ children, subtitle, title }: AuthShellProps) {
     <main id="main-content" className="bg-background grid min-h-svh lg:grid-cols-[0.94fr_1.06fr]">
       <section className="flex min-h-svh items-center justify-center px-6 py-12">
         <div className="w-full max-w-md">
+          <Link
+            className="text-muted-foreground hover:text-foreground mb-6 inline-flex items-center gap-2 text-sm font-medium transition-colors"
+            href="/"
+          >
+            <ArrowLeft aria-hidden="true" className="size-4" />
+            Back to website
+          </Link>
           <div className="mb-8 flex items-start justify-between gap-4">
             <Link className="flex items-center gap-3" href="/">
               <div className="bg-primary text-primary-foreground grid size-12 place-items-center rounded-md text-sm font-semibold">

@@ -1686,26 +1686,28 @@ model SupportTicketMessage {
 }
 
 model ChatConversation {
-  id                String                 @id @default(uuid()) @db.Uuid
-  organizationId    String?                @db.Uuid
-  customerId        String?                @db.Uuid
-  assignedToId      String?                @db.Uuid
-  shipmentId        String?                @db.Uuid
-  trackingReference String?                @db.VarChar(120)
-  visitorName       String?                @db.VarChar(160)
-  visitorEmail      String?                @db.VarChar(255)
-  visitorPhone      String?                @db.VarChar(40)
-  subject           String                 @default("Live chat") @db.VarChar(200)
-  status            ChatConversationStatus @default(OPEN)
-  priority          TicketPriority         @default(MEDIUM)
-  accessKeyHash     String?                @unique @db.Char(64)
-  lastMessageAt     DateTime               @default(now()) @db.Timestamptz(6)
-  aiSummary         String?                @db.Text
-  metadata          Json?
-  createdAt         DateTime               @default(now()) @db.Timestamptz(6)
-  updatedAt         DateTime               @updatedAt @db.Timestamptz(6)
-  resolvedAt        DateTime?              @db.Timestamptz(6)
-  closedAt          DateTime?              @db.Timestamptz(6)
+  id                   String                 @id @default(uuid()) @db.Uuid
+  organizationId       String?                @db.Uuid
+  customerId           String?                @db.Uuid
+  assignedToId         String?                @db.Uuid
+  shipmentId           String?                @db.Uuid
+  trackingReference    String?                @db.VarChar(120)
+  visitorName          String?                @db.VarChar(160)
+  visitorEmail         String?                @db.VarChar(255)
+  visitorPhone         String?                @db.VarChar(40)
+  subject              String                 @default("Live chat") @db.VarChar(200)
+  status               ChatConversationStatus @default(OPEN)
+  priority             TicketPriority         @default(MEDIUM)
+  accessKeyHash        String?                @unique @db.Char(64)
+  resumeTokenHash      String?                @unique @db.Char(64)
+  resumeTokenExpiresAt DateTime?              @db.Timestamptz(6)
+  lastMessageAt        DateTime               @default(now()) @db.Timestamptz(6)
+  aiSummary            String?                @db.Text
+  metadata             Json?
+  createdAt            DateTime               @default(now()) @db.Timestamptz(6)
+  updatedAt            DateTime               @updatedAt @db.Timestamptz(6)
+  resolvedAt           DateTime?              @db.Timestamptz(6)
+  closedAt             DateTime?              @db.Timestamptz(6)
 
   assignedTo   User?         @relation("ChatConversationAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
   customer     User?         @relation("ChatConversationCustomer", fields: [customerId], references: [id], onDelete: SetNull)

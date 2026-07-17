@@ -13,6 +13,7 @@ import {
 import type { AuthSessionUser } from "@/features/auth/services/auth.service";
 import type {
   PublicChatMessageInput,
+  ResumeChatConversationInput,
   StaffChatMessageInput,
   StartChatConversationInput,
 } from "@/features/chat/schemas/chat.schemas";
@@ -49,6 +50,12 @@ function canManageChat(user: AuthSessionUser) {
 
 const CHAT_ATTACHMENT_MAX_FILES = 3;
 const CHAT_ATTACHMENT_MAX_SIZE_BYTES = 10 * 1024 * 1024;
+const CHAT_RESUME_TOKEN_TTL_MS = 20 * 60 * 1000;
+const ACTIVE_CHAT_STATUSES = [
+  ChatConversationStatus.OPEN,
+  ChatConversationStatus.PENDING_CUSTOMER,
+  ChatConversationStatus.PENDING_STAFF,
+] as const;
 
 export type ChatAttachmentMetadata = PersistedUpload & {
   id: string;
@@ -126,11 +133,11 @@ async function getShipmentForChat(reference?: string) {
 }
 
 function getParticipantName(input: StartChatConversationInput, user?: AuthSessionUser | null) {
-  return user?.name ?? input.name ?? input.email ?? "Visitor";
+  return (user?.name ?? input.name).trim();
 }
 
 function getParticipantEmail(input: StartChatConversationInput, user?: AuthSessionUser | null) {
-  return user?.email ?? input.email ?? null;
+  return (user?.email ?? input.email).trim().toLowerCase();
 }
 
 function normalizeChatBody(body: string | undefined | null, attachments: ChatAttachmentMetadata[]) {
@@ -153,6 +160,104 @@ function escapeEmailText(value: string) {
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;")
     .replaceAll("\n", "<br />");
+}
+
+async function findActiveChatByEmail(email: string) {
+  return prisma.chatConversation.findFirst({
+    orderBy: {
+      lastMessageAt: "desc",
+    },
+    select: {
+      customerId: true,
+      id: true,
+      organizationId: true,
+      status: true,
+      subject: true,
+      visitorEmail: true,
+      visitorName: true,
+    },
+    where: {
+      status: {
+        in: [...ACTIVE_CHAT_STATUSES],
+      },
+      visitorEmail: {
+        equals: email,
+        mode: "insensitive",
+      },
+    },
+  });
+}
+
+async function resumeAuthenticatedChat(
+  conversation: Awaited<ReturnType<typeof findActiveChatByEmail>>,
+  user: AuthSessionUser,
+) {
+  if (!conversation) {
+    throw new AuthError("Chat conversation was not found.", 404, "CHAT_NOT_FOUND");
+  }
+
+  const accessKey = createAccessKey();
+
+  await prisma.chatConversation.update({
+    data: {
+      accessKeyHash: hashAccessKey(accessKey),
+      customerId: user.id,
+      resumeTokenExpiresAt: null,
+      resumeTokenHash: null,
+    },
+    where: {
+      id: conversation.id,
+    },
+  });
+
+  return {
+    accessKey,
+    conversationId: conversation.id,
+    initialMessages: [] as ChatMessageView[],
+    resumed: true as const,
+    status: conversation.status,
+    subject: conversation.subject,
+  };
+}
+
+async function issueChatResumeEmail(
+  conversation: NonNullable<Awaited<ReturnType<typeof findActiveChatByEmail>>>,
+  recipientEmail: string,
+  recipientName: string,
+) {
+  const resumeToken = createAccessKey();
+  const resumeUrl = new URL(env.NEXT_PUBLIC_APP_URL);
+
+  resumeUrl.searchParams.set("chatResume", resumeToken);
+
+  await prisma.chatConversation.update({
+    data: {
+      resumeTokenExpiresAt: new Date(Date.now() + CHAT_RESUME_TOKEN_TTL_MS),
+      resumeTokenHash: hashAccessKey(resumeToken),
+    },
+    where: {
+      id: conversation.id,
+    },
+  });
+
+  await queueBrandedEmail({
+    bodyHtml: `<p>Hello ${escapeEmailText(recipientName)},</p><p>A live support conversation is already active for this email address.</p><p><a href="${escapeEmailText(resumeUrl.toString())}">Resume your secure live chat</a></p><p>This link expires in 20 minutes. If you did not request it, you can safely ignore this email.</p>`,
+    category: EmailTemplateCategory.ADMIN,
+    organizationId: conversation.organizationId,
+    recipientEmail,
+    recipientName,
+    relatedUserId: conversation.customerId,
+    replyTo: env.SUPPORT_EMAIL,
+    senderAddress: env.SUPPORT_EMAIL,
+    senderName: "Apex Support",
+    subject: "Resume your Apex support conversation",
+  });
+
+  return {
+    message:
+      "An active chat already exists for this email. We sent a secure resume link to that address.",
+    resumeRequired: true as const,
+  };
 }
 
 async function notifyCustomerOfStaffReply({
@@ -330,12 +435,20 @@ export async function startChatConversation(
   user?: AuthSessionUser | null,
   options: ChatMessageAttachmentInput = {},
 ) {
+  const participantName = getParticipantName(input, user);
+  const participantEmail = getParticipantEmail(input, user);
+  const activeConversation = await findActiveChatByEmail(participantEmail);
+
+  if (activeConversation) {
+    return user
+      ? resumeAuthenticatedChat(activeConversation, user)
+      : issueChatResumeEmail(activeConversation, participantEmail, participantName);
+  }
+
   const shipment = await getShipmentForChat(input.trackingReference);
   const organizationId = shipment?.organizationId ?? (await getDefaultOrganizationId(user));
   const accessKey = createAccessKey();
   const conversationId = randomUUID();
-  const participantName = getParticipantName(input, user);
-  const participantEmail = getParticipantEmail(input, user);
   const attachmentFiles = options.attachments ?? [];
   assertChatMessageHasContent(input.message, attachmentFiles);
   const attachments = await persistChatAttachments(conversationId, attachmentFiles);
@@ -474,6 +587,61 @@ export async function verifyPublicConversation(conversationId: string, accessKey
   }
 
   return conversation.id;
+}
+
+export async function resumePublicChatConversation(input: ResumeChatConversationInput) {
+  const resumeTokenHash = hashAccessKey(input.token);
+  const conversation = await prisma.chatConversation.findFirst({
+    select: {
+      id: true,
+    },
+    where: {
+      resumeTokenExpiresAt: {
+        gt: new Date(),
+      },
+      resumeTokenHash,
+      status: {
+        in: [...ACTIVE_CHAT_STATUSES],
+      },
+    },
+  });
+
+  if (!conversation) {
+    throw new AuthError(
+      "This chat resume link is invalid or has expired.",
+      404,
+      "CHAT_RESUME_INVALID",
+    );
+  }
+
+  const accessKey = createAccessKey();
+  const updated = await prisma.chatConversation.updateMany({
+    data: {
+      accessKeyHash: hashAccessKey(accessKey),
+      resumeTokenExpiresAt: null,
+      resumeTokenHash: null,
+    },
+    where: {
+      id: conversation.id,
+      resumeTokenExpiresAt: {
+        gt: new Date(),
+      },
+      resumeTokenHash,
+    },
+  });
+
+  if (updated.count !== 1) {
+    throw new AuthError(
+      "This chat resume link is invalid or has expired.",
+      404,
+      "CHAT_RESUME_INVALID",
+    );
+  }
+
+  return {
+    accessKey,
+    conversationId: conversation.id,
+  };
 }
 
 export async function addPublicChatMessage(

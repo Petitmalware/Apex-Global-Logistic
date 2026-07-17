@@ -12,18 +12,27 @@ const requiredString = (label: string, max = 2000) =>
 const optionalMessage = (max = 2000) =>
   z.preprocess(emptyToUndefined, z.string().trim().max(max).optional());
 
-const optionalEmail = z.preprocess(
+const requiredEmail = z.preprocess(
   emptyToUndefined,
-  z.string().trim().email("Enter a valid email address.").max(255).optional(),
+  z
+    .string({ required_error: "Email is required." })
+    .trim()
+    .min(1, "Email is required.")
+    .email("Enter a valid email address.")
+    .max(255),
 );
 
 export const startChatConversationSchema = z.object({
-  email: optionalEmail,
+  email: requiredEmail,
   message: optionalMessage(2000),
-  name: optionalString(160),
+  name: requiredString("Name", 160),
   phone: optionalString(40),
   subject: optionalString(200),
   trackingReference: optionalString(120),
+});
+
+export const resumeChatConversationSchema = z.object({
+  token: requiredString("Resume token", 160),
 });
 
 export const publicChatMessageSchema = z.object({
@@ -44,6 +53,7 @@ export const chatAiDraftSchema = z.object({
 });
 
 export type StartChatConversationInput = z.infer<typeof startChatConversationSchema>;
+export type ResumeChatConversationInput = z.infer<typeof resumeChatConversationSchema>;
 export type PublicChatMessageInput = z.infer<typeof publicChatMessageSchema>;
 export type StaffChatMessageInput = z.infer<typeof staffChatMessageSchema>;
 export type ChatStatusInput = z.infer<typeof chatStatusSchema>;

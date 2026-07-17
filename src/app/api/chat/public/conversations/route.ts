@@ -48,7 +48,12 @@ async function parseRequest(request: Request) {
 export async function POST(request: Request) {
   try {
     const { attachments, payload } = await parseRequest(request);
-    const parsed = startChatConversationSchema.safeParse(payload);
+    const user = await getCurrentSessionUser();
+    const parsed = startChatConversationSchema.safeParse({
+      ...payload,
+      email: user?.email ?? payload.email,
+      name: user?.name ?? payload.name,
+    });
 
     if (!parsed.success) {
       return NextResponse.json(
@@ -60,8 +65,12 @@ export async function POST(request: Request) {
       );
     }
 
-    const user = await getCurrentSessionUser();
     const started = await startChatConversation(parsed.data, user, { attachments });
+
+    if ("resumeRequired" in started) {
+      return NextResponse.json(started, { status: 202 });
+    }
+
     const conversation = await getPublicChatConversation({
       accessKey: started.accessKey,
       conversationId: started.conversationId,
@@ -75,6 +84,7 @@ export async function POST(request: Request) {
         status: started.status,
         subject: started.subject,
       },
+      resumed: "resumed" in started ? started.resumed : false,
     });
   } catch (error) {
     if (isDatabaseUnavailableError(error)) {

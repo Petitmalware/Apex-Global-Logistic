@@ -71,6 +71,11 @@ export function AdminChatConsole({
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold">{getContactName(conversation)}</p>
+                    {conversation.visitorEmail ? (
+                      <p className="text-muted-foreground mt-1 truncate text-xs">
+                        {conversation.visitorEmail}
+                      </p>
+                    ) : null}
                     <p className="text-muted-foreground mt-1 truncate text-xs">
                       {conversation.subject}
                     </p>

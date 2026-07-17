@@ -127,7 +127,7 @@ function ProfileMenu({ user }: { user: AuthSessionUser }) {
           </Link>
           <Link
             className="hover:bg-secondary flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium"
-            href={getHomeHref(user) as Route}
+            href={"/settings" as Route}
           >
             <Settings aria-hidden="true" className="text-muted-foreground size-4" />
             Settings

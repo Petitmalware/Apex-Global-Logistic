@@ -14,6 +14,7 @@ import type { PublicChatConversationView } from "@/features/chat/types";
 import { secureFetch } from "@/lib/security/client-fetch";
 
 const STORAGE_KEY = "apex-live-chat";
+const PENDING_MESSAGE_KEY = "apex-live-chat-pending-message";
 
 type ChatWidgetProps = {
   surface?: "public" | "workspace";
@@ -40,6 +41,20 @@ function readStoredChat(): StoredChat | null {
 
 function writeStoredChat(value: StoredChat) {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
+}
+
+function readResumeToken() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return new URLSearchParams(window.location.search).get("chatResume");
+}
+
+function readPendingMessage() {
+  return typeof window === "undefined"
+    ? ""
+    : (window.localStorage.getItem(PENDING_MESSAGE_KEY) ?? "");
 }
 
 function shouldHideWidget(pathname: string) {
@@ -84,6 +99,7 @@ export function ChatWidget({ surface = "public" }: ChatWidgetProps) {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [identity, setIdentity] = useState({
     email: "",
@@ -91,7 +107,70 @@ export function ChatWidget({ surface = "public" }: ChatWidgetProps) {
     phone: "",
     trackingReference: "",
   });
-  const storedChat = useMemo(readStoredChat, []);
+  const resumeToken = useMemo(readResumeToken, []);
+  const storedChat = useMemo(() => (resumeToken ? null : readStoredChat()), [resumeToken]);
+
+  useEffect(() => {
+    if (!resumeToken) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function resumeConversation() {
+      setIsOpen(true);
+      setIsPending(true);
+      setError("");
+
+      try {
+        const response = await secureFetch("/api/chat/public/resume", {
+          body: JSON.stringify({ token: resumeToken }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+          method: "POST",
+        });
+        const payload = (await response.json().catch(() => ({}))) as {
+          conversation?: PublicChatConversationView;
+          message?: string;
+        };
+
+        if (cancelled) {
+          return;
+        }
+
+        if (!response.ok || !payload.conversation) {
+          setError(payload.message ?? "Chat could not be resumed.");
+          return;
+        }
+
+        writeStoredChat({
+          accessKey: payload.conversation.accessKey,
+          conversationId: payload.conversation.conversationId,
+        });
+        setConversation(payload.conversation);
+        setMessage(readPendingMessage());
+        window.localStorage.removeItem(PENDING_MESSAGE_KEY);
+        const nextUrl = new URL(window.location.href);
+        nextUrl.searchParams.delete("chatResume");
+        window.history.replaceState(
+          null,
+          "",
+          `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`,
+        );
+      } finally {
+        if (!cancelled) {
+          setIsPending(false);
+        }
+      }
+    }
+
+    resumeConversation();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [resumeToken]);
 
   useEffect(() => {
     if (!storedChat || conversation) {
@@ -154,6 +233,17 @@ export function ChatWidget({ surface = "public" }: ChatWidgetProps) {
 
   async function startConversation() {
     setError("");
+    setNotice("");
+
+    if (!identity.name.trim()) {
+      setError("Enter your name so support can identify your conversation.");
+      return;
+    }
+
+    if (!identity.email.trim()) {
+      setError("Enter your email address to start or resume your support conversation.");
+      return;
+    }
 
     if (!message.trim() && selectedFiles.length === 0) {
       setError("Enter a message or attach a file so Apex support knows how to help.");
@@ -179,7 +269,18 @@ export function ChatWidget({ surface = "public" }: ChatWidgetProps) {
       const payload = (await response.json()) as {
         conversation?: PublicChatConversationView;
         message?: string;
+        resumed?: boolean;
+        resumeRequired?: boolean;
       };
+
+      if (payload.resumeRequired) {
+        window.localStorage.setItem(PENDING_MESSAGE_KEY, message);
+        setNotice(
+          payload.message ??
+            "An active chat already exists. Check your email for a secure resume link.",
+        );
+        return;
+      }
 
       if (!response.ok || !payload.conversation) {
         setError(payload.message ?? "Chat could not be started.");
@@ -191,10 +292,14 @@ export function ChatWidget({ surface = "public" }: ChatWidgetProps) {
         conversationId: payload.conversation.conversationId,
       });
       setConversation(payload.conversation);
-      setMessage("");
-      setSelectedFiles([]);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
+      if (payload.resumed) {
+        setNotice("Your existing support conversation is open. Send your message to continue.");
+      } else {
+        setMessage("");
+        setSelectedFiles([]);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
       }
     } finally {
       setIsPending(false);
@@ -207,6 +312,7 @@ export function ChatWidget({ surface = "public" }: ChatWidgetProps) {
     }
 
     setError("");
+    setNotice("");
     setIsPending(true);
 
     try {
@@ -303,25 +409,32 @@ export function ChatWidget({ surface = "public" }: ChatWidgetProps) {
                 <Field>
                   <Label htmlFor="chat-name">Name</Label>
                   <Input
+                    autoComplete="name"
                     id="chat-name"
                     onChange={(event) =>
                       setIdentity((current) => ({ ...current, name: event.target.value }))
                     }
                     placeholder="Your name"
+                    required
                     value={identity.name}
                   />
                 </Field>
                 <Field>
-                  <Label htmlFor="chat-email">Email</Label>
+                  <Label htmlFor="chat-email">Email address</Label>
                   <Input
+                    autoComplete="email"
                     id="chat-email"
                     onChange={(event) =>
                       setIdentity((current) => ({ ...current, email: event.target.value }))
                     }
                     placeholder="you@example.com"
+                    required
                     type="email"
                     value={identity.email}
                   />
+                  <FieldHint>
+                    This email identifies your support thread and prevents duplicate chats.
+                  </FieldHint>
                 </Field>
                 <Field>
                   <Label htmlFor="chat-tracking">Tracking number</Label>
@@ -355,6 +468,11 @@ export function ChatWidget({ surface = "public" }: ChatWidgetProps) {
                 value={message}
               />
               {error ? <FieldError>{error}</FieldError> : null}
+              {notice ? (
+                <p className="border-border bg-secondary text-secondary-foreground rounded-md border px-3 py-2 text-sm">
+                  {notice}
+                </p>
+              ) : null}
             </Field>
             <Field className="mt-3">
               <Label
@@ -379,7 +497,11 @@ export function ChatWidget({ surface = "public" }: ChatWidgetProps) {
             </Field>
             <Button
               className="mt-3 w-full"
-              disabled={isPending || (!message.trim() && selectedFiles.length === 0)}
+              disabled={
+                isPending ||
+                (!conversation && (!identity.name.trim() || !identity.email.trim())) ||
+                (!message.trim() && selectedFiles.length === 0)
+              }
               onClick={conversation ? sendMessage : startConversation}
               type="button"
               variant="accent"
