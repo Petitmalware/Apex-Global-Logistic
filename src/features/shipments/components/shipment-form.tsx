@@ -459,7 +459,7 @@ export function ShipmentForm({
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="grid gap-3 md:grid-cols-2">
           <label className="border-border hover:border-accent/60 flex cursor-pointer items-start gap-3 rounded-md border p-4 transition-colors">
             <input
               className="accent-accent mt-0.5 size-4 shrink-0"
@@ -472,6 +472,21 @@ export function ShipmentForm({
               <span className="text-muted-foreground mt-1 block text-sm leading-6">
                 Only names are shown on public tracking. Email, phone number, street address,
                 documents, and payment details always remain private.
+              </span>
+            </span>
+          </label>
+          <label className="border-border hover:border-accent/60 flex cursor-pointer items-start gap-3 rounded-md border p-4 transition-colors">
+            <input
+              className="accent-accent mt-0.5 size-4 shrink-0"
+              defaultChecked={initialShipment?.publicTracking.sharePetDetails ?? false}
+              name="publicTracking.sharePetDetails"
+              type="checkbox"
+            />
+            <span>
+              <span className="block text-sm font-semibold">Show basic pet identity</span>
+              <span className="text-muted-foreground mt-1 block text-sm leading-6">
+                For pet shipments only: pet name, species, breed, age, and weight can appear in
+                public tracking. Health, microchip, and document records stay private.
               </span>
             </span>
           </label>
