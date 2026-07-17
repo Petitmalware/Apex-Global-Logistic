@@ -4,7 +4,7 @@ export const siteConfig = {
   description:
     "Apex Global Logistics provides premium parcel delivery, pet transportation, freight coordination, shipment tracking, official documentation, and customer support.",
   domain: "apexgloballogistics.net",
-  email: "support@apexgloballogistics.net",
+  email: "info@apexgloballogistics.net",
   emails: {
     general: "info@apexgloballogistics.net",
     operations: "agent@apexgloballogistics.net",

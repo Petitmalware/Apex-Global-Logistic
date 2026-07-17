@@ -1,7 +1,19 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-import { Clock3, MapPinned, PackageSearch, Route } from "lucide-react";
+import {
+  CalendarClock,
+  CheckCircle2,
+  CirclePause,
+  Clock3,
+  LocateFixed,
+  MapPinned,
+  PackageSearch,
+  Radio,
+  Route,
+  ShieldCheck,
+  Truck,
+} from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,13 +28,36 @@ type LookupStatus = "idle" | "loading" | "ready" | "error";
 
 function formatDate(value: string | null) {
   if (!value) {
-    return "Not set";
+    return "Not scheduled";
   }
 
   return new Intl.DateTimeFormat("en", {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
+}
+
+function formatEnum(value: string) {
+  return value
+    .replaceAll("_", " ")
+    .toLowerCase()
+    .replace(/^./, (character) => character.toUpperCase());
+}
+
+function formatDeliveryWindow(snapshot: ShipmentTrackingSnapshot) {
+  if (!snapshot.deliveryWindowStart && !snapshot.deliveryWindowEnd) {
+    return "Awaiting delivery estimate";
+  }
+
+  if (!snapshot.deliveryWindowEnd) {
+    return formatDate(snapshot.deliveryWindowStart);
+  }
+
+  if (!snapshot.deliveryWindowStart) {
+    return `By ${formatDate(snapshot.deliveryWindowEnd)}`;
+  }
+
+  return `${formatDate(snapshot.deliveryWindowStart)} - ${formatDate(snapshot.deliveryWindowEnd)}`;
 }
 
 function statusVariant(status: ShipmentTrackingSnapshot["status"]) {
@@ -39,6 +74,34 @@ function statusVariant(status: ShipmentTrackingSnapshot["status"]) {
   }
 
   return "accent";
+}
+
+function getStatusMessage(status: ShipmentTrackingSnapshot["status"]) {
+  const messages = {
+    BOOKED: "The shipment is registered and Apex is preparing the next operational step.",
+    CANCELLED:
+      "Movement has stopped. Contact Apex support with this tracking number for assistance.",
+    DELIVERED: "Delivery is complete. Keep the receipt and signed delivery records for reference.",
+    DRAFT: "The shipment record is being prepared and has not entered active movement.",
+    HELD: "Movement is temporarily paused. Review the latest checkpoint note for the reason and next step.",
+    IN_TRANSIT: "The shipment is moving through the Apex transport network.",
+    PENDING_PICKUP: "The shipment is waiting for collection or release from the current facility.",
+    RETURNED: "The shipment is being returned to the sender. Contact support for the return plan.",
+  } satisfies Record<ShipmentTrackingSnapshot["status"], string>;
+
+  return messages[status];
+}
+
+function TrackingStatusIcon({ status }: { status: ShipmentTrackingSnapshot["status"] }) {
+  if (status === "DELIVERED") {
+    return <CheckCircle2 aria-hidden="true" className="size-5" />;
+  }
+
+  if (status === "HELD" || status === "CANCELLED" || status === "RETURNED") {
+    return <CirclePause aria-hidden="true" className="size-5" />;
+  }
+
+  return <Truck aria-hidden="true" className="size-5" />;
 }
 
 export function TrackingLookup() {
@@ -111,21 +174,35 @@ export function TrackingLookup() {
   const latestEvent = snapshot?.timeline[0] ?? null;
 
   return (
-    <section className="mx-auto grid w-full max-w-7xl gap-8 px-4 py-16 sm:px-6 lg:grid-cols-[0.85fr_1.15fr]">
-      <div className="border-border bg-card shadow-panel rounded-lg border p-5">
-        <form className="space-y-4" onSubmit={handleSubmit}>
+    <section className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-12 sm:px-6 lg:grid-cols-[360px_minmax(0,1fr)] lg:items-start">
+      <aside className="border-border bg-card shadow-panel rounded-lg border p-5 lg:sticky lg:top-24">
+        <div className="flex items-start gap-3">
+          <div className="bg-accent/15 text-accent grid size-11 shrink-0 place-items-center rounded-md">
+            <PackageSearch aria-hidden="true" className="size-5" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold">Find a shipment</h2>
+            <p className="text-muted-foreground mt-1 text-sm leading-6">
+              Enter the exact Apex tracking number or carrier reference shown on your document.
+            </p>
+          </div>
+        </div>
+        <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
           <div className="space-y-2">
             <Label htmlFor="tracking-reference">Tracking reference</Label>
             <Input
+              autoCapitalize="characters"
+              autoComplete="off"
               id="tracking-reference"
               onChange={(event) => setReference(event.target.value)}
-              placeholder="AGL-202606-ABC12345"
+              placeholder="AGL-202607-ABC12345"
+              spellCheck={false}
               value={reference}
             />
           </div>
           <Button className="w-full" disabled={status === "loading"} type="submit" variant="accent">
             <PackageSearch aria-hidden="true" />
-            {status === "loading" ? "Checking..." : "Track shipment"}
+            {status === "loading" ? "Checking shipment..." : "Track shipment"}
           </Button>
         </form>
         {error ? (
@@ -133,118 +210,179 @@ export function TrackingLookup() {
             {error}
           </Notification>
         ) : null}
-        {snapshot ? (
-          <Notification className="mt-5" title="Tracking active" variant="success">
-            Updates appear automatically when Apex receives a new shipment milestone.
-          </Notification>
-        ) : null}
-      </div>
-
-      <div className="border-border bg-card shadow-panel rounded-lg border p-5">
-        <div className="border-border flex flex-wrap items-center justify-between gap-4 border-b pb-4">
-          <div>
-            <p className="text-muted-foreground text-sm">Reference</p>
-            <h2 className="text-2xl font-semibold tracking-normal">
-              {snapshot?.shipmentNumber ?? "Enter a tracking reference"}
-            </h2>
-          </div>
-          {snapshot ? (
-            <div className="flex flex-wrap gap-2">
-              <Badge variant={statusVariant(snapshot.status)}>
-                {formatShipmentStatus(snapshot.status)}
-              </Badge>
-              <Badge variant={connectionState === "live" ? "success" : "outline"}>
-                {connectionState === "live" ? "Live" : "Waiting"}
-              </Badge>
-            </div>
-          ) : (
-            <Badge variant="outline">Ready</Badge>
-          )}
+        <div className="border-border mt-6 border-t pt-5">
+          <p className="text-sm font-semibold">Public tracking includes</p>
+          <ul className="text-muted-foreground mt-3 space-y-2 text-sm leading-6">
+            <li className="flex gap-2">
+              <ShieldCheck aria-hidden="true" className="text-accent mt-1 size-4 shrink-0" />
+              Current agency status and latest checkpoint
+            </li>
+            <li className="flex gap-2">
+              <ShieldCheck aria-hidden="true" className="text-accent mt-1 size-4 shrink-0" />
+              Estimated delivery and service lane
+            </li>
+            <li className="flex gap-2">
+              <ShieldCheck aria-hidden="true" className="text-accent mt-1 size-4 shrink-0" />
+              Verified map position when GPS is supplied
+            </li>
+          </ul>
         </div>
+      </aside>
 
+      <div aria-live="polite" className="min-w-0">
         {snapshot ? (
-          <div className="mt-5 space-y-6">
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              {[
-                {
-                  icon: Route,
-                  label: "Lane",
-                  value: `${snapshot.originCity} to ${snapshot.destinationCity}`,
-                },
-                {
-                  icon: Clock3,
-                  label: "Delivery",
-                  value: formatDate(snapshot.deliveryWindowStart),
-                },
-                {
-                  icon: PackageSearch,
-                  label: "Latest",
-                  value: latestEvent ? formatTrackingEventType(latestEvent.eventType) : "No events",
-                },
-                {
-                  icon: MapPinned,
-                  label: "Location",
-                  value: latestEvent?.currentLocation ?? "Awaiting next manual update",
-                },
-              ].map((item) => (
-                <div className="border-border bg-background rounded-md border p-4" key={item.label}>
-                  <item.icon aria-hidden="true" className="text-accent size-5" />
-                  <p className="mt-3 font-semibold">{item.label}</p>
-                  <p className="text-muted-foreground mt-1 text-sm leading-6">{item.value}</p>
+          <div className="space-y-6">
+            <section className="border-border bg-card shadow-panel rounded-lg border p-5 sm:p-6">
+              <div className="border-border flex flex-col gap-4 border-b pb-5 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <p className="text-muted-foreground text-xs font-semibold uppercase">
+                    Tracking number
+                  </p>
+                  <h2 className="mt-2 text-2xl font-semibold tracking-normal break-all sm:text-3xl">
+                    {snapshot.shipmentNumber}
+                  </h2>
+                  <p className="text-muted-foreground mt-2 text-sm">
+                    Last synchronized {formatDate(snapshot.updatedAt)}
+                  </p>
                 </div>
-              ))}
-            </div>
-            <ShipmentLiveMap snapshot={snapshot} />
-            <div className="space-y-4">
-              {snapshot.timeline.length ? (
-                snapshot.timeline.map((event) => (
-                  <div className="flex gap-4" key={event.id}>
-                    <div className="flex flex-col items-center">
-                      <span className="bg-accent size-3 rounded-full" />
-                      <span className="bg-border mt-2 h-full w-px" />
-                    </div>
-                    <div className="min-w-0 flex-1 pb-4">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-semibold">{formatTrackingEventType(event.eventType)}</p>
-                        {event.shipmentStatus ? (
-                          <Badge variant="outline">
-                            {formatShipmentStatus(event.shipmentStatus)}
-                          </Badge>
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant={statusVariant(snapshot.status)}>
+                    {formatShipmentStatus(snapshot.status)}
+                  </Badge>
+                  <Badge variant={connectionState === "live" ? "success" : "outline"}>
+                    {connectionState === "live" ? (
+                      <Radio aria-hidden="true" className="size-3.5" />
+                    ) : null}
+                    {connectionState === "live"
+                      ? "Live updates"
+                      : connectionState === "reconnecting"
+                        ? "Reconnecting"
+                        : "Connecting"}
+                  </Badge>
+                </div>
+              </div>
+
+              <div className="bg-secondary text-secondary-foreground mt-5 flex items-start gap-3 rounded-md p-4">
+                <TrackingStatusIcon status={snapshot.status} />
+                <div>
+                  <p className="font-semibold">{formatShipmentStatus(snapshot.status)}</p>
+                  <p className="mt-1 text-sm leading-6">{getStatusMessage(snapshot.status)}</p>
+                </div>
+              </div>
+
+              <dl className="border-border bg-border mt-5 grid gap-px overflow-hidden rounded-md border sm:grid-cols-2 xl:grid-cols-3">
+                {[
+                  {
+                    icon: Route,
+                    label: "Route",
+                    value: `${snapshot.originCity} to ${snapshot.destinationCity}`,
+                  },
+                  {
+                    icon: LocateFixed,
+                    label: "Current location",
+                    value: latestEvent?.currentLocation ?? "Awaiting the next checkpoint",
+                  },
+                  {
+                    icon: CalendarClock,
+                    label: "Estimated delivery",
+                    value: formatDeliveryWindow(snapshot),
+                  },
+                  {
+                    icon: Truck,
+                    label: "Transport mode",
+                    value: formatEnum(snapshot.mode),
+                  },
+                  {
+                    icon: ShieldCheck,
+                    label: "Service",
+                    value: snapshot.serviceLevel ?? "Standard managed service",
+                  },
+                  {
+                    icon: Clock3,
+                    label: "Latest checkpoint",
+                    value: latestEvent ? formatDate(latestEvent.occurredAt) : "No checkpoint yet",
+                  },
+                ].map((item) => (
+                  <div className="bg-background p-4" key={item.label}>
+                    <item.icon aria-hidden="true" className="text-accent size-5" />
+                    <dt className="mt-3 text-xs font-semibold uppercase">{item.label}</dt>
+                    <dd className="text-muted-foreground mt-1 text-sm leading-6">{item.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+
+            <ShipmentLiveMap connectionState={connectionState} snapshot={snapshot} />
+
+            <section className="border-border bg-card shadow-panel rounded-lg border p-5 sm:p-6">
+              <div className="border-border border-b pb-4">
+                <h3 className="text-lg font-semibold">Shipment progress</h3>
+                <p className="text-muted-foreground mt-1 text-sm">
+                  Every published checkpoint is retained in chronological order.
+                </p>
+              </div>
+              <div className="mt-5 space-y-1">
+                {snapshot.timeline.length ? (
+                  snapshot.timeline.map((trackingEvent, index) => (
+                    <div className="flex gap-4" key={trackingEvent.id}>
+                      <div className="flex flex-col items-center">
+                        <span className="bg-accent mt-1 size-3 rounded-full" />
+                        {index < snapshot.timeline.length - 1 ? (
+                          <span className="bg-border mt-2 h-full min-h-14 w-px" />
                         ) : null}
                       </div>
-                      <p className="text-muted-foreground mt-1 text-xs">
-                        {formatDate(event.occurredAt)}
-                      </p>
-                      {event.currentLocation ? (
+                      <div className="min-w-0 flex-1 pb-5">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-semibold">
+                            {formatTrackingEventType(trackingEvent.eventType)}
+                          </p>
+                          {trackingEvent.shipmentStatus ? (
+                            <Badge variant="outline">
+                              {formatShipmentStatus(trackingEvent.shipmentStatus)}
+                            </Badge>
+                          ) : null}
+                        </div>
                         <p className="text-muted-foreground mt-1 text-xs">
-                          {event.currentLocation}
+                          {formatDate(trackingEvent.occurredAt)}
                         </p>
-                      ) : null}
-                      {event.message ? (
-                        <p className="mt-2 text-sm leading-6">{event.message}</p>
-                      ) : null}
+                        {trackingEvent.currentLocation ? (
+                          <p className="mt-2 flex items-start gap-2 text-sm font-medium">
+                            <MapPinned
+                              aria-hidden="true"
+                              className="text-accent mt-0.5 size-4 shrink-0"
+                            />
+                            {trackingEvent.currentLocation}
+                          </p>
+                        ) : null}
+                        {trackingEvent.message ? (
+                          <p className="text-muted-foreground mt-2 text-sm leading-6">
+                            {trackingEvent.message}
+                          </p>
+                        ) : null}
+                      </div>
                     </div>
-                  </div>
-                ))
-              ) : (
-                <p className="text-muted-foreground text-sm">No shipment milestones yet.</p>
-              )}
-            </div>
+                  ))
+                ) : (
+                  <p className="text-muted-foreground text-sm">No shipment milestones yet.</p>
+                )}
+              </div>
+            </section>
           </div>
         ) : (
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            {[
-              { icon: PackageSearch, label: "Lookup", value: "Find shipment milestones" },
-              { icon: Route, label: "Route", value: "View origin and destination lane" },
-              { icon: Clock3, label: "ETA", value: "See delivery windows and latest event" },
-            ].map((item) => (
-              <div className="border-border bg-background rounded-md border p-4" key={item.label}>
-                <item.icon aria-hidden="true" className="text-accent size-5" />
-                <p className="mt-3 font-semibold">{item.label}</p>
-                <p className="text-muted-foreground mt-1 text-sm leading-6">{item.value}</p>
+          <section className="border-border bg-card shadow-panel grid min-h-[420px] place-items-center rounded-lg border p-6 text-center">
+            <div className="max-w-md">
+              <div className="bg-accent/15 text-accent mx-auto grid size-14 place-items-center rounded-md">
+                <PackageSearch aria-hidden="true" className="size-7" />
               </div>
-            ))}
-          </div>
+              <h2 className="mt-5 text-2xl font-semibold tracking-normal">
+                Shipment details appear here
+              </h2>
+              <p className="text-muted-foreground mt-3 text-sm leading-6">
+                Use the tracking number printed on the Apex shipment notice, invoice, receipt, or
+                email. An account is not required for public tracking.
+              </p>
+            </div>
+          </section>
         )}
       </div>
     </section>

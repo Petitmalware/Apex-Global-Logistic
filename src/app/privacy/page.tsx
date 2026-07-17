@@ -22,24 +22,44 @@ const privacySections = [
     text: "Apex may collect names, email addresses, phone numbers, pickup and delivery addresses, shipment details, pet health records, invoices, payment references, uploaded documents, chat messages, support requests, and delivery signatures.",
   },
   {
-    title: "How we use information",
-    text: "We use customer information to create shipments, verify delivery details, prepare documents, provide tracking updates, send service notices, support customers, process invoices, and maintain audit records.",
+    title: "Purposes and legal grounds",
+    text: "We use information to perform requested services, create and track shipments, verify delivery details, prepare documents, support customers, administer accounts, prevent misuse, meet legal duties, and maintain audit records. Where required, processing relies on contract, consent, legal obligation, or legitimate operational interests.",
   },
   {
-    title: "Documents and uploads",
-    text: "Shipment documents, pet certificates, vaccination records, photos, receipts, and delivery paperwork are stored so the shipment can be verified and supported. Access is limited by user role and shipment relationship.",
+    title: "Documents and sensitive records",
+    text: "Shipment documents, pet certificates, vaccination records, medical certificates, photos, receipts, and delivery paperwork are used only for the relevant transport, verification, support, or legal purpose. Access is limited by role and shipment relationship.",
   },
   {
     title: "Payments and refunds",
-    text: "Apex may store billing records, invoice status, refund eligibility, and payment references. Sensitive payment credentials should be handled only by approved payment providers and should not be sent through ordinary chat or email.",
+    text: "Apex may store invoices, payment status, refund eligibility, and transaction references. Full card or wallet credentials should be handled by an approved payment provider and must not be sent through ordinary chat or email.",
+  },
+  {
+    title: "Service providers and sharing",
+    text: "Information may be shared with carriers, drivers, warehouses, veterinarians, storage, email, hosting, analytics, fraud-prevention, or professional service providers only when needed for the service or required by law. We do not sell shipment or account data.",
   },
   {
     title: "AI and live chat",
-    text: "Chat messages and AI-assisted drafts may be used to help admins respond professionally. AI suggestions require human review before sending and should not be treated as legal, medical, or customs advice.",
+    text: "Chat messages may be retained with the related support record. AI may prepare drafts or summaries, but an authorized user must review operational decisions and customer communications. AI output is not legal, medical, customs, or veterinary advice.",
   },
   {
-    title: "Retention and security",
-    text: "Operational records are retained as needed for shipment support, billing, compliance, audit logs, dispute handling, and customer service. Apex uses access controls, secure cookies, validation, audit logs, and role-based permissions.",
+    title: "Cookies and technical data",
+    text: "The platform uses essential cookies for authentication, security, preferences, and session continuity. Server logs may record IP address, browser details, request time, security events, and error diagnostics. Optional analytics should be enabled only with any consent required by applicable law.",
+  },
+  {
+    title: "Retention and deletion",
+    text: "Records are kept only as long as reasonably needed for transportation, billing, tax, compliance, safety, audit, claims, dispute handling, and customer support. Retention periods vary by record and governing law; data is deleted or anonymized when no longer required.",
+  },
+  {
+    title: "International processing",
+    text: "Logistics and cloud services may involve processing outside the customer's state or country. Where applicable law requires it, Apex or its providers must use an approved transfer mechanism and appropriate contractual safeguards.",
+  },
+  {
+    title: "Your choices and rights",
+    text: "Depending on location, a person may request access, correction, deletion, restriction, objection, portability, or withdrawal of consent. Some records must be retained for legal, billing, safety, or dispute purposes. Requests are verified before records are disclosed or changed.",
+  },
+  {
+    title: "Security and incident response",
+    text: "Apex uses role-based access, secure cookies, validation, audit logs, encrypted transport, and restricted administrative functions. No system is risk-free; suspected privacy or security incidents should be reported promptly to support@apexgloballogistics.net.",
   },
 ] as const;
 
@@ -58,17 +78,28 @@ export default function PrivacyPage() {
         title="Privacy and data handling"
       />
       <section className="mx-auto grid w-full max-w-7xl gap-8 px-4 py-16 sm:px-6 lg:grid-cols-[1.05fr_0.95fr]">
-        <div className="grid gap-4 md:grid-cols-2">
-          {privacySections.map((section) => (
-            <Card key={section.title}>
-              <CardHeader>
-                <CardTitle>{section.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Text>{section.text}</Text>
-              </CardContent>
-            </Card>
-          ))}
+        <div>
+          <div className="mb-8 max-w-3xl">
+            <Kicker>Effective July 17, 2026</Kicker>
+            <Heading className="mt-3 text-3xl">A practical notice for logistics data</Heading>
+            <Text className="mt-4">
+              Apex Global Logistics is responsible for the personal information it controls through
+              this website and its shipment operations. Privacy questions and verified rights
+              requests can be sent to support@apexgloballogistics.net.
+            </Text>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            {privacySections.map((section) => (
+              <Card key={section.title}>
+                <CardHeader>
+                  <CardTitle>{section.title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Text>{section.text}</Text>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
         <aside className="lg:sticky lg:top-28 lg:self-start">
           <div className="relative min-h-96 overflow-hidden rounded-lg">

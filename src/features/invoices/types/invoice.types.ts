@@ -1,4 +1,4 @@
-import type { InvoiceStatus } from "@prisma/client";
+import type { InvoiceStatus, ShipmentStatus } from "@prisma/client";
 
 export type InvoiceActionState = {
   fieldErrors?: Record<string, string[] | undefined>;
@@ -58,11 +58,15 @@ export type InvoiceDetail = InvoiceListItem & {
   paidAt: string | null;
   shipment: {
     destinationCity: string | null;
+    currentLocation: string | null;
     id: string;
+    lastTrackingUpdate: string | null;
     mode: string;
     originCity: string | null;
     serviceLevel: string | null;
     shipmentNumber: string;
+    status: ShipmentStatus;
+    updatedAt: string;
   } | null;
   subtotal: string;
   taxTotal: string;

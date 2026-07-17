@@ -5,6 +5,9 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { getCompanyProfile } from "@/features/settings/queries/company-profile.queries";
+import { CompactShipmentReceipt } from "@/features/shipments/components/compact-shipment-receipt";
+import { LiveDocumentRefresh } from "@/features/shipments/components/live-document-refresh";
 import { PrintButton } from "@/features/shipments/components/print-button";
 import { getShipmentForUser } from "@/features/shipments/queries/shipment.queries";
 import { formatShipmentStatus } from "@/features/shipments/status-labels";
@@ -16,6 +19,9 @@ import { kilogramsToPoundsString } from "@/lib/measurements";
 type ShipmentReceiptPageProps = {
   params: Promise<{
     shipmentId: string;
+  }>;
+  searchParams: Promise<{
+    format?: string;
   }>;
 };
 
@@ -59,13 +65,23 @@ function AddressBlock({ address, title }: { address: ShipmentDetail["origin"]; t
   );
 }
 
-export default async function ShipmentReceiptPage({ params }: ShipmentReceiptPageProps) {
+export default async function ShipmentReceiptPage({
+  params,
+  searchParams,
+}: ShipmentReceiptPageProps) {
   const { shipmentId } = await params;
+  const { format } = await searchParams;
   const user = await requirePermission(PERMISSIONS.SHIPMENTS_READ);
   const shipment = await getShipmentForUser(shipmentId, user);
 
   if (!shipment) {
     notFound();
+  }
+
+  if (format !== "a4") {
+    const profile = await getCompanyProfile();
+
+    return <CompactShipmentReceipt profile={profile} shipment={shipment} />;
   }
 
   const invoice = shipment.invoice;
@@ -75,6 +91,7 @@ export default async function ShipmentReceiptPage({ params }: ShipmentReceiptPag
       id="main-content"
       className="min-h-svh bg-slate-100 px-4 py-6 text-slate-950 print:bg-white print:p-0"
     >
+      <LiveDocumentRefresh initialUpdatedAt={shipment.updatedAt} shipmentId={shipment.id} />
       <style>
         {`
           @media print {
@@ -84,8 +101,6 @@ export default async function ShipmentReceiptPage({ params }: ShipmentReceiptPag
             }
 
             .parcel-receipt-sheet {
-              max-height: 281mm;
-              overflow: hidden;
               page-break-after: avoid;
               page-break-inside: avoid;
             }
@@ -110,7 +125,12 @@ export default async function ShipmentReceiptPage({ params }: ShipmentReceiptPag
               Back to shipment
             </Link>
           </Button>
-          <PrintButton label="Print receipt" />
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="outline">
+              <Link href={`/shipments/${shipment.id}/receipt` as Route}>80 mm receipt</Link>
+            </Button>
+            <PrintButton label="Print receipt" />
+          </div>
         </div>
         <section className="parcel-receipt-sheet border-border shadow-panel rounded-lg border bg-white p-8 print:rounded-none print:border-0 print:p-0 print:text-[11px] print:shadow-none">
           <header className="flex flex-wrap items-start justify-between gap-6 border-b border-slate-300 pb-8 print:pb-4">
@@ -153,6 +173,17 @@ export default async function ShipmentReceiptPage({ params }: ShipmentReceiptPag
               </div>
             ))}
           </div>
+
+          {shipment.timeline[0]?.currentLocation ? (
+            <div className="border-b border-slate-300 py-4 text-sm print:py-2 print:text-[10px]">
+              <span className="font-bold">Latest recorded location:</span>{" "}
+              {shipment.timeline[0].currentLocation}
+              <span className="text-slate-500">
+                {" "}
+                · {formatDate(shipment.timeline[0].occurredAt)}
+              </span>
+            </div>
+          ) : null}
 
           <div className="py-8 print:py-4">
             <p className="text-xs font-bold tracking-[0.24em] text-slate-500 uppercase">

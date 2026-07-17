@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/login" },
   description:
     "Login to Apex Global Logistics for secure shipment tracking, customer access, and operations workflows.",
+  robots: { follow: false, index: false },
   title: "Login | Apex Global Logistics",
 };
 

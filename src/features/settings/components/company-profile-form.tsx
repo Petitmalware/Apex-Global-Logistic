@@ -143,7 +143,7 @@ export function CompanyProfileForm({ action, profile }: CompanyProfileFormProps)
           </div>
 
           <Field>
-            <Label htmlFor="taxId">Tax or registration ID</Label>
+            <Label htmlFor="taxId">Tax ID (when applicable)</Label>
             <Textarea
               defaultValue={profile.taxId ?? ""}
               id="taxId"
@@ -160,6 +160,85 @@ export function CompanyProfileForm({ action, profile }: CompanyProfileFormProps)
               {isPending ? "Saving..." : "Save company details"}
             </Button>
           </div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Business identity and verification</CardTitle>
+          <FieldHint>
+            Enter only genuine details that customers can verify with the named authority. Empty
+            fields are never shown publicly.
+          </FieldHint>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field>
+              <Label htmlFor="legalName">Registered legal name</Label>
+              <Input
+                defaultValue={profile.legalName ?? ""}
+                id="legalName"
+                name="legalName"
+                placeholder="Exact name on the registration record"
+              />
+            </Field>
+            <Field>
+              <Label htmlFor="registrationNumber">Registration number</Label>
+              <Input
+                defaultValue={profile.registrationNumber ?? ""}
+                id="registrationNumber"
+                name="registrationNumber"
+                placeholder="Leave blank until officially issued"
+              />
+            </Field>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field>
+              <Label htmlFor="registrationAuthority">Registration authority</Label>
+              <Input
+                defaultValue={profile.registrationAuthority ?? ""}
+                id="registrationAuthority"
+                name="registrationAuthority"
+                placeholder="Secretary of State, Companies House, CAC, or equivalent"
+              />
+            </Field>
+            <Field>
+              <Label htmlFor="registrationJurisdiction">Jurisdiction</Label>
+              <Input
+                defaultValue={profile.registrationJurisdiction ?? ""}
+                id="registrationJurisdiction"
+                name="registrationJurisdiction"
+                placeholder="State, province, or country"
+              />
+            </Field>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field>
+              <Label htmlFor="carrierLicenseNumber">Regulatory or carrier ID</Label>
+              <Input
+                defaultValue={profile.carrierLicenseNumber ?? ""}
+                id="carrierLicenseNumber"
+                name="carrierLicenseNumber"
+                placeholder="USDOT, MC, FMC, or local equivalent when applicable"
+              />
+            </Field>
+            <Field>
+              <Label htmlFor="businessRegistryUrl">Official registry record URL</Label>
+              <Input
+                defaultValue={profile.businessRegistryUrl ?? ""}
+                id="businessRegistryUrl"
+                name="businessRegistryUrl"
+                placeholder="https://official-registry.example/record"
+                type="url"
+              />
+              {state.fieldErrors?.businessRegistryUrl?.[0] ? (
+                <FieldError>{state.fieldErrors.businessRegistryUrl[0]}</FieldError>
+              ) : null}
+            </Field>
+          </div>
+          <p className="border-border bg-secondary text-secondary-foreground rounded-md border px-4 py-3 text-sm leading-6">
+            Do not enter a placeholder EIN, company number, carrier license, accreditation, or
+            review badge. Publish these details only after the issuing body has approved them.
+          </p>
         </CardContent>
       </Card>
     </form>

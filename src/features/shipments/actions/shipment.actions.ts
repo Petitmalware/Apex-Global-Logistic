@@ -307,6 +307,9 @@ export async function updateShipmentStatusAction(
 
   revalidatePath("/shipments");
   revalidatePath(`/shipments/${shipmentId}`);
+  revalidatePath(`/shipments/${shipmentId}/receipt`);
+  revalidatePath("/invoices/[invoiceId]", "page");
+  revalidatePath("/admin/invoices");
 
   return {
     message: "Shipment status updated.",

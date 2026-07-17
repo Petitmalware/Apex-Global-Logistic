@@ -28,6 +28,7 @@ services:
       APP_ENV: production
       NODE_ENV: production
       PORT: 3000
+      REDIS_URL: redis://redis:6379
     logging: *default-logging
     networks:
       - apex_private

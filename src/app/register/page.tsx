@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/register" },
   description:
     "Register for an Apex Global Logistics customer account to manage parcel, pet, and freight shipments.",
+  robots: { follow: false, index: false },
   title: "Register | Apex Global Logistics",
 };
 

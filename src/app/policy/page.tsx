@@ -23,7 +23,7 @@ const policySections = [
   },
   {
     title: "Refundable deposits",
-    text: "Some shipments may require refundable deposits for travel crates, temporary holding, veterinary clearance, insurance coverage, customs or compliance handling, climate monitoring, or special equipment. Each refundable fee must be listed on an invoice or official service document before payment.",
+    text: "A refundable deposit may be used only when the shipment agreement or a documented third-party requirement identifies the service, amount, refund condition, permitted deductions, and release method. Every deposit must appear on an official Apex invoice before payment.",
   },
   {
     title: "Additional charges",
@@ -32,6 +32,14 @@ const policySections = [
   {
     title: "Refund release",
     text: "Eligible refundable balances are released after successful delivery, recipient signature, delivery paperwork completion, and any required equipment inspection. Refunds are returned to the payer's account or agreed payment method, less documented deductions supported by receipts or signed records.",
+  },
+  {
+    title: "Payment verification",
+    text: "Customers should pay only against a numbered Apex invoice through the approved company payment instructions shown on that invoice. Apex will not rely on threats, personal payment accounts, or undocumented time pressure to collect a shipment charge.",
+  },
+  {
+    title: "Operational holds",
+    text: "A shipment may be placed on hold for safety, customer instruction, incomplete information, lawful inspection, route disruption, welfare review, or documented billing review. The tracking timeline should state the location, reason, and next action without falsely describing a government or insurance requirement.",
   },
   {
     title: "Customer responsibility",
@@ -65,7 +73,8 @@ export default function PolicyPage() {
             Apex policy is that refundable deposits must be tied to a shipment record, customer
             name, invoice number, reason for collection, refund rule, and delivery paperwork. If a
             fee changes because service conditions change, the customer should receive an updated
-            document before payment.
+            document before payment. Customers should independently verify unexpected payment
+            requests using the contact details published on this website.
           </Text>
           <div className="relative mt-8 min-h-80 overflow-hidden rounded-lg">
             <Image

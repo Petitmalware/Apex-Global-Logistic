@@ -122,6 +122,7 @@ function getAddressLines(profile: CompanyProfileInput) {
 
 function getFooterContactItems(profile: CompanyProfileInput) {
   const address = getAddressLines(profile).join(", ");
+  const generalEmail = profile.email ?? siteConfig.emails.general;
   const items: Array<{ href?: string; icon: LucideIcon; label?: string; value: string }> = [];
 
   if (address) {
@@ -132,22 +133,12 @@ function getFooterContactItems(profile: CompanyProfileInput) {
     items.push({ icon: Phone, value: profile.phone });
   }
 
-  if (profile.email) {
-    items.push({ icon: Mail, value: profile.email });
-  }
-
   items.push(
     {
-      href: `mailto:${siteConfig.emails.general}`,
+      href: `mailto:${generalEmail}`,
       icon: Mail,
       label: "General inquiries",
-      value: siteConfig.emails.general,
-    },
-    {
-      href: `mailto:${siteConfig.emails.operations}`,
-      icon: Mail,
-      label: "Shipment coordination",
-      value: siteConfig.emails.operations,
+      value: generalEmail,
     },
     {
       href: `mailto:${siteConfig.emails.support}`,
@@ -230,7 +221,17 @@ export async function MarketingFooter() {
         </div>
       </div>
       <div className="border-border text-muted-foreground border-t px-4 py-5 text-center text-xs">
-        &copy; 2026 Apex Global Logistics. All rights reserved.
+        <p>&copy; 2026 Apex Global Logistics. All rights reserved.</p>
+        {profile.legalName || profile.registrationNumber ? (
+          <p className="mt-2">
+            {[
+              profile.legalName,
+              profile.registrationNumber ? `Registration ${profile.registrationNumber}` : null,
+            ]
+              .filter(Boolean)
+              .join(" | ")}
+          </p>
+        ) : null}
       </div>
     </footer>
   );

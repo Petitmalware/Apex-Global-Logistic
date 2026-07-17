@@ -340,7 +340,7 @@ function getTrackingEventType(status: ShipmentStatus) {
     [ShipmentStatus.CANCELLED]: TrackingEventType.CANCELLED,
     [ShipmentStatus.DELIVERED]: TrackingEventType.DELIVERED,
     [ShipmentStatus.DRAFT]: TrackingEventType.CREATED,
-    [ShipmentStatus.HELD]: TrackingEventType.CUSTOMS_HOLD,
+    [ShipmentStatus.HELD]: TrackingEventType.EXCEPTION,
     [ShipmentStatus.IN_TRANSIT]: TrackingEventType.IN_TRANSIT,
     [ShipmentStatus.PENDING_PICKUP]: TrackingEventType.CREATED,
     [ShipmentStatus.RETURNED]: TrackingEventType.EXCEPTION,
@@ -979,7 +979,7 @@ export async function updateShipmentStatus(
     });
   });
 
-  await publishShipmentTrackingUpdate(shipmentId);
+  await publishShipmentTrackingUpdate(shipmentId).catch(() => null);
   await notifyShipmentStatusChanged({
     createdById: shipment.createdById,
     customerId: shipment.customerId,
@@ -988,7 +988,7 @@ export async function updateShipmentStatus(
     shipmentId,
     shipmentNumber: shipment.shipmentNumber,
     status: input.status,
-  });
+  }).catch(() => null);
 }
 
 export async function uploadShipmentDocument({

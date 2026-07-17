@@ -85,6 +85,7 @@ export const companyNavItems = [
   { href: "/about", label: "About" },
   { href: "/faq", label: "FAQ" },
   { href: "/contact", label: "Contact" },
+  { href: "/terms", label: "Terms" },
   { href: "/policy", label: "Policy" },
   { href: "/privacy", label: "Privacy" },
 ] as const;

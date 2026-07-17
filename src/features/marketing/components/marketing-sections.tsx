@@ -720,19 +720,14 @@ export function TrustBar() {
 export function ContactPanel() {
   const emailChannels = [
     {
-      description: "Company information, service questions, and general business inquiries.",
+      description: "Company information, service questions, quotes, and new shipment coordination.",
       email: siteConfig.emails.general,
       label: "General inquiries",
       subject: "Apex Global Logistics inquiry",
     },
     {
-      description: "New shipment coordination, recipient details, documents, and route updates.",
-      email: siteConfig.emails.operations,
-      label: "Shipment coordination",
-      subject: "Apex shipment coordination request",
-    },
-    {
-      description: "Account access, verification, password reset, billing, and customer care.",
+      description:
+        "Active shipment help, account access, verification, password reset, billing, and customer care.",
       email: siteConfig.emails.support,
       label: "Customer support",
       subject: "Apex customer support request",

@@ -13,10 +13,9 @@ const publicRoutes = [
   "/about",
   "/faq",
   "/contact",
+  "/terms",
   "/policy",
   "/privacy",
-  "/login",
-  "/register",
 ] as const;
 
 export default function sitemap(): MetadataRoute.Sitemap {

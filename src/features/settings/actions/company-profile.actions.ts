@@ -32,11 +32,17 @@ export async function updateCompanyProfileAction(
     addressLine1: getString(formData, "addressLine1"),
     addressLine2: getString(formData, "addressLine2"),
     businessHours: getString(formData, "businessHours"),
+    businessRegistryUrl: getString(formData, "businessRegistryUrl"),
+    carrierLicenseNumber: getString(formData, "carrierLicenseNumber"),
     city: getString(formData, "city"),
     country: getString(formData, "country"),
     email: getString(formData, "email"),
+    legalName: getString(formData, "legalName"),
     phone: getString(formData, "phone"),
     postalCode: getString(formData, "postalCode"),
+    registrationAuthority: getString(formData, "registrationAuthority"),
+    registrationJurisdiction: getString(formData, "registrationJurisdiction"),
+    registrationNumber: getString(formData, "registrationNumber"),
     state: getString(formData, "state"),
     taxId: getString(formData, "taxId"),
     website: getString(formData, "website"),
@@ -94,6 +100,7 @@ export async function updateCompanyProfileAction(
   });
 
   revalidatePath("/contact");
+  revalidatePath("/about");
   revalidatePath("/admin/settings");
   revalidatePath("/invoices");
   revalidatePath("/", "layout");

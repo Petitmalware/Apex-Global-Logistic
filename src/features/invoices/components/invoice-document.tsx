@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { PrintButton } from "@/features/shipments/components/print-button";
 import type { InvoiceDetail } from "@/features/invoices/types/invoice.types";
 import type { CompanyProfileInput } from "@/features/settings/schemas/company-profile.schema";
+import { LiveDocumentRefresh } from "@/features/shipments/components/live-document-refresh";
+import { formatShipmentStatus } from "@/features/shipments/status-labels";
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("en", {
@@ -121,6 +123,20 @@ export function InvoiceDocument({
   const shipmentDetails = invoice.shipment
     ? [
         { label: "Shipment", value: invoice.shipment.shipmentNumber },
+        { label: "Shipment status", value: formatShipmentStatus(invoice.shipment.status) },
+        invoice.shipment.currentLocation || invoice.shipment.lastTrackingUpdate
+          ? {
+              label: "Latest checkpoint",
+              value: [
+                invoice.shipment.currentLocation,
+                invoice.shipment.lastTrackingUpdate
+                  ? formatDate(invoice.shipment.lastTrackingUpdate)
+                  : null,
+              ]
+                .filter(Boolean)
+                .join(" - "),
+            }
+          : null,
         invoice.shipment.originCity && invoice.shipment.destinationCity
           ? {
               label: "Lane",
@@ -141,6 +157,12 @@ export function InvoiceDocument({
       id="main-content"
       className="invoice-print-shell min-h-svh bg-slate-100 px-4 py-6 text-slate-950 print:bg-white print:p-0"
     >
+      {invoice.shipment ? (
+        <LiveDocumentRefresh
+          initialUpdatedAt={invoice.shipment.updatedAt}
+          shipmentId={invoice.shipment.id}
+        />
+      ) : null}
       <style>
         {`
           @media print {
@@ -150,8 +172,6 @@ export function InvoiceDocument({
             }
 
             .invoice-sheet {
-              max-height: 281mm;
-              overflow: hidden;
               page-break-after: avoid;
               page-break-inside: avoid;
             }
@@ -196,7 +216,7 @@ export function InvoiceDocument({
           </div>
 
           {shipmentDetails.length ? (
-            <div className="grid gap-4 border-b border-slate-300 py-8 sm:grid-cols-4 print:gap-2 print:py-4">
+            <div className="grid gap-4 border-b border-slate-300 py-8 sm:grid-cols-3 print:grid-cols-3 print:gap-2 print:py-4">
               {shipmentDetails.map((item) => (
                 <div className="rounded-md border border-slate-300 p-4 print:p-2" key={item.label}>
                   <p className="text-xs font-bold tracking-[0.18em] text-slate-500 uppercase print:text-[8px]">

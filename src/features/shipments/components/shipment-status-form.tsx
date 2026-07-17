@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import type { ShipmentStatus } from "@prisma/client";
-import { ArrowRight } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowRight, CircleCheck, PauseCircle, Play, Truck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Field, FieldHint } from "@/components/ui/field";
@@ -63,6 +64,48 @@ const eventGuidance: Record<TrackingEventOption, string> = {
   EXCEPTION: "Use for anything that needs extra customer or operations attention.",
 };
 
+const defaultEventByStatus: Record<ShipmentStatusOption, TrackingEventOption> = {
+  BOOKED: "CREATED",
+  CANCELLED: "CANCELLED",
+  DELIVERED: "DELIVERED",
+  HELD: "EXCEPTION",
+  IN_TRANSIT: "IN_TRANSIT",
+  PENDING_PICKUP: "CHECKED_IN",
+  RETURNED: "EXCEPTION",
+};
+
+const quickActions = [
+  {
+    eventType: "EXCEPTION",
+    icon: PauseCircle,
+    label: "Put on hold",
+    status: "HELD",
+  },
+  {
+    eventType: "IN_TRANSIT",
+    icon: Play,
+    label: "Resume transit",
+    status: "IN_TRANSIT",
+  },
+  {
+    eventType: "OUT_FOR_DELIVERY",
+    icon: Truck,
+    label: "Out for delivery",
+    status: "IN_TRANSIT",
+  },
+  {
+    eventType: "DELIVERED",
+    icon: CircleCheck,
+    label: "Mark delivered",
+    status: "DELIVERED",
+  },
+] as const satisfies ReadonlyArray<{
+  eventType: TrackingEventOption;
+  icon: typeof PauseCircle;
+  label: string;
+  status: ShipmentStatusOption;
+}>;
+
 export function ShipmentStatusForm({
   action,
   currentStatus,
@@ -70,12 +113,26 @@ export function ShipmentStatusForm({
   action: (state: ShipmentActionState, formData: FormData) => Promise<ShipmentActionState>;
   currentStatus: ShipmentStatus;
 }) {
+  const router = useRouter();
   const [state, formAction, isPending] = useActionState(action, initialShipmentActionState);
   const initialStatus = statusOptions.includes(currentStatus as ShipmentStatusOption)
     ? (currentStatus as ShipmentStatusOption)
     : "BOOKED";
   const [selectedStatus, setSelectedStatus] = useState<ShipmentStatusOption>(initialStatus);
-  const [selectedEventType, setSelectedEventType] = useState<TrackingEventOption>("CREATED");
+  const [selectedEventType, setSelectedEventType] = useState<TrackingEventOption>(
+    defaultEventByStatus[initialStatus],
+  );
+
+  useEffect(() => {
+    if (state.status === "success") {
+      router.refresh();
+    }
+  }, [router, state.status]);
+
+  function selectQuickAction(status: ShipmentStatusOption, eventType: TrackingEventOption) {
+    setSelectedStatus(status);
+    setSelectedEventType(eventType);
+  }
 
   return (
     <form action={formAction} className="space-y-4">
@@ -85,6 +142,31 @@ export function ShipmentStatusForm({
           Use this panel to add a new customer-facing checkpoint, delivery note, or manual location
           update when the map is not available.
         </p>
+      </div>
+      <div className="space-y-3">
+        <p className="text-sm font-semibold">Common actions</p>
+        <div className="grid grid-cols-2 gap-2">
+          {quickActions.map((quickAction) => (
+            <Button
+              className="h-auto min-h-11 justify-start px-3 py-2 text-left"
+              key={quickAction.label}
+              onClick={() => selectQuickAction(quickAction.status, quickAction.eventType)}
+              type="button"
+              variant={
+                selectedStatus === quickAction.status && selectedEventType === quickAction.eventType
+                  ? "secondary"
+                  : "outline"
+              }
+            >
+              <quickAction.icon aria-hidden="true" className="size-4 shrink-0" />
+              <span>{quickAction.label}</span>
+            </Button>
+          ))}
+        </div>
+        <FieldHint>
+          Putting a shipment on hold pauses movement without cancelling it. Add the reason and
+          current location below so the customer knows what happens next.
+        </FieldHint>
       </div>
       <div className="border-border bg-surface rounded-lg border p-4">
         <p className="text-sm font-semibold">What this update does</p>
@@ -105,7 +187,11 @@ export function ShipmentStatusForm({
           <Select
             id="status"
             name="status"
-            onChange={(event) => setSelectedStatus(event.target.value as ShipmentStatusOption)}
+            onChange={(event) => {
+              const nextStatus = event.target.value as ShipmentStatusOption;
+              setSelectedStatus(nextStatus);
+              setSelectedEventType(defaultEventByStatus[nextStatus]);
+            }}
             required
             value={selectedStatus}
           >
@@ -148,8 +234,8 @@ export function ShipmentStatusForm({
           placeholder="Memphis animal care facility, customs hold, driver handoff..."
         />
         <FieldHint>
-          Use a city, hub, facility, airport, checkpoint, or driver handoff point the customer can
-          recognize.
+          Use a city, hub, facility, airport, checkpoint, or driver handoff point. A location name
+          works even when GPS coordinates are unavailable.
         </FieldHint>
       </Field>
       <div className="grid gap-4 sm:grid-cols-2">
@@ -162,7 +248,7 @@ export function ShipmentStatusForm({
             step="0.000001"
             type="number"
           />
-          <FieldHint>Optional. Add this only when the map position is known.</FieldHint>
+          <FieldHint>Optional. Paste the latitude from a verified map pin.</FieldHint>
         </Field>
         <Field>
           <Label htmlFor="longitude">Map longitude</Label>
@@ -173,7 +259,7 @@ export function ShipmentStatusForm({
             step="0.000001"
             type="number"
           />
-          <FieldHint>Optional. Pair this with latitude for live map placement.</FieldHint>
+          <FieldHint>Optional. Pair this with latitude to place the shipment on the map.</FieldHint>
         </Field>
       </div>
       <Field>
@@ -190,7 +276,7 @@ export function ShipmentStatusForm({
         </FieldHint>
       </Field>
       <Button disabled={isPending} type="submit" variant="accent">
-        {isPending ? "Updating..." : "Update status"}
+        {isPending ? "Publishing..." : "Publish tracking update"}
         <ArrowRight aria-hidden="true" />
       </Button>
     </form>

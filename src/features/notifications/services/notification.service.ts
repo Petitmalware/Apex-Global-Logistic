@@ -118,6 +118,15 @@ function getEmailVariables(value: unknown): Record<string, string | undefined> {
   );
 }
 
+function getManualRecipient(value: Prisma.JsonValue | null) {
+  const metadata = getMetadataObject(value);
+  const manualRecipient = getMetadataObject(metadata.manualRecipient ?? null);
+  const email = getString(manualRecipient.email)?.toLowerCase();
+  const name = getString(manualRecipient.name);
+
+  return email ? { email, name: name ?? null } : null;
+}
+
 function getNotificationEmailCategory(topic: unknown) {
   if (topic === "billing") {
     return EmailTemplateCategory.BILLING;
@@ -543,13 +552,22 @@ export async function notifyShipmentStatusChanged({
         },
       })
     : [];
+  const shipment = await prisma.shipment.findUnique({
+    select: {
+      metadata: true,
+    },
+    where: {
+      id: shipmentId,
+    },
+  });
+  const manualRecipient = getManualRecipient(shipment?.metadata ?? null);
   const templateKey =
     status === "DELIVERED"
       ? "delivered"
       : status === "OUT_FOR_DELIVERY"
         ? "out-for-delivery"
         : status === "HELD"
-          ? "customs-hold"
+          ? "shipment-delayed"
           : status === "IN_TRANSIT"
             ? "shipment-in-transit"
             : "shipment-created";
@@ -575,20 +593,38 @@ export async function notifyShipmentStatusChanged({
       }),
     ),
   );
+  const recipientEmails = new Set(recipients.map((recipient) => recipient.email.toLowerCase()));
+  const emailRecipients = [
+    ...recipients.map((recipient) => ({
+      email: recipient.email,
+      id: recipient.id,
+      name: recipient.name,
+    })),
+    ...(manualRecipient && !recipientEmails.has(manualRecipient.email)
+      ? [
+          {
+            email: manualRecipient.email,
+            id: null,
+            name: manualRecipient.name,
+          },
+        ]
+      : []),
+  ];
+
   await Promise.all(
-    recipients.map((recipient) =>
+    emailRecipients.map((recipient) =>
       sendSystemTemplateEmail({
         bodyHtml: message ?? `<p>Your shipment {{trackingNumber}} moved to {{shipmentStatus}}.</p>`,
         category: EmailTemplateCategory.SHIPMENT,
         organizationId,
         recipientEmail: recipient.email,
         recipientName: recipient.name,
-        relatedUserId: recipient.id,
+        relatedUserId: recipient.id ?? undefined,
         shipmentId,
         templateKey,
         trackingNumber: shipmentNumber,
         variables: {
-          customerName: recipient.name,
+          customerName: recipient.name ?? undefined,
           shipmentStatus: status.replaceAll("_", " "),
           trackingNumber: shipmentNumber,
         },

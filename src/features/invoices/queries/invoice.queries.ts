@@ -79,6 +79,14 @@ function normalizeShipmentLocation(value: string) {
     : value;
 }
 
+function getTrackingEventLocation(metadata: Prisma.JsonValue | null) {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    return null;
+  }
+
+  return "location" in metadata && typeof metadata.location === "string" ? metadata.location : null;
+}
+
 function invoiceWhereForUser(user: AuthSessionUser): Prisma.InvoiceWhereInput {
   if (user.roles.includes(AUTH_ROLES.SUPER_ADMIN)) {
     return {
@@ -198,6 +206,16 @@ export async function getInvoiceForUser(
                 city: true,
               },
             },
+            trackingEvents: {
+              orderBy: {
+                occurredAt: "desc",
+              },
+              select: {
+                metadata: true,
+                occurredAt: true,
+              },
+              take: 1,
+            },
           },
         },
       },
@@ -241,12 +259,18 @@ export async function getInvoiceForUser(
       paidAt: formatDate(invoice.paidAt),
       shipment: invoice.shipment
         ? {
+            currentLocation: getTrackingEventLocation(
+              invoice.shipment.trackingEvents[0]?.metadata ?? null,
+            ),
             destinationCity: normalizeShipmentLocation(invoice.shipment.destinationAddress.city),
             id: invoice.shipment.id,
+            lastTrackingUpdate: formatDate(invoice.shipment.trackingEvents[0]?.occurredAt ?? null),
             mode: invoice.shipment.mode,
             originCity: normalizeShipmentLocation(invoice.shipment.originAddress.city),
             serviceLevel: invoice.shipment.serviceLevel,
             shipmentNumber: invoice.shipment.shipmentNumber,
+            status: invoice.shipment.status,
+            updatedAt: invoice.shipment.updatedAt.toISOString(),
           }
         : null,
       subtotal: decimalToString(invoice.subtotal),
