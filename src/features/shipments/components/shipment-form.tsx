@@ -447,6 +447,40 @@ export function ShipmentForm({
       <Card>
         <CardHeader>
           <div className="flex items-start gap-3">
+            <div className="bg-success/10 text-success grid size-10 place-items-center rounded-md">
+              <Contact aria-hidden="true" className="size-5" />
+            </div>
+            <div>
+              <CardTitle>Public tracking visibility</CardTitle>
+              <p className="text-muted-foreground mt-1 text-sm leading-6">
+                Keep personal contact information private while choosing whether the shipment party
+                names should appear after a valid tracking number is entered.
+              </p>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <label className="border-border hover:border-accent/60 flex cursor-pointer items-start gap-3 rounded-md border p-4 transition-colors">
+            <input
+              className="accent-accent mt-0.5 size-4 shrink-0"
+              defaultChecked={initialShipment?.publicTracking.shareParties ?? false}
+              name="publicTracking.shareParties"
+              type="checkbox"
+            />
+            <span>
+              <span className="block text-sm font-semibold">Show sender and receiver names</span>
+              <span className="text-muted-foreground mt-1 block text-sm leading-6">
+                Only names are shown on public tracking. Email, phone number, street address,
+                documents, and payment details always remain private.
+              </span>
+            </span>
+          </label>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-start gap-3">
             <div className="bg-accent/15 text-accent grid size-10 place-items-center rounded-md">
               <ClipboardList aria-hidden="true" className="size-5" />
             </div>

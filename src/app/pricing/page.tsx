@@ -6,7 +6,6 @@ import {
   FinalCta,
   PageHero,
   PricingCards,
-  RefundableFeesSection,
 } from "@/features/marketing/components/marketing-sections";
 
 export const metadata: Metadata = {
@@ -28,7 +27,6 @@ export default function PricingPage() {
         title="Pricing that scales with your logistics network"
       />
       <PricingCards />
-      <RefundableFeesSection />
       <FaqList />
       <FinalCta />
     </MarketingShell>

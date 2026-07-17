@@ -11,11 +11,14 @@ import type {
   ShipmentOfficeDetails,
   ShipmentListItem,
   ShipmentPackageView,
+  PublicShipmentTrackingDetails,
+  PublicTrackingPreferences,
   ShipmentTrackingSnapshot,
 } from "@/features/shipments/types";
 import { AUTH_ROLES } from "@/lib/auth/constants";
 import { PERMISSIONS, hasPermission } from "@/lib/auth/rbac";
 import { prisma } from "@/lib/db";
+import { kilogramsToPounds } from "@/lib/measurements";
 
 function formatDate(value: Date | null) {
   return value ? value.toISOString() : null;
@@ -54,6 +57,69 @@ function getManualRecipient(metadata: Prisma.JsonValue | null): ManualRecipientV
   const phone = "phone" in value && typeof value.phone === "string" ? value.phone : null;
 
   return email || name || phone ? { email, name, phone } : null;
+}
+
+function getPublicTrackingPreferences(
+  metadata: Prisma.JsonValue | null,
+): PublicTrackingPreferences {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    return { shareParties: false, sharePetDetails: false };
+  }
+
+  const value = "publicTracking" in metadata ? metadata.publicTracking : null;
+
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return { shareParties: false, sharePetDetails: false };
+  }
+
+  return {
+    shareParties: "shareParties" in value && value.shareParties === true,
+    sharePetDetails: "sharePetDetails" in value && value.sharePetDetails === true,
+  };
+}
+
+function getPublicTrackingDetails({
+  customer,
+  destinationAddress,
+  metadata,
+  originAddress,
+  petTransport,
+}: {
+  customer?: { name: string } | null;
+  destinationAddress: { name?: string | null };
+  metadata?: Prisma.JsonValue | null;
+  originAddress: { name?: string | null };
+  petTransport?: {
+    ageMonths: number | null;
+    breed: string | null;
+    ownerName: string | null;
+    petName: string | null;
+    species: string;
+    weightKg: Prisma.Decimal | null;
+  } | null;
+}): PublicShipmentTrackingDetails | null {
+  const preferences = getPublicTrackingPreferences(metadata ?? null);
+  const manualRecipient = getManualRecipient(metadata ?? null);
+  const senderName = preferences.shareParties
+    ? (originAddress.name ?? petTransport?.ownerName ?? null)
+    : null;
+  const recipientName = preferences.shareParties
+    ? (destinationAddress.name ?? customer?.name ?? manualRecipient?.name ?? null)
+    : null;
+  const pet =
+    preferences.sharePetDetails && petTransport?.petName
+      ? {
+          ageMonths: petTransport.ageMonths,
+          breed: petTransport.breed,
+          name: petTransport.petName,
+          species: petTransport.species,
+          weightLb: petTransport.weightKg
+            ? numberToWeightString(kilogramsToPounds(petTransport.weightKg.toNumber()))
+            : null,
+        }
+      : null;
+
+  return senderName || recipientName || pet ? { pet, recipientName, senderName } : null;
 }
 
 const officeDetailKeys = [
@@ -222,16 +288,30 @@ function mapTimelineEvent(event: {
 }
 
 function mapTrackingSnapshot(shipment: {
+  customer?: {
+    name: string;
+  } | null;
   deliveryWindowEnd: Date | null;
   deliveryWindowStart: Date | null;
   destinationAddress: {
     city: string;
+    name?: string | null;
   };
   id: string;
+  metadata?: Prisma.JsonValue | null;
   mode: ShipmentTrackingSnapshot["mode"];
   originAddress: {
     city: string;
+    name?: string | null;
   };
+  petTransport?: {
+    ageMonths: number | null;
+    breed: string | null;
+    ownerName: string | null;
+    petName: string | null;
+    species: string;
+    weightKg: Prisma.Decimal | null;
+  } | null;
   pickupWindowEnd: Date | null;
   pickupWindowStart: Date | null;
   serviceLevel: string | null;
@@ -249,6 +329,7 @@ function mapTrackingSnapshot(shipment: {
     originCity: shipment.originAddress.city,
     pickupWindowEnd: formatDate(shipment.pickupWindowEnd),
     pickupWindowStart: formatDate(shipment.pickupWindowStart),
+    publicDetails: getPublicTrackingDetails(shipment),
     serviceLevel: shipment.serviceLevel,
     shipmentNumber: shipment.shipmentNumber,
     status: shipment.status,
@@ -523,6 +604,7 @@ export async function getShipmentForUser(
     const invoice = shipment.invoices[0] ?? null;
     const manualRecipient = getManualRecipient(shipment.metadata);
     const officeDetails = getOfficeDetails(shipment.metadata);
+    const publicTracking = getPublicTrackingPreferences(shipment.metadata);
 
     return {
       cancelledAt: formatDate(shipment.cancelledAt),
@@ -585,6 +667,7 @@ export async function getShipmentForUser(
       pickupWindowEnd: formatDate(shipment.pickupWindowEnd),
       pickupWindowStart: formatDate(shipment.pickupWindowStart),
       priority: shipment.priority,
+      publicTracking,
       recipientEmail: shipment.customer?.email ?? manualRecipient?.email ?? null,
       recipientName: shipment.customer?.name ?? manualRecipient?.name ?? null,
       referenceNumber: shipment.referenceNumber,
@@ -618,11 +701,28 @@ export async function getShipmentTrackingSnapshotForUser(
         destinationAddress: {
           select: {
             city: true,
+            name: true,
           },
         },
         originAddress: {
           select: {
             city: true,
+            name: true,
+          },
+        },
+        customer: {
+          select: {
+            name: true,
+          },
+        },
+        petTransport: {
+          select: {
+            ageMonths: true,
+            breed: true,
+            ownerName: true,
+            petName: true,
+            species: true,
+            weightKg: true,
           },
         },
         trackingEvents: {
@@ -672,11 +772,28 @@ export async function getPublicShipmentTrackingSnapshot(
         destinationAddress: {
           select: {
             city: true,
+            name: true,
           },
         },
         originAddress: {
           select: {
             city: true,
+            name: true,
+          },
+        },
+        customer: {
+          select: {
+            name: true,
+          },
+        },
+        petTransport: {
+          select: {
+            ageMonths: true,
+            breed: true,
+            ownerName: true,
+            petName: true,
+            species: true,
+            weightKg: true,
           },
         },
         trackingEvents: {

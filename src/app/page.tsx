@@ -12,7 +12,6 @@ import {
   HomeHero,
   PaymentConfidenceSection,
   ProcessSection,
-  RefundableFeesSection,
   ServiceDetailsSection,
   ServiceGrid,
   TrustAndSafetySection,
@@ -55,7 +54,6 @@ export default function HomePage() {
       <ProcessSection />
       <DocumentsAndBillingSection />
       <PaymentConfidenceSection />
-      <RefundableFeesSection />
       <TrustAndSafetySection />
       <ContactPanel />
       <FinalCta />

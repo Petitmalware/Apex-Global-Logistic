@@ -36,6 +36,12 @@ function getBoolean(formData: FormData, key: string) {
   return formData.get(key) === "on";
 }
 
+function getOptionalBoolean(formData: FormData, key: string) {
+  const value = formData.get(key);
+
+  return value === null ? undefined : value === "on" || value === "true";
+}
+
 function hasOptionalPackageData(formData: FormData, index: number) {
   const keys = [
     "id",
@@ -126,6 +132,10 @@ function parseShipmentFormData(
     pickupWindowEnd: getString(formData, "pickupWindowEnd"),
     pickupWindowStart: getString(formData, "pickupWindowStart"),
     priority: getString(formData, "priority") || "STANDARD",
+    publicTracking: {
+      shareParties: getBoolean(formData, "publicTracking.shareParties"),
+      sharePetDetails: getOptionalBoolean(formData, "publicTracking.sharePetDetails"),
+    },
     referenceNumber: getString(formData, "referenceNumber"),
     recipientRequired,
     serviceLevel: getString(formData, "serviceLevel"),

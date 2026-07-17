@@ -4,7 +4,6 @@ import {
   Boxes,
   Building2,
   CircleDollarSign,
-  ClipboardCheck,
   Clock3,
   Dog,
   FileCheck2,
@@ -132,7 +131,7 @@ export const capabilityHighlights = [
 export const paymentConfidenceItems = [
   {
     description:
-      "Every payment request should reference a numbered invoice, the related shipment, the recipient, the amount, and the service or deposit being charged.",
+      "Every payment request should reference a numbered invoice, the related shipment, the recipient, the amount, and the service being charged.",
     icon: FileCheck2,
     title: "Verify the invoice",
   },
@@ -144,7 +143,7 @@ export const paymentConfidenceItems = [
   },
   {
     description:
-      "A successful payment must produce a receipt and a visible billing record. Refundable items must also state the refund condition and any permitted deduction.",
+      "A successful payment should produce a receipt and a visible billing record. Any applicable terms are shown on the related invoice before payment.",
     icon: CircleDollarSign,
     title: "Keep the receipt and terms",
   },
@@ -184,35 +183,6 @@ export const deliveryProofCards = [
     label: "Freight and customs lanes",
     text: "Freight moves are documented with route, container, cargo, driver, and exception records.",
   },
-] as const;
-
-export const refundableFeeSteps = [
-  {
-    description:
-      "Some shipments may require refundable deposits for crates, temporary holding, compliance checks, insurance coverage, veterinary clearance, or special handling.",
-    icon: ClipboardCheck,
-    title: "Verified need",
-  },
-  {
-    description:
-      "Any additional amount is issued as an invoice or official document before payment. The customer sees what it covers, what may be deducted, and the refund rule.",
-    icon: FileCheck2,
-    title: "Documented charge",
-  },
-  {
-    description:
-      "After successful delivery, signed receipt, and any required equipment inspection, eligible refundable balances are returned to the payer's account or agreed payment method.",
-    icon: CircleDollarSign,
-    title: "Refund after delivery",
-  },
-] as const;
-
-export const refundableFeeExamples = [
-  "Travel crate security deposit",
-  "Fit-to-travel certificate deposit",
-  "Climate monitoring deposit",
-  "Temporary holding deposit",
-  "Insurance or liability coverage deposit",
 ] as const;
 
 export const parcelFeatures = [
@@ -341,7 +311,7 @@ export const clientAssuranceCards = [
   },
   {
     icon: FileCheck2,
-    text: "Invoices, receipts, refundable deposit notices, shipment labels, and official documents are prepared with company letterhead and clear billing rules.",
+    text: "Invoices, receipts, shipment labels, and official documents are prepared with company letterhead and clear billing records.",
     title: "Professional documents",
   },
   {
@@ -369,8 +339,8 @@ export const customerJourneySteps = [
   },
   {
     description:
-      "When delivery is completed, signed receipts and related paperwork confirm the handoff. Eligible refundable deposits are then processed according to the documented rule.",
-    title: "4. Delivery and refund closure",
+      "When delivery is completed, signed receipts and related paperwork confirm the handoff and close the delivery record.",
+    title: "4. Delivery confirmation",
   },
 ] as const;
 
@@ -389,7 +359,7 @@ export const accountabilityCards = [
   },
   {
     label: "Payment clarity",
-    value: "Refundable rules shown before payment",
+    value: "Invoice terms shown before payment",
   },
   {
     label: "Admin controls",
@@ -421,7 +391,7 @@ export const gettingStartedOptions = [
   {
     cta: "Talk to operations",
     description:
-      "Contact Apex when the shipment needs special handling, pet transportation, freight planning, refundable deposits, or official paperwork.",
+      "Contact Apex when the shipment needs special handling, pet transportation, freight planning, billing help, or official paperwork.",
     href: "/contact",
     icon: Headphones,
     title: "I need help setting up delivery",
@@ -495,8 +465,8 @@ export const documentTrustItems = [
   },
   {
     description:
-      "Used for crates, veterinary clearance, climate monitoring, temporary holds, insurance, or special handling where the amount may be returned after delivery.",
-    title: "Refundable deposit document",
+      "Used when a shipment needs a documented service adjustment, billing update, or delivery-related customer notice.",
+    title: "Service and billing notice",
   },
   {
     description:
@@ -508,7 +478,7 @@ export const documentTrustItems = [
 export const trustPillars = [
   {
     description:
-      "The customer sees a clear explanation before payment is requested. Refundable fees must include a rule, purpose, and delivery or inspection condition.",
+      "The customer sees the service, amount, payment status, and applicable terms before payment is requested.",
     icon: CircleDollarSign,
     title: "Transparent billing",
   },

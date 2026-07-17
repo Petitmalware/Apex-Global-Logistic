@@ -51,6 +51,7 @@ function getTrackingSnapshotFromDetail(shipment: ShipmentDetail): ShipmentTracki
     originCity: shipment.originCity,
     pickupWindowEnd: shipment.pickupWindowEnd,
     pickupWindowStart: shipment.pickupWindowStart,
+    publicDetails: null,
     serviceLevel: shipment.serviceLevel,
     shipmentNumber: shipment.shipmentNumber,
     status: shipment.status,

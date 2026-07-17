@@ -9,10 +9,12 @@ import {
   LocateFixed,
   MapPinned,
   PackageSearch,
+  PawPrint,
   Radio,
   Route,
   ShieldCheck,
   Truck,
+  UserRound,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -58,6 +60,24 @@ function formatDeliveryWindow(snapshot: ShipmentTrackingSnapshot) {
   }
 
   return `${formatDate(snapshot.deliveryWindowStart)} - ${formatDate(snapshot.deliveryWindowEnd)}`;
+}
+
+function formatPetAge(ageMonths: number | null) {
+  if (ageMonths === null) {
+    return null;
+  }
+
+  if (ageMonths < 12) {
+    return `${ageMonths} ${ageMonths === 1 ? "month" : "months"}`;
+  }
+
+  const years = Math.floor(ageMonths / 12);
+  const remainingMonths = ageMonths % 12;
+  const yearLabel = `${years} ${years === 1 ? "year" : "years"}`;
+
+  return remainingMonths
+    ? `${yearLabel}, ${remainingMonths} ${remainingMonths === 1 ? "month" : "months"}`
+    : yearLabel;
 }
 
 function statusVariant(status: ShipmentTrackingSnapshot["status"]) {
@@ -225,6 +245,10 @@ export function TrackingLookup() {
               <ShieldCheck aria-hidden="true" className="text-accent mt-1 size-4 shrink-0" />
               Verified map position when GPS is supplied
             </li>
+            <li className="flex gap-2">
+              <ShieldCheck aria-hidden="true" className="text-accent mt-1 size-4 shrink-0" />
+              Optional shipment and pet identity details when approved by Apex
+            </li>
           </ul>
         </div>
       </aside>
@@ -311,6 +335,106 @@ export function TrackingLookup() {
                 ))}
               </dl>
             </section>
+
+            {snapshot.publicDetails ? (
+              <section className="border-border bg-card shadow-panel rounded-lg border p-5 sm:p-6">
+                <div className="border-border border-b pb-4">
+                  <h3 className="text-lg font-semibold">Shipment details</h3>
+                  <p className="text-muted-foreground mt-1 text-sm leading-6">
+                    These details were selected for the public tracking record by Apex operations.
+                  </p>
+                </div>
+                <div className="mt-5 grid gap-4 md:grid-cols-2">
+                  {snapshot.publicDetails.senderName || snapshot.publicDetails.recipientName ? (
+                    <article className="border-border rounded-md border p-4">
+                      <div className="flex items-center gap-2">
+                        <UserRound aria-hidden="true" className="text-accent size-5" />
+                        <h4 className="font-semibold">Shipment parties</h4>
+                      </div>
+                      <dl className="mt-4 grid gap-3 text-sm">
+                        {snapshot.publicDetails.senderName ? (
+                          <div>
+                            <dt className="text-muted-foreground text-xs font-semibold uppercase">
+                              Sender
+                            </dt>
+                            <dd className="mt-1 font-medium">
+                              {snapshot.publicDetails.senderName}
+                            </dd>
+                          </div>
+                        ) : null}
+                        {snapshot.publicDetails.recipientName ? (
+                          <div>
+                            <dt className="text-muted-foreground text-xs font-semibold uppercase">
+                              Recipient
+                            </dt>
+                            <dd className="mt-1 font-medium">
+                              {snapshot.publicDetails.recipientName}
+                            </dd>
+                          </div>
+                        ) : null}
+                      </dl>
+                    </article>
+                  ) : null}
+
+                  {snapshot.publicDetails.pet ? (
+                    <article className="border-border rounded-md border p-4">
+                      <div className="flex items-center gap-2">
+                        <PawPrint aria-hidden="true" className="text-accent size-5" />
+                        <h4 className="font-semibold">Pet profile</h4>
+                      </div>
+                      <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+                        <div>
+                          <dt className="text-muted-foreground text-xs font-semibold uppercase">
+                            Pet
+                          </dt>
+                          <dd className="mt-1 font-medium">{snapshot.publicDetails.pet.name}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-muted-foreground text-xs font-semibold uppercase">
+                            Species
+                          </dt>
+                          <dd className="mt-1 font-medium">
+                            {formatEnum(snapshot.publicDetails.pet.species)}
+                          </dd>
+                        </div>
+                        {snapshot.publicDetails.pet.breed ? (
+                          <div>
+                            <dt className="text-muted-foreground text-xs font-semibold uppercase">
+                              Breed
+                            </dt>
+                            <dd className="mt-1 font-medium">{snapshot.publicDetails.pet.breed}</dd>
+                          </div>
+                        ) : null}
+                        {formatPetAge(snapshot.publicDetails.pet.ageMonths) ? (
+                          <div>
+                            <dt className="text-muted-foreground text-xs font-semibold uppercase">
+                              Age
+                            </dt>
+                            <dd className="mt-1 font-medium">
+                              {formatPetAge(snapshot.publicDetails.pet.ageMonths)}
+                            </dd>
+                          </div>
+                        ) : null}
+                        {snapshot.publicDetails.pet.weightLb ? (
+                          <div>
+                            <dt className="text-muted-foreground text-xs font-semibold uppercase">
+                              Weight
+                            </dt>
+                            <dd className="mt-1 font-medium">
+                              {snapshot.publicDetails.pet.weightLb} lb
+                            </dd>
+                          </div>
+                        ) : null}
+                      </dl>
+                    </article>
+                  ) : null}
+                </div>
+                <p className="text-muted-foreground mt-5 text-xs leading-5">
+                  Contact information, street addresses, payment details, health records, and
+                  shipment documents are never shown through public tracking.
+                </p>
+              </section>
+            ) : null}
 
             <ShipmentLiveMap connectionState={connectionState} snapshot={snapshot} />
 

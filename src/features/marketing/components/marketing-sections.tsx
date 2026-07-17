@@ -21,8 +21,6 @@ import {
   processSteps,
   deliveryProofCards,
   customerJourneySteps,
-  refundableFeeExamples,
-  refundableFeeSteps,
   serviceCards,
   serviceDetailCards,
   trustSignals,
@@ -91,7 +89,7 @@ export function HomeHero() {
           <Badge variant="accent">Global logistics control tower</Badge>
           <Display className="mt-6 text-5xl sm:text-6xl">Apex Global Logistics</Display>
           <p className="text-muted-foreground mt-6 max-w-2xl text-base leading-8 sm:text-lg">
-            Premium parcel delivery, pet transportation, freight coordination, refundable deposit
+            Premium parcel delivery, pet transportation, freight coordination, billing
             documentation, and tracking built for customers who need every handoff to be visible.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
@@ -242,64 +240,6 @@ export function GettingStartedGuideSection() {
   );
 }
 
-export function RefundableFeesSection() {
-  return (
-    <section className="bg-secondary/60 py-16">
-      <div className="mx-auto grid w-full max-w-7xl gap-8 px-4 sm:px-6 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
-        <div>
-          <SectionIntro
-            description="Some logistics moves need deposits for crates, animal care, insurance, documentation, special handling, or temporary holds. Apex treats those charges as documented, reviewable, and refundable according to the invoice terms."
-            eyebrow="Refundable fees"
-            title="Clear deposit rules before delivery continues"
-          />
-          <div className="border-border bg-background shadow-panel mt-8 rounded-lg border p-5">
-            <h3 className="text-base font-semibold tracking-normal">Refund process</h3>
-            <p className="text-muted-foreground mt-3 text-sm leading-6">
-              When a refundable fee applies, Apex issues an official invoice or service document
-              before payment. After successful delivery, customer signature, and any required
-              equipment or document inspection, eligible refundable balances are returned to the
-              payer account or agreed payment method. Any deduction must be supported by a receipt,
-              inspection note, or signed delivery record.
-            </p>
-            <div className="mt-5 flex flex-wrap gap-2">
-              {refundableFeeExamples.map((fee) => (
-                <Badge key={fee} variant="outline">
-                  {fee}
-                </Badge>
-              ))}
-            </div>
-          </div>
-        </div>
-        <div className="grid gap-4">
-          {refundableFeeSteps.map((step) => (
-            <div
-              className="border-border bg-card shadow-panel flex gap-4 rounded-lg border p-5"
-              key={step.title}
-            >
-              <div className="bg-accent/15 text-accent grid size-12 shrink-0 place-items-center rounded-md">
-                <step.icon aria-hidden="true" className="size-5" />
-              </div>
-              <div>
-                <h3 className="font-semibold tracking-normal">{step.title}</h3>
-                <p className="text-muted-foreground mt-2 text-sm leading-6">{step.description}</p>
-              </div>
-            </div>
-          ))}
-          <div className="relative min-h-72 overflow-hidden rounded-lg">
-            <Image
-              alt={marketingImages.compliance.alt}
-              className="object-cover"
-              fill
-              sizes="(min-width: 1024px) 50vw, 100vw"
-              src={marketingImages.compliance.src}
-            />
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 export function ServiceDetailsSection() {
   return (
     <section className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6">
@@ -385,9 +325,9 @@ export function DocumentsAndBillingSection() {
         <div className="border-border bg-card shadow-panel mt-8 rounded-lg border p-5">
           <h3 className="text-base font-semibold tracking-normal">How official documents help</h3>
           <p className="text-muted-foreground mt-3 text-sm leading-6">
-            Shipment notices, invoices, receipts, labels, refundable deposit forms, health or care
-            notes, and delivery confirmations can all be prepared from the admin dashboard. This
-            gives customers a consistent paper trail instead of scattered messages.
+            Shipment notices, invoices, receipts, labels, health or care notes, and delivery
+            confirmations can all be prepared from the admin dashboard. This gives customers a
+            consistent paper trail instead of scattered messages.
           </p>
           <Button asChild className="mt-5" variant="accent">
             <Link href={"/services" as Route}>

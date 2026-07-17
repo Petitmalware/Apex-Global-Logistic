@@ -194,6 +194,32 @@ function getManualRecipientFromMetadata(
   return email || name || phone ? { email, name, phone } : null;
 }
 
+function getPublicTrackingMetadata(
+  publicTracking: ShipmentFormInput["publicTracking"],
+  existingMetadata?: Prisma.JsonValue | null,
+) {
+  const existing = getJsonObject(existingMetadata ?? null);
+  const existingPreferences =
+    "publicTracking" in existing &&
+    existing.publicTracking &&
+    typeof existing.publicTracking === "object" &&
+    !Array.isArray(existing.publicTracking)
+      ? (existing.publicTracking as Record<string, unknown>)
+      : {};
+  const shareParties =
+    publicTracking.shareParties ??
+    (typeof existingPreferences.shareParties === "boolean"
+      ? existingPreferences.shareParties
+      : false);
+  const sharePetDetails =
+    publicTracking.sharePetDetails ??
+    (typeof existingPreferences.sharePetDetails === "boolean"
+      ? existingPreferences.sharePetDetails
+      : false);
+
+  return { shareParties, sharePetDetails };
+}
+
 async function logShipmentActivity({
   action,
   entityId,
@@ -402,6 +428,7 @@ export async function createShipment(
   const shipmentNumber = await generateShipmentNumber(organizationId);
   const status = input.status;
   const officeDetails = getOfficeDetailsMetadata(input.officeDetails);
+  const publicTracking = getPublicTrackingMetadata(input.publicTracking);
 
   const shipment = await prisma.$transaction(async (transaction) => {
     const [originAddress, destinationAddress] = await Promise.all([
@@ -434,11 +461,16 @@ export async function createShipment(
         deliveryWindowStart: input.deliveryWindowStart,
         destinationAddressId: destinationAddress.id,
         metadata:
-          manualRecipient || officeDetails || options.customerBooking
+          manualRecipient ||
+          officeDetails ||
+          options.customerBooking ||
+          publicTracking.shareParties ||
+          publicTracking.sharePetDetails
             ? {
                 creationSource: options.customerBooking ? "CUSTOMER_BOOKING" : "ADMIN_CREATED",
                 manualRecipient,
                 officeDetails,
+                publicTracking,
               }
             : undefined,
         mode: input.mode,
@@ -761,6 +793,8 @@ export async function updateShipment(
     throw new AuthError("Shipment not found.", 404, "SHIPMENT_NOT_FOUND");
   }
 
+  const publicTracking = getPublicTrackingMetadata(input.publicTracking, existingShipment.metadata);
+
   const isOwner =
     existingShipment.customerId === user.id || existingShipment.createdById === user.id;
   const canEditOwnedDraft =
@@ -803,6 +837,7 @@ export async function updateShipment(
         metadata: {
           ...getJsonObject(existingShipment.metadata),
           officeDetails,
+          publicTracking,
         },
         notes: input.notes,
         pickupWindowEnd: input.pickupWindowEnd,

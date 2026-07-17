@@ -82,6 +82,23 @@ export type ShipmentOfficeDetails = {
   totalFreight: string | null;
 };
 
+export type PublicTrackingPreferences = {
+  shareParties: boolean;
+  sharePetDetails: boolean;
+};
+
+export type PublicShipmentTrackingDetails = {
+  pet: {
+    ageMonths: number | null;
+    breed: string | null;
+    name: string;
+    species: string;
+    weightLb: string | null;
+  } | null;
+  recipientName: string | null;
+  senderName: string | null;
+};
+
 export type ShipmentListItem = {
   createdAt: string;
   destinationCity: string;
@@ -163,6 +180,7 @@ export type ShipmentDetail = ShipmentListItem & {
   packages: ShipmentPackageView[];
   pickupWindowEnd: string | null;
   pickupWindowStart: string | null;
+  publicTracking: PublicTrackingPreferences;
   serviceLevel: string | null;
   weightSummary: {
     actualWeightKg: string;
@@ -194,6 +212,7 @@ export type ShipmentTrackingSnapshot = {
   originCity: string;
   pickupWindowEnd: string | null;
   pickupWindowStart: string | null;
+  publicDetails: PublicShipmentTrackingDetails | null;
   serviceLevel: string | null;
   shipmentNumber: string;
   status: ShipmentStatus;
