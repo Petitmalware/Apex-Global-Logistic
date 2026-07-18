@@ -210,6 +210,7 @@ export type ShipmentTrackingSnapshot = {
   id: string;
   mode: ShipmentMode;
   originCity: string;
+  packageCount: number;
   pickupWindowEnd: string | null;
   pickupWindowStart: string | null;
   publicDetails: PublicShipmentTrackingDetails | null;
@@ -217,5 +218,6 @@ export type ShipmentTrackingSnapshot = {
   shipmentNumber: string;
   status: ShipmentStatus;
   timeline: ShipmentTrackingTimelineEvent[];
+  totalWeightLb: string | null;
   updatedAt: string;
 };

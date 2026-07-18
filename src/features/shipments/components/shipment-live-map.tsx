@@ -1,13 +1,27 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { Clock3, MapPinned, Radio, Route } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { formatShipmentStatus } from "@/features/shipments/status-labels";
-import type {
-  ShipmentTrackingSnapshot,
-  ShipmentTrackingTimelineEvent,
-} from "@/features/shipments/types";
+import type { ShipmentRouteCoordinate } from "@/features/shipments/components/shipment-route-map";
+import type { ShipmentTrackingSnapshot } from "@/features/shipments/types";
+
+const ShipmentRouteMap = dynamic(
+  () =>
+    import("@/features/shipments/components/shipment-route-map").then(
+      (module) => module.ShipmentRouteMap,
+    ),
+  {
+    loading: () => (
+      <div className="bg-surface flex h-[22rem] items-center justify-center sm:h-[28rem]">
+        <p className="text-muted-foreground text-sm">Loading street map...</p>
+      </div>
+    ),
+    ssr: false,
+  },
+);
 
 type TrackingConnectionState = "idle" | "live" | "reconnecting";
 
@@ -18,44 +32,45 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
-function getLatestCoordinates(snapshot: ShipmentTrackingSnapshot) {
-  return (
-    snapshot.timeline.find((event) => {
-      const latitude = Number(event.latitude);
-      const longitude = Number(event.longitude);
+function isValidCoordinate(latitude: string | null, longitude: string | null) {
+  const parsedLatitude = Number(latitude);
+  const parsedLongitude = Number(longitude);
 
-      return (
-        Number.isFinite(latitude) &&
-        Number.isFinite(longitude) &&
-        latitude >= -90 &&
-        latitude <= 90 &&
-        longitude >= -180 &&
-        longitude <= 180
-      );
-    }) ?? null
+  return (
+    Number.isFinite(parsedLatitude) &&
+    Number.isFinite(parsedLongitude) &&
+    parsedLatitude >= -90 &&
+    parsedLatitude <= 90 &&
+    parsedLongitude >= -180 &&
+    parsedLongitude <= 180
   );
 }
 
-function createOpenStreetMapEmbedUrl(event: ShipmentTrackingTimelineEvent) {
-  const latitude = Number(event.latitude);
-  const longitude = Number(event.longitude);
-  const latitudeDelta = 0.035;
-  const longitudeDelta = 0.05;
-  const url = new URL("https://www.openstreetmap.org/export/embed.html");
+function getRouteCoordinates(snapshot: ShipmentTrackingSnapshot): ShipmentRouteCoordinate[] {
+  const route = snapshot.timeline
+    .slice()
+    .reverse()
+    .flatMap((event) => {
+      if (!isValidCoordinate(event.latitude, event.longitude)) {
+        return [];
+      }
 
-  url.searchParams.set(
-    "bbox",
-    [
-      longitude - longitudeDelta,
-      latitude - latitudeDelta,
-      longitude + longitudeDelta,
-      latitude + latitudeDelta,
-    ].join(","),
+      return [
+        {
+          label: event.currentLocation ?? "Verified shipment checkpoint",
+          latitude: Number(event.latitude),
+          longitude: Number(event.longitude),
+          occurredAt: event.occurredAt,
+        },
+      ];
+    });
+
+  return route.filter(
+    (coordinate, index) =>
+      index === 0 ||
+      coordinate.latitude !== route[index - 1]?.latitude ||
+      coordinate.longitude !== route[index - 1]?.longitude,
   );
-  url.searchParams.set("layer", "mapnik");
-  url.searchParams.set("marker", `${latitude},${longitude}`);
-
-  return url.toString();
 }
 
 function ConnectionBadge({ state }: { state: TrackingConnectionState }) {
@@ -72,7 +87,7 @@ function ConnectionBadge({ state }: { state: TrackingConnectionState }) {
     return <Badge variant="warning">Reconnecting</Badge>;
   }
 
-  return <Badge variant="outline">Latest recorded position</Badge>;
+  return <Badge variant="outline">Recorded position</Badge>;
 }
 
 export function ShipmentLiveMap({
@@ -82,19 +97,20 @@ export function ShipmentLiveMap({
   connectionState?: TrackingConnectionState;
   snapshot: ShipmentTrackingSnapshot;
 }) {
-  const latestCoordinates = getLatestCoordinates(snapshot);
+  const routeCoordinates = getRouteCoordinates(snapshot);
+  const latestCoordinates = routeCoordinates.at(-1) ?? null;
   const latestEvent = snapshot.timeline[0] ?? null;
-  const mapUrl = latestCoordinates ? createOpenStreetMapEmbedUrl(latestCoordinates) : null;
 
   return (
     <section className="border-border bg-card shadow-panel overflow-hidden rounded-lg border">
-      <div className="border-border flex flex-wrap items-center justify-between gap-3 border-b p-4">
+      <div className="border-border flex flex-wrap items-center justify-between gap-3 border-b p-4 sm:p-5">
         <div className="flex min-w-0 items-center gap-3">
           <div className="bg-accent/15 text-accent-foreground grid size-10 shrink-0 place-items-center rounded-md">
             <MapPinned aria-hidden="true" className="size-5" />
           </div>
           <div className="min-w-0">
-            <h3 className="font-semibold">Shipment location</h3>
+            <p className="text-muted-foreground text-xs font-semibold uppercase">Live route map</p>
+            <h3 className="mt-1 font-semibold">Verified location updates</h3>
             <p className="text-muted-foreground truncate text-sm">
               {snapshot.originCity} to {snapshot.destinationCity}
             </p>
@@ -103,23 +119,19 @@ export function ShipmentLiveMap({
         <ConnectionBadge state={connectionState} />
       </div>
 
-      {mapUrl && latestCoordinates ? (
+      {latestCoordinates ? (
         <div className="relative">
-          <iframe
-            className="h-80 w-full border-0 sm:h-96"
-            loading="lazy"
-            referrerPolicy="no-referrer"
-            sandbox="allow-scripts allow-same-origin"
-            src={mapUrl}
-            title={`Last reported map position for ${snapshot.shipmentNumber}`}
+          <ShipmentRouteMap
+            coordinates={routeCoordinates}
+            shipmentNumber={snapshot.shipmentNumber}
           />
-          <div className="border-border bg-background/95 absolute right-4 bottom-4 left-4 rounded-md border p-3 shadow-sm backdrop-blur">
-            <p className="text-sm font-semibold">
-              {latestCoordinates.currentLocation ?? "GPS checkpoint"}
-            </p>
-            <p className="text-muted-foreground mt-1 text-xs">
-              Last reported {formatDate(latestCoordinates.occurredAt)}. This marker moves when Apex
-              publishes another verified coordinate.
+          <div className="border-border bg-background/95 absolute right-3 bottom-3 left-3 rounded-md border p-3 shadow-sm backdrop-blur sm:right-5 sm:bottom-5 sm:left-auto sm:max-w-sm">
+            <p className="text-sm font-semibold">{latestCoordinates.label}</p>
+            <p className="text-muted-foreground mt-1 text-xs leading-5">
+              Last verified {formatDate(latestCoordinates.occurredAt)}.{" "}
+              {routeCoordinates.length > 1
+                ? "The line joins recorded checkpoints and is not turn-by-turn navigation."
+                : "More map detail appears as verified checkpoints are published."}
             </p>
           </div>
         </div>
@@ -129,10 +141,11 @@ export function ShipmentLiveMap({
             <div className="flex items-start gap-3">
               <Route aria-hidden="true" className="text-accent mt-0.5 size-5 shrink-0" />
               <div>
-                <p className="font-semibold">Manual milestone tracking is active</p>
+                <p className="font-semibold">Location updates are active</p>
                 <p className="text-muted-foreground mt-2 text-sm leading-6">
-                  No verified GPS coordinate has been reported yet. The location and timeline below
-                  still update immediately whenever an admin publishes a checkpoint.
+                  The shipment has not received a verified coordinate yet. Apex can still publish
+                  the customer-facing location and timeline immediately while a map position is
+                  unavailable.
                 </p>
               </div>
             </div>
@@ -147,7 +160,7 @@ export function ShipmentLiveMap({
               </div>
               <div className="border-border rounded-md border p-3">
                 <p className="text-muted-foreground text-xs font-semibold uppercase">
-                  Last location
+                  Latest location
                 </p>
                 <p className="mt-2 text-sm font-semibold">
                   {latestEvent?.currentLocation ?? "Awaiting the first location update"}
@@ -158,7 +171,7 @@ export function ShipmentLiveMap({
         </div>
       )}
 
-      <div className="border-border grid gap-3 border-t p-4 sm:grid-cols-2">
+      <div className="border-border grid gap-3 border-t p-4 sm:grid-cols-2 sm:p-5">
         <div className="flex items-start gap-3">
           <Clock3 aria-hidden="true" className="text-accent mt-0.5 size-4 shrink-0" />
           <div>
@@ -169,8 +182,15 @@ export function ShipmentLiveMap({
         <div className="flex items-start gap-3 sm:justify-end sm:text-right">
           <MapPinned aria-hidden="true" className="text-accent mt-0.5 size-4 shrink-0" />
           <div>
-            <p className="text-xs font-semibold uppercase">Map source</p>
-            <p className="text-muted-foreground mt-1 text-sm">OpenStreetMap</p>
+            <p className="text-xs font-semibold uppercase">Map data</p>
+            <a
+              className="text-muted-foreground mt-1 inline-block text-sm underline-offset-4 hover:underline"
+              href="https://www.openstreetmap.org/copyright"
+              rel="noreferrer"
+              target="_blank"
+            >
+              OpenStreetMap contributors
+            </a>
           </div>
         </div>
       </div>

@@ -122,6 +122,26 @@ function getPublicTrackingDetails({
   return senderName || recipientName || pet ? { pet, recipientName, senderName } : null;
 }
 
+function getPublicConsignmentSummary(
+  packages:
+    | Array<{
+        weightKg: Prisma.Decimal | null;
+      }>
+    | undefined,
+) {
+  const packageCount = packages?.length ?? 0;
+  const totalWeightKg = (packages ?? []).reduce(
+    (total, shipmentPackage) => total + (shipmentPackage.weightKg?.toNumber() ?? 0),
+    0,
+  );
+
+  return {
+    packageCount,
+    totalWeightLb:
+      totalWeightKg > 0 ? numberToWeightString(kilogramsToPounds(totalWeightKg)) : null,
+  };
+}
+
 const officeDetailKeys = [
   "carrier",
   "carrierReference",
@@ -304,6 +324,9 @@ function mapTrackingSnapshot(shipment: {
     city: string;
     name?: string | null;
   };
+  packages?: Array<{
+    weightKg: Prisma.Decimal | null;
+  }>;
   petTransport?: {
     ageMonths: number | null;
     breed: string | null;
@@ -320,6 +343,8 @@ function mapTrackingSnapshot(shipment: {
   trackingEvents: Array<Parameters<typeof mapTimelineEvent>[0]>;
   updatedAt: Date;
 }): ShipmentTrackingSnapshot {
+  const consignmentSummary = getPublicConsignmentSummary(shipment.packages);
+
   return {
     deliveryWindowEnd: formatDate(shipment.deliveryWindowEnd),
     deliveryWindowStart: formatDate(shipment.deliveryWindowStart),
@@ -327,6 +352,7 @@ function mapTrackingSnapshot(shipment: {
     id: shipment.id,
     mode: shipment.mode,
     originCity: shipment.originAddress.city,
+    packageCount: consignmentSummary.packageCount,
     pickupWindowEnd: formatDate(shipment.pickupWindowEnd),
     pickupWindowStart: formatDate(shipment.pickupWindowStart),
     publicDetails: getPublicTrackingDetails(shipment),
@@ -334,6 +360,7 @@ function mapTrackingSnapshot(shipment: {
     shipmentNumber: shipment.shipmentNumber,
     status: shipment.status,
     timeline: shipment.trackingEvents.map(mapTimelineEvent),
+    totalWeightLb: consignmentSummary.totalWeightLb,
     updatedAt: shipment.updatedAt.toISOString(),
   };
 }
@@ -725,6 +752,11 @@ export async function getShipmentTrackingSnapshotForUser(
             weightKg: true,
           },
         },
+        packages: {
+          select: {
+            weightKg: true,
+          },
+        },
         trackingEvents: {
           include: {
             package: {
@@ -793,6 +825,11 @@ export async function getPublicShipmentTrackingSnapshot(
             ownerName: true,
             petName: true,
             species: true,
+            weightKg: true,
+          },
+        },
+        packages: {
+          select: {
             weightKg: true,
           },
         },

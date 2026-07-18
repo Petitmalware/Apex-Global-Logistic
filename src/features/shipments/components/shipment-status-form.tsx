@@ -240,7 +240,7 @@ export function ShipmentStatusForm({
       </Field>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field>
-          <Label htmlFor="latitude">Map latitude</Label>
+          <Label htmlFor="latitude">Verified map latitude</Label>
           <Input
             id="latitude"
             name="latitude"
@@ -248,10 +248,13 @@ export function ShipmentStatusForm({
             step="0.000001"
             type="number"
           />
-          <FieldHint>Optional. Paste the latitude from a verified map pin.</FieldHint>
+          <FieldHint>
+            Optional. Pair this with longitude from a verified GPS or map pin to publish a
+            street-level checkpoint to the customer tracker.
+          </FieldHint>
         </Field>
         <Field>
-          <Label htmlFor="longitude">Map longitude</Label>
+          <Label htmlFor="longitude">Verified map longitude</Label>
           <Input
             id="longitude"
             name="longitude"
@@ -259,7 +262,10 @@ export function ShipmentStatusForm({
             step="0.000001"
             type="number"
           />
-          <FieldHint>Optional. Pair this with latitude to place the shipment on the map.</FieldHint>
+          <FieldHint>
+            Optional. Only publish coordinates confirmed by your operations team. Leave both map
+            fields blank for a standard status update without a map marker.
+          </FieldHint>
         </Field>
       </div>
       <Field>

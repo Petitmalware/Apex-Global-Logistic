@@ -37,7 +37,7 @@ function buildContentSecurityPolicy(request: NextRequest) {
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
     `connect-src 'self' ${appOrigin} ws: wss:`,
-    "frame-src 'self' https://www.openstreetmap.org",
+    "frame-src 'self'",
     "media-src 'self' blob:",
     "worker-src 'self' blob:",
     "manifest-src 'self'",

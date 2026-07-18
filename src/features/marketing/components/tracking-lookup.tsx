@@ -2,8 +2,10 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import {
+  Boxes,
   CalendarClock,
   CheckCircle2,
+  ChevronRight,
   CirclePause,
   Clock3,
   LocateFixed,
@@ -12,6 +14,7 @@ import {
   PawPrint,
   Radio,
   Route,
+  Scale,
   ShieldCheck,
   Truck,
   UserRound,
@@ -62,6 +65,22 @@ function formatDeliveryWindow(snapshot: ShipmentTrackingSnapshot) {
   return `${formatDate(snapshot.deliveryWindowStart)} - ${formatDate(snapshot.deliveryWindowEnd)}`;
 }
 
+function formatPickupWindow(snapshot: ShipmentTrackingSnapshot) {
+  if (!snapshot.pickupWindowStart && !snapshot.pickupWindowEnd) {
+    return "Not scheduled";
+  }
+
+  if (!snapshot.pickupWindowEnd) {
+    return formatDate(snapshot.pickupWindowStart);
+  }
+
+  if (!snapshot.pickupWindowStart) {
+    return `By ${formatDate(snapshot.pickupWindowEnd)}`;
+  }
+
+  return `${formatDate(snapshot.pickupWindowStart)} - ${formatDate(snapshot.pickupWindowEnd)}`;
+}
+
 function formatPetAge(ageMonths: number | null) {
   if (ageMonths === null) {
     return null;
@@ -110,6 +129,21 @@ function getStatusMessage(status: ShipmentTrackingSnapshot["status"]) {
   } satisfies Record<ShipmentTrackingSnapshot["status"], string>;
 
   return messages[status];
+}
+
+function getNextStep(status: ShipmentTrackingSnapshot["status"]) {
+  const nextSteps = {
+    BOOKED: "Apex is confirming the next collection or facility handoff.",
+    CANCELLED: "No further movement is planned for this shipment.",
+    DELIVERED: "Delivery has been completed and the record is retained for reference.",
+    DRAFT: "The shipment is still being prepared by Apex operations.",
+    HELD: "Apex operations is reviewing the hold before movement can continue.",
+    IN_TRANSIT: "The next update will be published when the shipment reaches another checkpoint.",
+    PENDING_PICKUP: "The shipment is awaiting collection or release at the current location.",
+    RETURNED: "The return journey is being coordinated with the sender.",
+  } satisfies Record<ShipmentTrackingSnapshot["status"], string>;
+
+  return nextSteps[status];
 }
 
 function TrackingStatusIcon({ status }: { status: ShipmentTrackingSnapshot["status"] }) {
@@ -192,6 +226,7 @@ export function TrackingLookup() {
   }, [trackedReference]);
 
   const latestEvent = snapshot?.timeline[0] ?? null;
+  const nextStep = snapshot ? getNextStep(snapshot.status) : null;
 
   return (
     <section className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-12 sm:px-6 lg:grid-cols-[360px_minmax(0,1fr)] lg:items-start">
@@ -294,6 +329,38 @@ export function TrackingLookup() {
                 </div>
               </div>
 
+              <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+                <div className="border-border rounded-md border p-4">
+                  <div className="flex items-start gap-3">
+                    <MapPinned aria-hidden="true" className="text-accent mt-0.5 size-5 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold uppercase">Latest operational update</p>
+                      <p className="mt-2 font-semibold">
+                        {latestEvent
+                          ? formatTrackingEventType(latestEvent.eventType)
+                          : "Shipment record created"}
+                      </p>
+                      <p className="text-muted-foreground mt-1 text-sm leading-6">
+                        {latestEvent?.message ?? getStatusMessage(snapshot.status)}
+                      </p>
+                      <p className="text-muted-foreground mt-3 text-xs">
+                        {latestEvent?.currentLocation ?? "Location update pending"}
+                        {latestEvent ? ` · ${formatDate(latestEvent.occurredAt)}` : null}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="border-border rounded-md border p-4">
+                  <div className="flex items-start gap-3">
+                    <Clock3 aria-hidden="true" className="text-accent mt-0.5 size-5 shrink-0" />
+                    <div>
+                      <p className="text-xs font-semibold uppercase">What happens next</p>
+                      <p className="text-muted-foreground mt-2 text-sm leading-6">{nextStep}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <dl className="border-border bg-border mt-5 grid gap-px overflow-hidden rounded-md border sm:grid-cols-2 xl:grid-cols-3">
                 {[
                   {
@@ -312,6 +379,11 @@ export function TrackingLookup() {
                     value: formatDeliveryWindow(snapshot),
                   },
                   {
+                    icon: CalendarClock,
+                    label: "Pickup window",
+                    value: formatPickupWindow(snapshot),
+                  },
+                  {
                     icon: Truck,
                     label: "Transport mode",
                     value: formatEnum(snapshot.mode),
@@ -326,6 +398,18 @@ export function TrackingLookup() {
                     label: "Latest checkpoint",
                     value: latestEvent ? formatDate(latestEvent.occurredAt) : "No checkpoint yet",
                   },
+                  {
+                    icon: Boxes,
+                    label: "Pieces recorded",
+                    value: snapshot.packageCount
+                      ? `${snapshot.packageCount} piece${snapshot.packageCount === 1 ? "" : "s"}`
+                      : "Not recorded",
+                  },
+                  {
+                    icon: Scale,
+                    label: "Recorded weight",
+                    value: snapshot.totalWeightLb ? `${snapshot.totalWeightLb} lb` : "Not recorded",
+                  },
                 ].map((item) => (
                   <div className="bg-background p-4" key={item.label}>
                     <item.icon aria-hidden="true" className="text-accent size-5" />
@@ -335,6 +419,57 @@ export function TrackingLookup() {
                 ))}
               </dl>
             </section>
+
+            <section className="border-border bg-card shadow-panel rounded-lg border p-5 sm:p-6">
+              <div className="border-border flex flex-wrap items-end justify-between gap-3 border-b pb-4">
+                <div>
+                  <h3 className="text-lg font-semibold">Journey overview</h3>
+                  <p className="text-muted-foreground mt-1 text-sm leading-6">
+                    The route is summarized from the shipment record and the latest verified
+                    checkpoint.
+                  </p>
+                </div>
+                <p className="text-muted-foreground text-sm">
+                  {snapshot.timeline.length} published checkpoint
+                  {snapshot.timeline.length === 1 ? "" : "s"}
+                </p>
+              </div>
+              <div className="mt-5 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)] lg:items-center">
+                <div className="border-border rounded-md border p-4">
+                  <p className="text-muted-foreground text-xs font-semibold uppercase">Origin</p>
+                  <p className="mt-2 font-semibold">{snapshot.originCity}</p>
+                  <p className="text-muted-foreground mt-1 text-sm">Shipment origin</p>
+                </div>
+                <ChevronRight
+                  aria-hidden="true"
+                  className="text-accent mx-auto hidden size-5 lg:block"
+                />
+                <div className="border-accent/40 bg-accent/10 rounded-md border p-4">
+                  <p className="text-xs font-semibold uppercase">Latest location</p>
+                  <p className="mt-2 font-semibold">
+                    {latestEvent?.currentLocation ?? "Awaiting location update"}
+                  </p>
+                  <p className="text-muted-foreground mt-1 text-sm">
+                    {latestEvent
+                      ? formatDate(latestEvent.occurredAt)
+                      : "No checkpoint published yet"}
+                  </p>
+                </div>
+                <ChevronRight
+                  aria-hidden="true"
+                  className="text-accent mx-auto hidden size-5 lg:block"
+                />
+                <div className="border-border rounded-md border p-4">
+                  <p className="text-muted-foreground text-xs font-semibold uppercase">
+                    Destination
+                  </p>
+                  <p className="mt-2 font-semibold">{snapshot.destinationCity}</p>
+                  <p className="text-muted-foreground mt-1 text-sm">Final delivery location</p>
+                </div>
+              </div>
+            </section>
+
+            <ShipmentLiveMap connectionState={connectionState} snapshot={snapshot} />
 
             {snapshot.publicDetails ? (
               <section className="border-border bg-card shadow-panel rounded-lg border p-5 sm:p-6">
@@ -435,8 +570,6 @@ export function TrackingLookup() {
                 </p>
               </section>
             ) : null}
-
-            <ShipmentLiveMap connectionState={connectionState} snapshot={snapshot} />
 
             <section className="border-border bg-card shadow-panel rounded-lg border p-5 sm:p-6">
               <div className="border-border border-b pb-4">

@@ -49,6 +49,7 @@ function getTrackingSnapshotFromDetail(shipment: ShipmentDetail): ShipmentTracki
     id: shipment.id,
     mode: shipment.mode,
     originCity: shipment.originCity,
+    packageCount: shipment.packages.length,
     pickupWindowEnd: shipment.pickupWindowEnd,
     pickupWindowStart: shipment.pickupWindowStart,
     publicDetails: null,
@@ -56,6 +57,7 @@ function getTrackingSnapshotFromDetail(shipment: ShipmentDetail): ShipmentTracki
     shipmentNumber: shipment.shipmentNumber,
     status: shipment.status,
     timeline: shipment.timeline,
+    totalWeightLb: kilogramsToPoundsString(shipment.weightSummary.actualWeightKg) || null,
     updatedAt: shipment.updatedAt,
   };
 }
