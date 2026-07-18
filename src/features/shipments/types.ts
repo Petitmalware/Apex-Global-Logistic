@@ -1,4 +1,5 @@
 import type {
+  FreightType,
   PackageStatus,
   PackageType,
   ShipmentMode,
@@ -88,13 +89,38 @@ export type PublicTrackingPreferences = {
 };
 
 export type PublicShipmentTrackingDetails = {
+  carrier: string | null;
+  carrierReference: string | null;
+  consignment: {
+    packages: Array<{
+      description: string | null;
+      status: PackageStatus;
+      type: PackageType;
+      weightLb: string | null;
+    }>;
+  } | null;
+  courier: string | null;
+  freight: {
+    commodityDescription: string | null;
+    containerNumber: string | null;
+    destinationTerminal: string | null;
+    etaAt: string | null;
+    freightType: FreightType;
+    originTerminal: string | null;
+    palletCount: number | null;
+    routeName: string | null;
+  } | null;
   pet: {
     ageMonths: number | null;
     breed: string | null;
+    color: string | null;
     name: string;
+    sex: string | null;
     species: string;
     weightLb: string | null;
   } | null;
+  productName: string | null;
+  quantity: string | null;
   recipientName: string | null;
   senderName: string | null;
 };
@@ -204,16 +230,23 @@ export type ShipmentDetail = ShipmentListItem & {
 export type ShipmentTrackingTimelineEvent = ShipmentDetail["timeline"][number];
 
 export type ShipmentTrackingSnapshot = {
+  createdAt: string;
   deliveryWindowEnd: string | null;
   deliveryWindowStart: string | null;
+  deliveredAt: string | null;
   destinationCity: string;
+  destinationCountryCode: string;
+  dispatchedAt: string | null;
   id: string;
   mode: ShipmentMode;
   originCity: string;
+  originCountryCode: string;
   packageCount: number;
   pickupWindowEnd: string | null;
   pickupWindowStart: string | null;
+  priority: ShipmentPriority;
   publicDetails: PublicShipmentTrackingDetails | null;
+  referenceNumber: string | null;
   serviceLevel: string | null;
   shipmentNumber: string;
   status: ShipmentStatus;

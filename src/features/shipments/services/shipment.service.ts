@@ -210,12 +210,12 @@ function getPublicTrackingMetadata(
     publicTracking.shareParties ??
     (typeof existingPreferences.shareParties === "boolean"
       ? existingPreferences.shareParties
-      : false);
+      : true);
   const sharePetDetails =
     publicTracking.sharePetDetails ??
     (typeof existingPreferences.sharePetDetails === "boolean"
       ? existingPreferences.sharePetDetails
-      : false);
+      : true);
 
   return { shareParties, sharePetDetails };
 }

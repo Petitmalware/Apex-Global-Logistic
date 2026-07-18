@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { Prisma } from "@prisma/client";
+import type { FreightType, PackageStatus, PackageType, Prisma } from "@prisma/client";
 
 import type { AuthSessionUser } from "@/features/auth/services/auth.service";
 import type {
@@ -63,18 +63,18 @@ function getPublicTrackingPreferences(
   metadata: Prisma.JsonValue | null,
 ): PublicTrackingPreferences {
   if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
-    return { shareParties: false, sharePetDetails: false };
+    return { shareParties: true, sharePetDetails: true };
   }
 
   const value = "publicTracking" in metadata ? metadata.publicTracking : null;
 
   if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return { shareParties: false, sharePetDetails: false };
+    return { shareParties: true, sharePetDetails: true };
   }
 
   return {
-    shareParties: "shareParties" in value && value.shareParties === true,
-    sharePetDetails: "sharePetDetails" in value && value.sharePetDetails === true,
+    shareParties: !("shareParties" in value && value.shareParties === false),
+    sharePetDetails: !("sharePetDetails" in value && value.sharePetDetails === false),
   };
 }
 
@@ -83,23 +83,44 @@ function getPublicTrackingDetails({
   destinationAddress,
   metadata,
   originAddress,
+  packages,
   petTransport,
+  freightTransport,
 }: {
   customer?: { name: string } | null;
   destinationAddress: { name?: string | null };
+  freightTransport?: {
+    commodityDescription: string | null;
+    containerNumber: string | null;
+    destinationTerminal: string | null;
+    etaAt: Date | null;
+    freightType: FreightType;
+    originTerminal: string | null;
+    palletCount: number | null;
+    routeName: string | null;
+  } | null;
   metadata?: Prisma.JsonValue | null;
   originAddress: { name?: string | null };
+  packages?: Array<{
+    description: string | null;
+    status: PackageStatus;
+    type: PackageType;
+    weightKg: Prisma.Decimal | null;
+  }>;
   petTransport?: {
     ageMonths: number | null;
     breed: string | null;
+    color: string | null;
     ownerName: string | null;
     petName: string | null;
+    sex: string | null;
     species: string;
     weightKg: Prisma.Decimal | null;
   } | null;
 }): PublicShipmentTrackingDetails | null {
   const preferences = getPublicTrackingPreferences(metadata ?? null);
   const manualRecipient = getManualRecipient(metadata ?? null);
+  const officeDetails = getOfficeDetails(metadata ?? null);
   const senderName = preferences.shareParties
     ? (originAddress.name ?? petTransport?.ownerName ?? null)
     : null;
@@ -111,15 +132,54 @@ function getPublicTrackingDetails({
       ? {
           ageMonths: petTransport.ageMonths,
           breed: petTransport.breed,
+          color: petTransport.color,
           name: petTransport.petName,
+          sex: petTransport.sex,
           species: petTransport.species,
           weightLb: petTransport.weightKg
             ? numberToWeightString(kilogramsToPounds(petTransport.weightKg.toNumber()))
             : null,
         }
       : null;
+  const consignment = packages?.length
+    ? {
+        packages: packages.map((shipmentPackage) => ({
+          description: shipmentPackage.description,
+          status: shipmentPackage.status,
+          type: shipmentPackage.type,
+          weightLb: shipmentPackage.weightKg
+            ? numberToWeightString(kilogramsToPounds(shipmentPackage.weightKg.toNumber()))
+            : null,
+        })),
+      }
+    : null;
+  const freight = freightTransport
+    ? {
+        commodityDescription: freightTransport.commodityDescription,
+        containerNumber: freightTransport.containerNumber,
+        destinationTerminal: freightTransport.destinationTerminal,
+        etaAt: formatDate(freightTransport.etaAt),
+        freightType: freightTransport.freightType,
+        originTerminal: freightTransport.originTerminal,
+        palletCount: freightTransport.palletCount,
+        routeName: freightTransport.routeName,
+      }
+    : null;
 
-  return senderName || recipientName || pet ? { pet, recipientName, senderName } : null;
+  const details = {
+    carrier: officeDetails?.carrier ?? null,
+    carrierReference: officeDetails?.carrierReference ?? null,
+    consignment,
+    courier: officeDetails?.courier ?? null,
+    freight,
+    pet,
+    productName: officeDetails?.productName ?? null,
+    quantity: officeDetails?.quantity ?? null,
+    recipientName,
+    senderName,
+  };
+
+  return Object.values(details).some(Boolean) ? details : null;
 }
 
 function getPublicConsignmentSummary(
@@ -315,28 +375,50 @@ function mapTrackingSnapshot(shipment: {
   deliveryWindowStart: Date | null;
   destinationAddress: {
     city: string;
+    countryCode: string;
     name?: string | null;
   };
+  createdAt: Date;
+  deliveredAt: Date | null;
+  dispatchedAt: Date | null;
+  freightTransport?: {
+    commodityDescription: string | null;
+    containerNumber: string | null;
+    destinationTerminal: string | null;
+    etaAt: Date | null;
+    freightType: FreightType;
+    originTerminal: string | null;
+    palletCount: number | null;
+    routeName: string | null;
+  } | null;
   id: string;
   metadata?: Prisma.JsonValue | null;
   mode: ShipmentTrackingSnapshot["mode"];
   originAddress: {
     city: string;
+    countryCode: string;
     name?: string | null;
   };
   packages?: Array<{
+    description: string | null;
+    status: PackageStatus;
+    type: PackageType;
     weightKg: Prisma.Decimal | null;
   }>;
   petTransport?: {
     ageMonths: number | null;
     breed: string | null;
+    color: string | null;
     ownerName: string | null;
     petName: string | null;
+    sex: string | null;
     species: string;
     weightKg: Prisma.Decimal | null;
   } | null;
   pickupWindowEnd: Date | null;
   pickupWindowStart: Date | null;
+  priority: ShipmentTrackingSnapshot["priority"];
+  referenceNumber: string | null;
   serviceLevel: string | null;
   shipmentNumber: string;
   status: ShipmentTrackingSnapshot["status"];
@@ -346,16 +428,23 @@ function mapTrackingSnapshot(shipment: {
   const consignmentSummary = getPublicConsignmentSummary(shipment.packages);
 
   return {
+    createdAt: shipment.createdAt.toISOString(),
     deliveryWindowEnd: formatDate(shipment.deliveryWindowEnd),
     deliveryWindowStart: formatDate(shipment.deliveryWindowStart),
+    deliveredAt: formatDate(shipment.deliveredAt),
     destinationCity: shipment.destinationAddress.city,
+    destinationCountryCode: shipment.destinationAddress.countryCode,
+    dispatchedAt: formatDate(shipment.dispatchedAt),
     id: shipment.id,
     mode: shipment.mode,
     originCity: shipment.originAddress.city,
+    originCountryCode: shipment.originAddress.countryCode,
     packageCount: consignmentSummary.packageCount,
     pickupWindowEnd: formatDate(shipment.pickupWindowEnd),
     pickupWindowStart: formatDate(shipment.pickupWindowStart),
+    priority: shipment.priority,
     publicDetails: getPublicTrackingDetails(shipment),
+    referenceNumber: shipment.referenceNumber,
     serviceLevel: shipment.serviceLevel,
     shipmentNumber: shipment.shipmentNumber,
     status: shipment.status,
@@ -728,12 +817,14 @@ export async function getShipmentTrackingSnapshotForUser(
         destinationAddress: {
           select: {
             city: true,
+            countryCode: true,
             name: true,
           },
         },
         originAddress: {
           select: {
             city: true,
+            countryCode: true,
             name: true,
           },
         },
@@ -746,15 +837,32 @@ export async function getShipmentTrackingSnapshotForUser(
           select: {
             ageMonths: true,
             breed: true,
+            color: true,
             ownerName: true,
             petName: true,
+            sex: true,
             species: true,
             weightKg: true,
           },
         },
         packages: {
           select: {
+            description: true,
+            status: true,
+            type: true,
             weightKg: true,
+          },
+        },
+        freightTransport: {
+          select: {
+            commodityDescription: true,
+            containerNumber: true,
+            destinationTerminal: true,
+            etaAt: true,
+            freightType: true,
+            originTerminal: true,
+            palletCount: true,
+            routeName: true,
           },
         },
         trackingEvents: {
@@ -804,12 +912,14 @@ export async function getPublicShipmentTrackingSnapshot(
         destinationAddress: {
           select: {
             city: true,
+            countryCode: true,
             name: true,
           },
         },
         originAddress: {
           select: {
             city: true,
+            countryCode: true,
             name: true,
           },
         },
@@ -822,15 +932,32 @@ export async function getPublicShipmentTrackingSnapshot(
           select: {
             ageMonths: true,
             breed: true,
+            color: true,
             ownerName: true,
             petName: true,
+            sex: true,
             species: true,
             weightKg: true,
           },
         },
         packages: {
           select: {
+            description: true,
+            status: true,
+            type: true,
             weightKg: true,
+          },
+        },
+        freightTransport: {
+          select: {
+            commodityDescription: true,
+            containerNumber: true,
+            destinationTerminal: true,
+            etaAt: true,
+            freightType: true,
+            originTerminal: true,
+            palletCount: true,
+            routeName: true,
           },
         },
         trackingEvents: {

@@ -43,16 +43,23 @@ function canManageShipmentWorkspace(user: AuthSessionUser) {
 
 function getTrackingSnapshotFromDetail(shipment: ShipmentDetail): ShipmentTrackingSnapshot {
   return {
+    createdAt: shipment.createdAt,
     deliveryWindowEnd: shipment.deliveryWindowEnd,
     deliveryWindowStart: shipment.deliveryWindowStart,
+    deliveredAt: shipment.deliveredAt,
     destinationCity: shipment.destinationCity,
+    destinationCountryCode: shipment.destination.countryCode,
+    dispatchedAt: null,
     id: shipment.id,
     mode: shipment.mode,
     originCity: shipment.originCity,
+    originCountryCode: shipment.origin.countryCode,
     packageCount: shipment.packages.length,
     pickupWindowEnd: shipment.pickupWindowEnd,
     pickupWindowStart: shipment.pickupWindowStart,
+    priority: shipment.priority,
     publicDetails: null,
+    referenceNumber: shipment.referenceNumber,
     serviceLevel: shipment.serviceLevel,
     shipmentNumber: shipment.shipmentNumber,
     status: shipment.status,

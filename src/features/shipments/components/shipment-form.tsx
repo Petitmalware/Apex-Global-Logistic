@@ -453,8 +453,8 @@ export function ShipmentForm({
             <div>
               <CardTitle>Public tracking visibility</CardTitle>
               <p className="text-muted-foreground mt-1 text-sm leading-6">
-                Keep personal contact information private while choosing whether the shipment party
-                names should appear after a valid tracking number is entered.
+                A valid tracking number opens the complete operational record without requiring a
+                customer account. Private contact and billing data always stays protected.
               </p>
             </div>
           </div>
@@ -463,7 +463,7 @@ export function ShipmentForm({
           <label className="border-border hover:border-accent/60 flex cursor-pointer items-start gap-3 rounded-md border p-4 transition-colors">
             <input
               className="accent-accent mt-0.5 size-4 shrink-0"
-              defaultChecked={initialShipment?.publicTracking.shareParties ?? false}
+              defaultChecked={initialShipment?.publicTracking.shareParties ?? true}
               name="publicTracking.shareParties"
               type="checkbox"
             />
@@ -478,7 +478,7 @@ export function ShipmentForm({
           <label className="border-border hover:border-accent/60 flex cursor-pointer items-start gap-3 rounded-md border p-4 transition-colors">
             <input
               className="accent-accent mt-0.5 size-4 shrink-0"
-              defaultChecked={initialShipment?.publicTracking.sharePetDetails ?? false}
+              defaultChecked={initialShipment?.publicTracking.sharePetDetails ?? true}
               name="publicTracking.sharePetDetails"
               type="checkbox"
             />

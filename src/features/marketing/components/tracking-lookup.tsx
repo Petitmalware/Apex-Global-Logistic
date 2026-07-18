@@ -282,7 +282,7 @@ export function TrackingLookup() {
             </li>
             <li className="flex gap-2">
               <ShieldCheck aria-hidden="true" className="text-accent mt-1 size-4 shrink-0" />
-              Optional shipment and pet identity details when approved by Apex
+              Shipment parties, consignment details, and basic pet or freight information
             </li>
           </ul>
         </div>
@@ -302,6 +302,9 @@ export function TrackingLookup() {
                   </h2>
                   <p className="text-muted-foreground mt-2 text-sm">
                     Last synchronized {formatDate(snapshot.updatedAt)}
+                  </p>
+                  <p className="text-muted-foreground mt-1 text-sm">
+                    Registered {formatDate(snapshot.createdAt)}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -366,7 +369,7 @@ export function TrackingLookup() {
                   {
                     icon: Route,
                     label: "Route",
-                    value: `${snapshot.originCity} to ${snapshot.destinationCity}`,
+                    value: `${snapshot.originCity}, ${snapshot.originCountryCode} to ${snapshot.destinationCity}, ${snapshot.destinationCountryCode}`,
                   },
                   {
                     icon: LocateFixed,
@@ -392,6 +395,21 @@ export function TrackingLookup() {
                     icon: ShieldCheck,
                     label: "Service",
                     value: snapshot.serviceLevel ?? "Standard managed service",
+                  },
+                  {
+                    icon: ShieldCheck,
+                    label: "Priority",
+                    value: formatEnum(snapshot.priority),
+                  },
+                  {
+                    icon: CalendarClock,
+                    label: "Dispatch time",
+                    value: formatDate(snapshot.dispatchedAt),
+                  },
+                  {
+                    icon: CheckCircle2,
+                    label: "Delivered time",
+                    value: formatDate(snapshot.deliveredAt),
                   },
                   {
                     icon: Clock3,
@@ -437,7 +455,9 @@ export function TrackingLookup() {
               <div className="mt-5 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)] lg:items-center">
                 <div className="border-border rounded-md border p-4">
                   <p className="text-muted-foreground text-xs font-semibold uppercase">Origin</p>
-                  <p className="mt-2 font-semibold">{snapshot.originCity}</p>
+                  <p className="mt-2 font-semibold">
+                    {snapshot.originCity}, {snapshot.originCountryCode}
+                  </p>
                   <p className="text-muted-foreground mt-1 text-sm">Shipment origin</p>
                 </div>
                 <ChevronRight
@@ -463,7 +483,9 @@ export function TrackingLookup() {
                   <p className="text-muted-foreground text-xs font-semibold uppercase">
                     Destination
                   </p>
-                  <p className="mt-2 font-semibold">{snapshot.destinationCity}</p>
+                  <p className="mt-2 font-semibold">
+                    {snapshot.destinationCity}, {snapshot.destinationCountryCode}
+                  </p>
                   <p className="text-muted-foreground mt-1 text-sm">Final delivery location</p>
                 </div>
               </div>
@@ -476,10 +498,70 @@ export function TrackingLookup() {
                 <div className="border-border border-b pb-4">
                   <h3 className="text-lg font-semibold">Shipment details</h3>
                   <p className="text-muted-foreground mt-1 text-sm leading-6">
-                    These details were selected for the public tracking record by Apex operations.
+                    A valid tracking reference opens this operational record without a customer
+                    account.
                   </p>
                 </div>
-                <div className="mt-5 grid gap-4 md:grid-cols-2">
+                <div className="mt-5 grid gap-4 xl:grid-cols-2">
+                  {snapshot.publicDetails.carrier ||
+                  snapshot.publicDetails.courier ||
+                  snapshot.publicDetails.carrierReference ||
+                  snapshot.publicDetails.productName ||
+                  snapshot.publicDetails.quantity ? (
+                    <article className="border-border rounded-md border p-4">
+                      <div className="flex items-center gap-2">
+                        <Truck aria-hidden="true" className="text-accent size-5" />
+                        <h4 className="font-semibold">Transport record</h4>
+                      </div>
+                      <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+                        {snapshot.publicDetails.carrier ? (
+                          <div>
+                            <dt className="text-muted-foreground text-xs font-semibold uppercase">
+                              Carrier
+                            </dt>
+                            <dd className="mt-1 font-medium">{snapshot.publicDetails.carrier}</dd>
+                          </div>
+                        ) : null}
+                        {snapshot.publicDetails.courier ? (
+                          <div>
+                            <dt className="text-muted-foreground text-xs font-semibold uppercase">
+                              Courier
+                            </dt>
+                            <dd className="mt-1 font-medium">{snapshot.publicDetails.courier}</dd>
+                          </div>
+                        ) : null}
+                        {snapshot.publicDetails.carrierReference ? (
+                          <div>
+                            <dt className="text-muted-foreground text-xs font-semibold uppercase">
+                              Carrier reference
+                            </dt>
+                            <dd className="mt-1 font-medium break-all">
+                              {snapshot.publicDetails.carrierReference}
+                            </dd>
+                          </div>
+                        ) : null}
+                        {snapshot.publicDetails.productName ? (
+                          <div>
+                            <dt className="text-muted-foreground text-xs font-semibold uppercase">
+                              Shipment item
+                            </dt>
+                            <dd className="mt-1 font-medium">
+                              {snapshot.publicDetails.productName}
+                            </dd>
+                          </div>
+                        ) : null}
+                        {snapshot.publicDetails.quantity ? (
+                          <div>
+                            <dt className="text-muted-foreground text-xs font-semibold uppercase">
+                              Quantity
+                            </dt>
+                            <dd className="mt-1 font-medium">{snapshot.publicDetails.quantity}</dd>
+                          </div>
+                        ) : null}
+                      </dl>
+                    </article>
+                  ) : null}
+
                   {snapshot.publicDetails.senderName || snapshot.publicDetails.recipientName ? (
                     <article className="border-border rounded-md border p-4">
                       <div className="flex items-center gap-2">
@@ -508,6 +590,41 @@ export function TrackingLookup() {
                           </div>
                         ) : null}
                       </dl>
+                    </article>
+                  ) : null}
+
+                  {snapshot.publicDetails.consignment ? (
+                    <article className="border-border rounded-md border p-4">
+                      <div className="flex items-center gap-2">
+                        <Boxes aria-hidden="true" className="text-accent size-5" />
+                        <h4 className="font-semibold">Consignment details</h4>
+                      </div>
+                      <div className="mt-4 space-y-3">
+                        {snapshot.publicDetails.consignment.packages.map(
+                          (shipmentPackage, index) => (
+                            <div
+                              className="border-border bg-secondary/45 rounded-md border p-3 text-sm"
+                              key={`${shipmentPackage.type}-${shipmentPackage.description ?? index}`}
+                            >
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <p className="font-semibold">Piece {index + 1}</p>
+                                <Badge variant="outline">
+                                  {formatEnum(shipmentPackage.status)}
+                                </Badge>
+                              </div>
+                              <p className="text-muted-foreground mt-2 leading-6">
+                                {shipmentPackage.description ?? formatEnum(shipmentPackage.type)}
+                              </p>
+                              <p className="text-muted-foreground mt-1 text-xs">
+                                {formatEnum(shipmentPackage.type)}
+                                {shipmentPackage.weightLb
+                                  ? ` · ${shipmentPackage.weightLb} lb`
+                                  : null}
+                              </p>
+                            </div>
+                          ),
+                        )}
+                      </div>
                     </article>
                   ) : null}
 
@@ -540,6 +657,22 @@ export function TrackingLookup() {
                             <dd className="mt-1 font-medium">{snapshot.publicDetails.pet.breed}</dd>
                           </div>
                         ) : null}
+                        {snapshot.publicDetails.pet.color ? (
+                          <div>
+                            <dt className="text-muted-foreground text-xs font-semibold uppercase">
+                              Color
+                            </dt>
+                            <dd className="mt-1 font-medium">{snapshot.publicDetails.pet.color}</dd>
+                          </div>
+                        ) : null}
+                        {snapshot.publicDetails.pet.sex ? (
+                          <div>
+                            <dt className="text-muted-foreground text-xs font-semibold uppercase">
+                              Sex
+                            </dt>
+                            <dd className="mt-1 font-medium">{snapshot.publicDetails.pet.sex}</dd>
+                          </div>
+                        ) : null}
                         {formatPetAge(snapshot.publicDetails.pet.ageMonths) ? (
                           <div>
                             <dt className="text-muted-foreground text-xs font-semibold uppercase">
@@ -563,10 +696,99 @@ export function TrackingLookup() {
                       </dl>
                     </article>
                   ) : null}
+
+                  {snapshot.publicDetails.freight ? (
+                    <article className="border-border rounded-md border p-4">
+                      <div className="flex items-center gap-2">
+                        <Route aria-hidden="true" className="text-accent size-5" />
+                        <h4 className="font-semibold">Freight details</h4>
+                      </div>
+                      <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+                        <div>
+                          <dt className="text-muted-foreground text-xs font-semibold uppercase">
+                            Freight type
+                          </dt>
+                          <dd className="mt-1 font-medium">
+                            {formatEnum(snapshot.publicDetails.freight.freightType)}
+                          </dd>
+                        </div>
+                        {snapshot.publicDetails.freight.routeName ? (
+                          <div>
+                            <dt className="text-muted-foreground text-xs font-semibold uppercase">
+                              Route
+                            </dt>
+                            <dd className="mt-1 font-medium">
+                              {snapshot.publicDetails.freight.routeName}
+                            </dd>
+                          </div>
+                        ) : null}
+                        {snapshot.publicDetails.freight.containerNumber ? (
+                          <div>
+                            <dt className="text-muted-foreground text-xs font-semibold uppercase">
+                              Container
+                            </dt>
+                            <dd className="mt-1 font-medium break-all">
+                              {snapshot.publicDetails.freight.containerNumber}
+                            </dd>
+                          </div>
+                        ) : null}
+                        {snapshot.publicDetails.freight.palletCount !== null ? (
+                          <div>
+                            <dt className="text-muted-foreground text-xs font-semibold uppercase">
+                              Pallets
+                            </dt>
+                            <dd className="mt-1 font-medium">
+                              {snapshot.publicDetails.freight.palletCount}
+                            </dd>
+                          </div>
+                        ) : null}
+                        {snapshot.publicDetails.freight.originTerminal ? (
+                          <div>
+                            <dt className="text-muted-foreground text-xs font-semibold uppercase">
+                              Origin terminal
+                            </dt>
+                            <dd className="mt-1 font-medium">
+                              {snapshot.publicDetails.freight.originTerminal}
+                            </dd>
+                          </div>
+                        ) : null}
+                        {snapshot.publicDetails.freight.destinationTerminal ? (
+                          <div>
+                            <dt className="text-muted-foreground text-xs font-semibold uppercase">
+                              Destination terminal
+                            </dt>
+                            <dd className="mt-1 font-medium">
+                              {snapshot.publicDetails.freight.destinationTerminal}
+                            </dd>
+                          </div>
+                        ) : null}
+                        {snapshot.publicDetails.freight.etaAt ? (
+                          <div>
+                            <dt className="text-muted-foreground text-xs font-semibold uppercase">
+                              Freight ETA
+                            </dt>
+                            <dd className="mt-1 font-medium">
+                              {formatDate(snapshot.publicDetails.freight.etaAt)}
+                            </dd>
+                          </div>
+                        ) : null}
+                        {snapshot.publicDetails.freight.commodityDescription ? (
+                          <div className="sm:col-span-2">
+                            <dt className="text-muted-foreground text-xs font-semibold uppercase">
+                              Commodity
+                            </dt>
+                            <dd className="mt-1 font-medium">
+                              {snapshot.publicDetails.freight.commodityDescription}
+                            </dd>
+                          </div>
+                        ) : null}
+                      </dl>
+                    </article>
+                  ) : null}
                 </div>
                 <p className="text-muted-foreground mt-5 text-xs leading-5">
-                  Contact information, street addresses, payment details, health records, and
-                  shipment documents are never shown through public tracking.
+                  Public tracking is available without an account. Contact information, street
+                  addresses, payment details, health records, and shipment documents remain private.
                 </p>
               </section>
             ) : null}
