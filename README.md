@@ -92,6 +92,26 @@ The local PostgreSQL container uses:
 postgresql://apex:apex_password@localhost:5432/apex_global_logistics?schema=public
 ```
 
+## Google Maps Tracking
+
+Shipment status updates can use a city, logistics hub, landmark, or full address. When an
+administrator publishes the update with latitude and longitude left blank, the server geocodes
+that location and stores the resulting checkpoint coordinates. The public tracker then shows
+those recorded checkpoints on Google Maps.
+
+Configure two separate API keys:
+
+```text
+NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY=  # Browser key, restricted to the website referrers and Maps JavaScript API
+GOOGLE_MAPS_GEOCODING_API_KEY=        # Server-only key, restricted to the Geocoding API and server IP
+```
+
+Enable billing, Maps JavaScript API, and Geocoding API in the Google Cloud project. The browser
+key is intentionally public to the built app, so restrict it to approved website referrers. Keep
+the geocoding key in the environment file only; it is never sent to the browser. A map is a
+visualisation of manually recorded checkpoints, not an unverified live GPS feed or a turn-by-turn
+driving route.
+
 ## Architecture Notes
 
 Business features should be added as vertical slices under `src/features/<feature-name>`. Shared domain rules belong under `src/core/domain`, use cases and ports under `src/core/application`, and framework or third-party adapters under `src/core/infrastructure`.

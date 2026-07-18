@@ -4,14 +4,15 @@ import dynamic from "next/dynamic";
 import { Clock3, MapPinned, Radio, Route } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { clientEnv } from "@/config/env.client";
 import { formatShipmentStatus } from "@/features/shipments/status-labels";
 import type { ShipmentRouteCoordinate } from "@/features/shipments/components/shipment-route-map";
 import type { ShipmentTrackingSnapshot } from "@/features/shipments/types";
 
-const ShipmentRouteMap = dynamic(
+const GoogleShipmentRouteMap = dynamic(
   () =>
-    import("@/features/shipments/components/shipment-route-map").then(
-      (module) => module.ShipmentRouteMap,
+    import("@/features/shipments/components/google-shipment-route-map").then(
+      (module) => module.GoogleShipmentRouteMap,
     ),
   {
     loading: () => (
@@ -100,6 +101,7 @@ export function ShipmentLiveMap({
   const routeCoordinates = getRouteCoordinates(snapshot);
   const latestCoordinates = routeCoordinates.at(-1) ?? null;
   const latestEvent = snapshot.timeline[0] ?? null;
+  const googleMapsKey = clientEnv.NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY?.trim();
 
   return (
     <section className="border-border bg-card shadow-panel overflow-hidden rounded-lg border">
@@ -109,7 +111,9 @@ export function ShipmentLiveMap({
             <MapPinned aria-hidden="true" className="size-5" />
           </div>
           <div className="min-w-0">
-            <p className="text-muted-foreground text-xs font-semibold uppercase">Live route map</p>
+            <p className="text-muted-foreground text-xs font-semibold uppercase">
+              Google Maps tracking
+            </p>
             <h3 className="mt-1 font-semibold">Verified location updates</h3>
             <p className="text-muted-foreground truncate text-sm">
               {snapshot.originCity} to {snapshot.destinationCity}
@@ -119,9 +123,10 @@ export function ShipmentLiveMap({
         <ConnectionBadge state={connectionState} />
       </div>
 
-      {latestCoordinates ? (
+      {latestCoordinates && googleMapsKey ? (
         <div className="relative">
-          <ShipmentRouteMap
+          <GoogleShipmentRouteMap
+            apiKey={googleMapsKey}
             coordinates={routeCoordinates}
             shipmentNumber={snapshot.shipmentNumber}
           />
@@ -141,11 +146,15 @@ export function ShipmentLiveMap({
             <div className="flex items-start gap-3">
               <Route aria-hidden="true" className="text-accent mt-0.5 size-5 shrink-0" />
               <div>
-                <p className="font-semibold">Location updates are active</p>
+                <p className="font-semibold">
+                  {googleMapsKey
+                    ? "Location updates are active"
+                    : "Google Maps is not configured yet"}
+                </p>
                 <p className="text-muted-foreground mt-2 text-sm leading-6">
-                  The shipment has not received a verified coordinate yet. Apex can still publish
-                  the customer-facing location and timeline immediately while a map position is
-                  unavailable.
+                  {googleMapsKey
+                    ? "The shipment has not received a verified coordinate yet. Apex can still publish the customer-facing location and timeline immediately while a map position is unavailable."
+                    : "The shipment location is saved, but the Google Maps browser key is not configured. Add it to the production environment, rebuild the application, and recorded coordinates will render here."}
                 </p>
               </div>
             </div>
@@ -185,11 +194,11 @@ export function ShipmentLiveMap({
             <p className="text-xs font-semibold uppercase">Map data</p>
             <a
               className="text-muted-foreground mt-1 inline-block text-sm underline-offset-4 hover:underline"
-              href="https://www.openstreetmap.org/copyright"
+              href="https://maps.google.com"
               rel="noreferrer"
               target="_blank"
             >
-              OpenStreetMap contributors
+              Google Maps
             </a>
           </div>
         </div>

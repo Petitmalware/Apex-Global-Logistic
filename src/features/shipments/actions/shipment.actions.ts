@@ -19,6 +19,7 @@ import {
   uploadPackagePhoto,
   uploadShipmentDocument,
 } from "@/features/shipments/services/shipment.service";
+import { geocodeShipmentLocation } from "@/features/shipments/services/google-maps.service";
 import type { ShipmentActionState } from "@/features/shipments/types";
 import { AUTH_ROLES } from "@/lib/auth/constants";
 import { AuthError } from "@/lib/auth/errors";
@@ -291,6 +292,28 @@ export async function updateShipmentStatusAction(
   formData: FormData,
 ): Promise<ShipmentActionState> {
   const user = await requireAuthenticatedUser();
+  const suppliedLatitude = getString(formData, "latitude").trim();
+  const suppliedLongitude = getString(formData, "longitude").trim();
+  const location = getString(formData, "location").trim();
+  let mappingMessage = "";
+
+  if (!suppliedLatitude && !suppliedLongitude && location) {
+    const geocode = await geocodeShipmentLocation(location);
+
+    if (geocode.coordinates) {
+      formData.set("latitude", String(geocode.coordinates.latitude));
+      formData.set("longitude", String(geocode.coordinates.longitude));
+      mappingMessage = " Google Maps coordinates were added from the location provided.";
+    } else if (geocode.reason === "not_configured") {
+      mappingMessage =
+        " The location was saved without a map pin because Google Maps is not configured.";
+    } else if (geocode.reason === "not_found") {
+      mappingMessage = " The location was saved, but Google Maps could not find a map pin for it.";
+    } else {
+      mappingMessage = " The location was saved, but Google Maps was temporarily unavailable.";
+    }
+  }
+
   const parsed = shipmentStatusUpdateSchema.safeParse({
     eventType: getString(formData, "eventType"),
     latitude: getString(formData, "latitude"),
@@ -322,7 +345,7 @@ export async function updateShipmentStatusAction(
   revalidatePath("/admin/invoices");
 
   return {
-    message: "Shipment status updated.",
+    message: `Shipment status updated.${mappingMessage}`,
     status: "success",
   };
 }

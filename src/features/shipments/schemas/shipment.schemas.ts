@@ -181,15 +181,25 @@ export const shipmentFormSchema = z
     }
   });
 
-export const shipmentStatusUpdateSchema = z.object({
-  eventType: z.nativeEnum(TrackingEventType),
-  latitude: optionalLatitude,
-  longitude: optionalLongitude,
-  location: optionalString(160),
-  message: requiredString("Timeline note", 1000),
-  occurredAt: z.preprocess(emptyToUndefined, z.coerce.date().optional()),
-  status: z.nativeEnum(ShipmentStatus),
-});
+export const shipmentStatusUpdateSchema = z
+  .object({
+    eventType: z.nativeEnum(TrackingEventType),
+    latitude: optionalLatitude,
+    longitude: optionalLongitude,
+    location: optionalString(160),
+    message: requiredString("Timeline note", 1000),
+    occurredAt: z.preprocess(emptyToUndefined, z.coerce.date().optional()),
+    status: z.nativeEnum(ShipmentStatus),
+  })
+  .superRefine((value, context) => {
+    if ((value.latitude === undefined) !== (value.longitude === undefined)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Enter both latitude and longitude, or leave both blank for automatic mapping.",
+        path: ["latitude"],
+      });
+    }
+  });
 
 export const shipmentDocumentSchema = z.object({
   documentType: requiredString("Document type", 80),

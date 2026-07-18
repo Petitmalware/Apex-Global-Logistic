@@ -10,10 +10,12 @@ FROM base AS deps
 
 ARG DATABASE_URL="postgresql://apex:apex_password@localhost:5432/apex_global_logistics?schema=public"
 ARG NEXT_PUBLIC_APP_URL="http://localhost:3000"
+ARG NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY=""
 ARG AUTH_JWT_SECRET="docker-development-secret-change-before-production"
 
 ENV DATABASE_URL=$DATABASE_URL
 ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
+ENV NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY=$NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY
 ENV AUTH_JWT_SECRET=$AUTH_JWT_SECRET
 
 COPY package.json package-lock.json* ./
@@ -25,10 +27,12 @@ FROM base AS builder
 
 ARG DATABASE_URL="postgresql://apex:apex_password@localhost:5432/apex_global_logistics?schema=public"
 ARG NEXT_PUBLIC_APP_URL="http://localhost:3000"
+ARG NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY=""
 ARG AUTH_JWT_SECRET="docker-development-secret-change-before-production"
 
 ENV DATABASE_URL=$DATABASE_URL
 ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
+ENV NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY=$NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY
 ENV AUTH_JWT_SECRET=$AUTH_JWT_SECRET
 
 COPY --from=deps /app/node_modules ./node_modules

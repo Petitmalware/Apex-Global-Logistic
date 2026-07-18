@@ -187,7 +187,8 @@ export function ShipmentStatusForm({
             placeholder="City, airport, warehouse, checkpoint, or delivery area"
           />
           <FieldHint>
-            A clear manual location is enough when a verified map pin is not available.
+            Enter a city, airport, warehouse, landmark, or full address. When you publish, Apex uses
+            Google Maps to save a map pin automatically when coordinates are left blank.
           </FieldHint>
         </Field>
         <Field>
@@ -211,7 +212,7 @@ export function ShipmentStatusForm({
             More tracking options
           </span>
           <span className="text-muted-foreground text-xs font-normal">
-            Custom event, date, and map pin
+            Custom event, date, or coordinate override
           </span>
         </summary>
         <div className="border-border grid gap-4 border-t p-4 sm:grid-cols-2">
@@ -278,6 +279,11 @@ export function ShipmentStatusForm({
               type="number"
             />
           </Field>
+          <p className="text-muted-foreground text-xs leading-5 sm:col-span-2">
+            Leave both coordinates blank to let Google Maps resolve the location field
+            automatically. Enter both only when operations has a verified GPS point to override the
+            result.
+          </p>
         </div>
       </details>
 

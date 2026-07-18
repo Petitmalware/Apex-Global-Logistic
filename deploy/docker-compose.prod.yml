@@ -15,6 +15,7 @@ services:
         AUTH_JWT_SECRET: ${AUTH_JWT_SECRET}
         DATABASE_URL: ${DATABASE_URL}
         NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+        NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY: ${NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY}
     depends_on:
       postgres:
         condition: service_healthy
@@ -57,6 +58,7 @@ services:
         AUTH_JWT_SECRET: ${AUTH_JWT_SECRET}
         DATABASE_URL: ${DATABASE_URL}
         NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+        NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY: ${NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY}
     depends_on:
       postgres:
         condition: service_healthy
