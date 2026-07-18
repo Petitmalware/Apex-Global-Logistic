@@ -3,14 +3,21 @@
 import { useActionState, useEffect, useState } from "react";
 import type { ShipmentStatus } from "@prisma/client";
 import { useRouter } from "next/navigation";
-import { ArrowRight, CircleCheck, PauseCircle, Play, Truck } from "lucide-react";
+import {
+  ArrowRight,
+  CircleCheck,
+  CirclePause,
+  ClipboardCheck,
+  MapPinned,
+  Truck,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Field, FieldHint } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import { formatShipmentStatus, formatTrackingEventType } from "@/features/shipments/status-labels";
 import type { ShipmentActionState } from "@/features/shipments/types";
 import { initialShipmentActionState } from "@/features/shipments/types";
@@ -42,26 +49,13 @@ type ShipmentStatusOption = (typeof statusOptions)[number];
 type TrackingEventOption = (typeof eventTypeOptions)[number];
 
 const statusGuidance: Record<ShipmentStatusOption, string> = {
-  BOOKED: "Use when the shipment has been created but pickup has not started.",
-  PENDING_PICKUP: "Use when the shipment is waiting for collection from the sender or facility.",
-  IN_TRANSIT: "Use when the package, pet, or freight is actively moving between checkpoints.",
-  HELD: "Use when movement is paused for review, documents, customs, care, or payment handling.",
-  DELIVERED: "Use only when the shipment has been handed over to the recipient.",
-  CANCELLED: "Use when the shipment will not continue and the customer should contact support.",
-  RETURNED: "Use when the shipment is being sent back to the sender.",
-};
-
-const eventGuidance: Record<TrackingEventOption, string> = {
-  CREATED: "A new shipment record was opened.",
-  PICKED_UP: "The shipment was collected from the sender or pickup location.",
-  CHECKED_IN: "The shipment arrived at a warehouse, hub, checkpoint, clinic, or care facility.",
-  IN_TRANSIT: "The shipment departed a checkpoint and is moving toward the next stop.",
-  CUSTOMS_HOLD: "Customs or compliance review is delaying movement.",
-  DELAYED: "Use when timing changed but the shipment is still active.",
-  OUT_FOR_DELIVERY: "The shipment is on the final route to the recipient.",
-  DELIVERED: "The shipment was delivered and signed or confirmed.",
-  CANCELLED: "The movement has stopped permanently.",
-  EXCEPTION: "Use for anything that needs extra customer or operations attention.",
+  BOOKED: "Shipment is registered and ready for its first operations step.",
+  PENDING_PICKUP: "Shipment is waiting for collection or release from the current facility.",
+  IN_TRANSIT: "Shipment is actively moving between checkpoints.",
+  HELD: "Movement is temporarily paused while Apex operations reviews the next step.",
+  DELIVERED: "Use only after the recipient handoff is complete.",
+  CANCELLED: "Movement is stopped and the customer should contact support for assistance.",
+  RETURNED: "Shipment is returning to the sender.",
 };
 
 const defaultEventByStatus: Record<ShipmentStatusOption, TrackingEventOption> = {
@@ -74,18 +68,30 @@ const defaultEventByStatus: Record<ShipmentStatusOption, TrackingEventOption> = 
   RETURNED: "EXCEPTION",
 };
 
-const quickActions = [
+const commonUpdates = [
   {
-    eventType: "EXCEPTION",
-    icon: PauseCircle,
-    label: "Put on hold",
-    status: "HELD",
+    eventType: "CREATED",
+    icon: ClipboardCheck,
+    label: "Order confirmed",
+    status: "BOOKED",
+  },
+  {
+    eventType: "PICKED_UP",
+    icon: Truck,
+    label: "Picked up",
+    status: "PENDING_PICKUP",
   },
   {
     eventType: "IN_TRANSIT",
-    icon: Play,
-    label: "Resume transit",
+    icon: Truck,
+    label: "In transit",
     status: "IN_TRANSIT",
+  },
+  {
+    eventType: "EXCEPTION",
+    icon: CirclePause,
+    label: "Place on hold",
+    status: "HELD",
   },
   {
     eventType: "OUT_FOR_DELIVERY",
@@ -96,15 +102,10 @@ const quickActions = [
   {
     eventType: "DELIVERED",
     icon: CircleCheck,
-    label: "Mark delivered",
+    label: "Delivered",
     status: "DELIVERED",
   },
-] as const satisfies ReadonlyArray<{
-  eventType: TrackingEventOption;
-  icon: typeof PauseCircle;
-  label: string;
-  status: ShipmentStatusOption;
-}>;
+] as const;
 
 export function ShipmentStatusForm({
   action,
@@ -129,160 +130,159 @@ export function ShipmentStatusForm({
     }
   }, [router, state.status]);
 
-  function selectQuickAction(status: ShipmentStatusOption, eventType: TrackingEventOption) {
+  function chooseUpdate(status: ShipmentStatusOption, eventType: TrackingEventOption) {
     setSelectedStatus(status);
     setSelectedEventType(eventType);
   }
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form action={formAction} className="space-y-5">
       <div className="border-border bg-surface rounded-lg border p-4">
-        <p className="font-semibold">Current status: {formatShipmentStatus(currentStatus)}</p>
+        <p className="text-muted-foreground text-xs font-semibold uppercase">
+          Current shipment status
+        </p>
+        <p className="mt-2 text-lg font-semibold">{formatShipmentStatus(currentStatus)}</p>
         <p className="text-muted-foreground mt-2 text-sm leading-6">
-          Use this panel to add a new customer-facing checkpoint, delivery note, or manual location
-          update when the map is not available.
+          Pick the new customer-facing stage, tell the customer where the shipment is, then publish.
         </p>
       </div>
-      <div className="space-y-3">
-        <p className="text-sm font-semibold">Common actions</p>
-        <div className="grid grid-cols-2 gap-2">
-          {quickActions.map((quickAction) => (
-            <Button
-              className="h-auto min-h-11 justify-start px-3 py-2 text-left"
-              key={quickAction.label}
-              onClick={() => selectQuickAction(quickAction.status, quickAction.eventType)}
-              type="button"
-              variant={
-                selectedStatus === quickAction.status && selectedEventType === quickAction.eventType
-                  ? "secondary"
-                  : "outline"
-              }
-            >
-              <quickAction.icon aria-hidden="true" className="size-4 shrink-0" />
-              <span>{quickAction.label}</span>
-            </Button>
-          ))}
-        </div>
-        <FieldHint>
-          Putting a shipment on hold pauses movement without cancelling it. Add the reason and
-          current location below so the customer knows what happens next.
-        </FieldHint>
-      </div>
-      <div className="border-border bg-surface rounded-lg border p-4">
-        <p className="text-sm font-semibold">What this update does</p>
-        <p className="text-muted-foreground mt-2 text-sm leading-6">
-          Status controls the customer-facing shipment state. Timeline event explains what happened
-          at this checkpoint. Add the clearest location and one practical note so the customer knows
-          whether they should wait, contact support, or expect delivery.
-        </p>
-      </div>
+
       {state.message ? (
         <p className="border-border bg-secondary text-secondary-foreground rounded-md border px-3 py-2 text-sm">
           {state.message}
         </p>
       ) : null}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Field>
-          <Label htmlFor="status">Customer-visible shipment status</Label>
-          <Select
-            id="status"
-            name="status"
-            onChange={(event) => {
-              const nextStatus = event.target.value as ShipmentStatusOption;
-              setSelectedStatus(nextStatus);
-              setSelectedEventType(defaultEventByStatus[nextStatus]);
-            }}
-            required
-            value={selectedStatus}
-          >
-            {statusOptions.map((option) => (
-              <option key={option} value={option}>
-                {formatShipmentStatus(option)}
-              </option>
-            ))}
-          </Select>
-          <FieldHint>{statusGuidance[selectedStatus]}</FieldHint>
-        </Field>
-        <Field>
-          <Label htmlFor="eventType">Timeline event that happened</Label>
-          <Select
-            id="eventType"
-            name="eventType"
-            onChange={(event) => setSelectedEventType(event.target.value as TrackingEventOption)}
-            required
-            value={selectedEventType}
-          >
-            {eventTypeOptions.map((option) => (
-              <option key={option} value={option}>
-                {formatTrackingEventType(option)}
-              </option>
-            ))}
-          </Select>
-          <FieldHint>{eventGuidance[selectedEventType]}</FieldHint>
-        </Field>
+
+      <div>
+        <p className="text-sm font-semibold">1. Choose an update</p>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+          {commonUpdates.map((update) => (
+            <Button
+              aria-pressed={
+                selectedStatus === update.status && selectedEventType === update.eventType
+              }
+              className="h-auto min-h-12 justify-start px-3 py-3 text-left"
+              key={update.label}
+              onClick={() => chooseUpdate(update.status, update.eventType)}
+              type="button"
+              variant={
+                selectedStatus === update.status && selectedEventType === update.eventType
+                  ? "secondary"
+                  : "outline"
+              }
+            >
+              <update.icon aria-hidden="true" className="size-4 shrink-0" />
+              <span>{update.label}</span>
+            </Button>
+          ))}
+        </div>
       </div>
-      <Field>
-        <Label htmlFor="occurredAt">When this happened</Label>
-        <Input id="occurredAt" name="occurredAt" type="datetime-local" />
-        <FieldHint>Leave blank to use the current time.</FieldHint>
-      </Field>
-      <Field>
-        <Label htmlFor="location">Current customer-facing location</Label>
-        <Input
-          id="location"
-          name="location"
-          placeholder="Memphis animal care facility, customs hold, driver handoff..."
-        />
-        <FieldHint>
-          Use a city, hub, facility, airport, checkpoint, or driver handoff point. A location name
-          works even when GPS coordinates are unavailable.
-        </FieldHint>
-      </Field>
-      <div className="grid gap-4 sm:grid-cols-2">
+
+      <div className="grid gap-4">
         <Field>
-          <Label htmlFor="latitude">Verified map latitude</Label>
+          <Label htmlFor="location">2. Where is the shipment now?</Label>
           <Input
-            id="latitude"
-            name="latitude"
-            placeholder="Optional GPS"
-            step="0.000001"
-            type="number"
+            id="location"
+            name="location"
+            placeholder="City, airport, warehouse, checkpoint, or delivery area"
           />
           <FieldHint>
-            Optional. Pair this with longitude from a verified GPS or map pin to publish a
-            street-level checkpoint to the customer tracker.
+            A clear manual location is enough when a verified map pin is not available.
           </FieldHint>
         </Field>
         <Field>
-          <Label htmlFor="longitude">Verified map longitude</Label>
-          <Input
-            id="longitude"
-            name="longitude"
-            placeholder="Optional GPS"
-            step="0.000001"
-            type="number"
+          <Label htmlFor="message">3. What should the customer know?</Label>
+          <Textarea
+            id="message"
+            name="message"
+            placeholder="Example: Shipment checked in at the Dallas care facility and is awaiting the next scheduled departure."
+            required
           />
           <FieldHint>
-            Optional. Only publish coordinates confirmed by your operations team. Leave both map
-            fields blank for a standard status update without a map marker.
+            Write one direct sentence that explains the checkpoint or next step.
           </FieldHint>
         </Field>
       </div>
-      <Field>
-        <Label htmlFor="message">Customer update message</Label>
-        <Textarea
-          id="message"
-          name="message"
-          placeholder="Example: Puppy checked in by handler and resting in climate-controlled crate."
-          required
-        />
-        <FieldHint>
-          Write one clear sentence. Example: Your pet has arrived at the Dallas care checkpoint and
-          is resting in a climate-controlled crate before the next route.
-        </FieldHint>
-      </Field>
+
+      <details className="border-border rounded-md border">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 text-sm font-semibold">
+          <span className="flex items-center gap-2">
+            <MapPinned aria-hidden="true" className="text-accent size-4" />
+            More tracking options
+          </span>
+          <span className="text-muted-foreground text-xs font-normal">
+            Custom event, date, and map pin
+          </span>
+        </summary>
+        <div className="border-border grid gap-4 border-t p-4 sm:grid-cols-2">
+          <Field>
+            <Label htmlFor="status">Customer-visible status</Label>
+            <Select
+              id="status"
+              name="status"
+              onChange={(event) => {
+                const nextStatus = event.target.value as ShipmentStatusOption;
+                setSelectedStatus(nextStatus);
+                setSelectedEventType(defaultEventByStatus[nextStatus]);
+              }}
+              required
+              value={selectedStatus}
+            >
+              {statusOptions.map((option) => (
+                <option key={option} value={option}>
+                  {formatShipmentStatus(option)}
+                </option>
+              ))}
+            </Select>
+            <FieldHint>{statusGuidance[selectedStatus]}</FieldHint>
+          </Field>
+          <Field>
+            <Label htmlFor="eventType">Timeline event</Label>
+            <Select
+              id="eventType"
+              name="eventType"
+              onChange={(event) => setSelectedEventType(event.target.value as TrackingEventOption)}
+              required
+              value={selectedEventType}
+            >
+              {eventTypeOptions.map((option) => (
+                <option key={option} value={option}>
+                  {formatTrackingEventType(option)}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field>
+            <Label htmlFor="occurredAt">Date and time (optional)</Label>
+            <Input id="occurredAt" name="occurredAt" type="datetime-local" />
+            <FieldHint>Leave blank to use the current time.</FieldHint>
+          </Field>
+          <div className="hidden sm:block" />
+          <Field>
+            <Label htmlFor="latitude">Verified map latitude (optional)</Label>
+            <Input
+              id="latitude"
+              name="latitude"
+              placeholder="GPS latitude"
+              step="0.000001"
+              type="number"
+            />
+          </Field>
+          <Field>
+            <Label htmlFor="longitude">Verified map longitude (optional)</Label>
+            <Input
+              id="longitude"
+              name="longitude"
+              placeholder="GPS longitude"
+              step="0.000001"
+              type="number"
+            />
+          </Field>
+        </div>
+      </details>
+
       <Button disabled={isPending} type="submit" variant="accent">
-        {isPending ? "Publishing..." : "Publish tracking update"}
+        {isPending ? "Publishing update..." : "Publish tracking update"}
         <ArrowRight aria-hidden="true" />
       </Button>
     </form>

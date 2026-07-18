@@ -65,22 +65,6 @@ function formatDeliveryWindow(snapshot: ShipmentTrackingSnapshot) {
   return `${formatDate(snapshot.deliveryWindowStart)} - ${formatDate(snapshot.deliveryWindowEnd)}`;
 }
 
-function formatPickupWindow(snapshot: ShipmentTrackingSnapshot) {
-  if (!snapshot.pickupWindowStart && !snapshot.pickupWindowEnd) {
-    return "Not scheduled";
-  }
-
-  if (!snapshot.pickupWindowEnd) {
-    return formatDate(snapshot.pickupWindowStart);
-  }
-
-  if (!snapshot.pickupWindowStart) {
-    return `By ${formatDate(snapshot.pickupWindowEnd)}`;
-  }
-
-  return `${formatDate(snapshot.pickupWindowStart)} - ${formatDate(snapshot.pickupWindowEnd)}`;
-}
-
 function formatPetAge(ageMonths: number | null) {
   if (ageMonths === null) {
     return null;
@@ -158,6 +142,38 @@ function TrackingStatusIcon({ status }: { status: ShipmentTrackingSnapshot["stat
   return <Truck aria-hidden="true" className="size-5" />;
 }
 
+function getProgressStage(snapshot: ShipmentTrackingSnapshot, latestEventType?: string) {
+  if (snapshot.status === "DELIVERED") {
+    return 4;
+  }
+
+  if (latestEventType === "OUT_FOR_DELIVERY") {
+    return 3;
+  }
+
+  if (
+    snapshot.status === "IN_TRANSIT" ||
+    snapshot.status === "HELD" ||
+    snapshot.status === "RETURNED"
+  ) {
+    return 2;
+  }
+
+  if (snapshot.status === "PENDING_PICKUP" || latestEventType === "PICKED_UP") {
+    return 1;
+  }
+
+  return 0;
+}
+
+const progressSteps = [
+  "Order confirmed",
+  "Picked up",
+  "In transit",
+  "Out for delivery",
+  "Delivered",
+] as const;
+
 export function TrackingLookup() {
   const [connectionState, setConnectionState] = useState<"live" | "reconnecting" | "idle">("idle");
   const [error, setError] = useState<string | null>(null);
@@ -227,216 +243,278 @@ export function TrackingLookup() {
 
   const latestEvent = snapshot?.timeline[0] ?? null;
   const nextStep = snapshot ? getNextStep(snapshot.status) : null;
+  const progressStage = snapshot ? getProgressStage(snapshot, latestEvent?.eventType) : 0;
+  const carrierName = snapshot?.publicDetails?.carrier ?? "Apex Global Logistics";
 
   return (
-    <section className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-12 sm:px-6 lg:grid-cols-[360px_minmax(0,1fr)] lg:items-start">
-      <aside className="border-border bg-card shadow-panel rounded-lg border p-5 lg:sticky lg:top-24">
-        <div className="flex items-start gap-3">
-          <div className="bg-accent/15 text-accent grid size-11 shrink-0 place-items-center rounded-md">
-            <PackageSearch aria-hidden="true" className="size-5" />
+    <section className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:py-10">
+      <aside className="border-border bg-card shadow-panel rounded-lg border p-5 sm:p-6">
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(320px,.7fr)] lg:items-end">
+          <div>
+            <div className="flex items-start gap-3">
+              <div className="bg-accent/15 text-accent grid size-11 shrink-0 place-items-center rounded-md">
+                <PackageSearch aria-hidden="true" className="size-5" />
+              </div>
+              <div>
+                <p className="text-accent text-xs font-semibold uppercase">Shipment tracking</p>
+                <h1 className="mt-1 text-2xl font-semibold tracking-normal sm:text-3xl">
+                  Track your shipment
+                </h1>
+                <p className="text-muted-foreground mt-2 max-w-2xl text-sm leading-6">
+                  Enter the tracking number from an Apex notice, invoice, receipt, or dispatch email
+                  to see the latest shipment record. An account is not required.
+                </p>
+              </div>
+            </div>
+            <div className="text-muted-foreground mt-5 grid gap-2 text-sm sm:grid-cols-3">
+              {[
+                "Live operational status",
+                "Delivery estimate and route",
+                "Verified checkpoints and consignment details",
+              ].map((item) => (
+                <p className="flex items-start gap-2" key={item}>
+                  <ShieldCheck aria-hidden="true" className="text-accent mt-0.5 size-4 shrink-0" />
+                  {item}
+                </p>
+              ))}
+            </div>
           </div>
           <div>
-            <h2 className="text-lg font-semibold">Find a shipment</h2>
-            <p className="text-muted-foreground mt-1 text-sm leading-6">
-              Enter the exact Apex tracking number or carrier reference shown on your document.
-            </p>
+            <form className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]" onSubmit={handleSubmit}>
+              <div className="space-y-2">
+                <Label htmlFor="tracking-reference">Tracking reference</Label>
+                <Input
+                  autoCapitalize="characters"
+                  autoComplete="off"
+                  id="tracking-reference"
+                  onChange={(event) => setReference(event.target.value)}
+                  placeholder="AGL-202607-ABC12345"
+                  spellCheck={false}
+                  value={reference}
+                />
+              </div>
+              <Button
+                className="self-end"
+                disabled={status === "loading"}
+                type="submit"
+                variant="accent"
+              >
+                <PackageSearch aria-hidden="true" />
+                {status === "loading" ? "Checking..." : "Track"}
+              </Button>
+            </form>
+            {error ? (
+              <Notification className="mt-4" title="Tracking unavailable" variant="danger">
+                {error}
+              </Notification>
+            ) : null}
           </div>
-        </div>
-        <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
-          <div className="space-y-2">
-            <Label htmlFor="tracking-reference">Tracking reference</Label>
-            <Input
-              autoCapitalize="characters"
-              autoComplete="off"
-              id="tracking-reference"
-              onChange={(event) => setReference(event.target.value)}
-              placeholder="AGL-202607-ABC12345"
-              spellCheck={false}
-              value={reference}
-            />
-          </div>
-          <Button className="w-full" disabled={status === "loading"} type="submit" variant="accent">
-            <PackageSearch aria-hidden="true" />
-            {status === "loading" ? "Checking shipment..." : "Track shipment"}
-          </Button>
-        </form>
-        {error ? (
-          <Notification className="mt-5" title="Tracking unavailable" variant="danger">
-            {error}
-          </Notification>
-        ) : null}
-        <div className="border-border mt-6 border-t pt-5">
-          <p className="text-sm font-semibold">Public tracking includes</p>
-          <ul className="text-muted-foreground mt-3 space-y-2 text-sm leading-6">
-            <li className="flex gap-2">
-              <ShieldCheck aria-hidden="true" className="text-accent mt-1 size-4 shrink-0" />
-              Current agency status and latest checkpoint
-            </li>
-            <li className="flex gap-2">
-              <ShieldCheck aria-hidden="true" className="text-accent mt-1 size-4 shrink-0" />
-              Estimated delivery and service lane
-            </li>
-            <li className="flex gap-2">
-              <ShieldCheck aria-hidden="true" className="text-accent mt-1 size-4 shrink-0" />
-              Verified map position when GPS is supplied
-            </li>
-            <li className="flex gap-2">
-              <ShieldCheck aria-hidden="true" className="text-accent mt-1 size-4 shrink-0" />
-              Shipment parties, consignment details, and basic pet or freight information
-            </li>
-          </ul>
         </div>
       </aside>
 
-      <div aria-live="polite" className="min-w-0">
+      <div aria-live="polite" className="mt-6 min-w-0">
         {snapshot ? (
           <div className="space-y-6">
-            <section className="border-border bg-card shadow-panel rounded-lg border p-5 sm:p-6">
-              <div className="border-border flex flex-col gap-4 border-b pb-5 sm:flex-row sm:items-start sm:justify-between">
-                <div className="min-w-0">
-                  <p className="text-muted-foreground text-xs font-semibold uppercase">
-                    Tracking number
-                  </p>
-                  <h2 className="mt-2 text-2xl font-semibold tracking-normal break-all sm:text-3xl">
-                    {snapshot.shipmentNumber}
-                  </h2>
-                  <p className="text-muted-foreground mt-2 text-sm">
-                    Last synchronized {formatDate(snapshot.updatedAt)}
-                  </p>
-                  <p className="text-muted-foreground mt-1 text-sm">
-                    Registered {formatDate(snapshot.createdAt)}
-                  </p>
+            <div className="grid gap-6 xl:grid-cols-[minmax(0,.95fr)_minmax(0,1.05fr)] xl:items-start">
+              <section className="border-border bg-card shadow-panel rounded-lg border p-5 sm:p-6">
+                <div className="border-border flex flex-col gap-4 border-b pb-5 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-muted-foreground text-xs font-semibold uppercase">
+                      Tracking number
+                    </p>
+                    <h2 className="mt-2 text-2xl font-semibold tracking-normal break-all sm:text-3xl">
+                      {snapshot.shipmentNumber}
+                    </h2>
+                    <p className="text-muted-foreground mt-2 text-sm">
+                      Last synchronized {formatDate(snapshot.updatedAt)}
+                    </p>
+                    <p className="text-muted-foreground mt-1 text-sm">
+                      Registered {formatDate(snapshot.createdAt)}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant={statusVariant(snapshot.status)}>
+                      {formatShipmentStatus(snapshot.status)}
+                    </Badge>
+                    <Badge variant={connectionState === "live" ? "success" : "outline"}>
+                      {connectionState === "live" ? (
+                        <Radio aria-hidden="true" className="size-3.5" />
+                      ) : null}
+                      {connectionState === "live"
+                        ? "Live updates"
+                        : connectionState === "reconnecting"
+                          ? "Reconnecting"
+                          : "Connecting"}
+                    </Badge>
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <Badge variant={statusVariant(snapshot.status)}>
-                    {formatShipmentStatus(snapshot.status)}
-                  </Badge>
-                  <Badge variant={connectionState === "live" ? "success" : "outline"}>
-                    {connectionState === "live" ? (
-                      <Radio aria-hidden="true" className="size-3.5" />
-                    ) : null}
-                    {connectionState === "live"
-                      ? "Live updates"
-                      : connectionState === "reconnecting"
-                        ? "Reconnecting"
-                        : "Connecting"}
-                  </Badge>
-                </div>
-              </div>
 
-              <div className="bg-secondary text-secondary-foreground mt-5 flex items-start gap-3 rounded-md p-4">
-                <TrackingStatusIcon status={snapshot.status} />
-                <div>
-                  <p className="font-semibold">{formatShipmentStatus(snapshot.status)}</p>
-                  <p className="mt-1 text-sm leading-6">{getStatusMessage(snapshot.status)}</p>
+                <div className="bg-secondary text-secondary-foreground mt-5 flex items-start gap-3 rounded-md p-4">
+                  <TrackingStatusIcon status={snapshot.status} />
+                  <div>
+                    <p className="font-semibold">{formatShipmentStatus(snapshot.status)}</p>
+                    <p className="mt-1 text-sm leading-6">{getStatusMessage(snapshot.status)}</p>
+                  </div>
                 </div>
-              </div>
 
-              <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-                <div className="border-border rounded-md border p-4">
-                  <div className="flex items-start gap-3">
-                    <MapPinned aria-hidden="true" className="text-accent mt-0.5 size-5 shrink-0" />
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold uppercase">Latest operational update</p>
-                      <p className="mt-2 font-semibold">
-                        {latestEvent
-                          ? formatTrackingEventType(latestEvent.eventType)
-                          : "Shipment record created"}
-                      </p>
-                      <p className="text-muted-foreground mt-1 text-sm leading-6">
-                        {latestEvent?.message ?? getStatusMessage(snapshot.status)}
-                      </p>
-                      <p className="text-muted-foreground mt-3 text-xs">
-                        {latestEvent?.currentLocation ?? "Location update pending"}
-                        {latestEvent ? ` · ${formatDate(latestEvent.occurredAt)}` : null}
-                      </p>
+                <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                  <div className="border-border rounded-md border p-4">
+                    <p className="text-muted-foreground text-xs font-semibold uppercase">
+                      Estimated delivery
+                    </p>
+                    <p className="mt-2 text-lg font-semibold">{formatDeliveryWindow(snapshot)}</p>
+                    <p className="text-muted-foreground mt-1 text-sm">
+                      Delivery window from Apex operations
+                    </p>
+                  </div>
+                  <div className="border-border rounded-md border p-4">
+                    <p className="text-muted-foreground text-xs font-semibold uppercase">
+                      Current location
+                    </p>
+                    <p className="mt-2 text-lg font-semibold">
+                      {latestEvent?.currentLocation ?? "Awaiting the next checkpoint"}
+                    </p>
+                    <p className="text-muted-foreground mt-1 text-sm">
+                      {latestEvent
+                        ? formatDate(latestEvent.occurredAt)
+                        : "No operational checkpoint published yet"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="border-border mt-5 border-t pt-5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm font-semibold">Delivery progress</p>
+                    <p className="text-muted-foreground text-xs">
+                      Updated as checkpoints are published
+                    </p>
+                  </div>
+                  <ol className="mt-4 grid gap-3 sm:grid-cols-5">
+                    {progressSteps.map((step, index) => {
+                      const complete = index <= progressStage;
+                      const current = index === progressStage;
+
+                      return (
+                        <li className="min-w-0" key={step}>
+                          <div className="flex items-center gap-2 sm:block">
+                            <span
+                              aria-hidden="true"
+                              className={
+                                complete
+                                  ? "bg-success text-success-foreground grid size-7 shrink-0 place-items-center rounded-full text-xs font-bold"
+                                  : "border-border text-muted-foreground grid size-7 shrink-0 place-items-center rounded-full border text-xs font-bold"
+                              }
+                            >
+                              {complete ? "OK" : index + 1}
+                            </span>
+                            <span
+                              className={
+                                current
+                                  ? "text-foreground text-sm font-semibold sm:mt-2 sm:block"
+                                  : "text-muted-foreground text-sm sm:mt-2 sm:block"
+                              }
+                            >
+                              {step}
+                            </span>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ol>
+                </div>
+
+                <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+                  <div className="border-border rounded-md border p-4">
+                    <div className="flex items-start gap-3">
+                      <MapPinned
+                        aria-hidden="true"
+                        className="text-accent mt-0.5 size-5 shrink-0"
+                      />
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold uppercase">Latest operational update</p>
+                        <p className="mt-2 font-semibold">
+                          {latestEvent
+                            ? formatTrackingEventType(latestEvent.eventType)
+                            : "Shipment record created"}
+                        </p>
+                        <p className="text-muted-foreground mt-1 text-sm leading-6">
+                          {latestEvent?.message ?? getStatusMessage(snapshot.status)}
+                        </p>
+                        <p className="text-muted-foreground mt-3 text-xs">
+                          {latestEvent?.currentLocation ?? "Location update pending"}
+                          {latestEvent ? ` · ${formatDate(latestEvent.occurredAt)}` : null}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="border-border rounded-md border p-4">
+                    <div className="flex items-start gap-3">
+                      <Clock3 aria-hidden="true" className="text-accent mt-0.5 size-5 shrink-0" />
+                      <div>
+                        <p className="text-xs font-semibold uppercase">What happens next</p>
+                        <p className="text-muted-foreground mt-2 text-sm leading-6">{nextStep}</p>
+                      </div>
                     </div>
                   </div>
                 </div>
-                <div className="border-border rounded-md border p-4">
-                  <div className="flex items-start gap-3">
-                    <Clock3 aria-hidden="true" className="text-accent mt-0.5 size-5 shrink-0" />
-                    <div>
-                      <p className="text-xs font-semibold uppercase">What happens next</p>
-                      <p className="text-muted-foreground mt-2 text-sm leading-6">{nextStep}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
 
-              <dl className="border-border bg-border mt-5 grid gap-px overflow-hidden rounded-md border sm:grid-cols-2 xl:grid-cols-3">
-                {[
-                  {
-                    icon: Route,
-                    label: "Route",
-                    value: `${snapshot.originCity}, ${snapshot.originCountryCode} to ${snapshot.destinationCity}, ${snapshot.destinationCountryCode}`,
-                  },
-                  {
-                    icon: LocateFixed,
-                    label: "Current location",
-                    value: latestEvent?.currentLocation ?? "Awaiting the next checkpoint",
-                  },
-                  {
-                    icon: CalendarClock,
-                    label: "Estimated delivery",
-                    value: formatDeliveryWindow(snapshot),
-                  },
-                  {
-                    icon: CalendarClock,
-                    label: "Pickup window",
-                    value: formatPickupWindow(snapshot),
-                  },
-                  {
-                    icon: Truck,
-                    label: "Transport mode",
-                    value: formatEnum(snapshot.mode),
-                  },
-                  {
-                    icon: ShieldCheck,
-                    label: "Service",
-                    value: snapshot.serviceLevel ?? "Standard managed service",
-                  },
-                  {
-                    icon: ShieldCheck,
-                    label: "Priority",
-                    value: formatEnum(snapshot.priority),
-                  },
-                  {
-                    icon: CalendarClock,
-                    label: "Dispatch time",
-                    value: formatDate(snapshot.dispatchedAt),
-                  },
-                  {
-                    icon: CheckCircle2,
-                    label: "Delivered time",
-                    value: formatDate(snapshot.deliveredAt),
-                  },
-                  {
-                    icon: Clock3,
-                    label: "Latest checkpoint",
-                    value: latestEvent ? formatDate(latestEvent.occurredAt) : "No checkpoint yet",
-                  },
-                  {
-                    icon: Boxes,
-                    label: "Pieces recorded",
-                    value: snapshot.packageCount
-                      ? `${snapshot.packageCount} piece${snapshot.packageCount === 1 ? "" : "s"}`
-                      : "Not recorded",
-                  },
-                  {
-                    icon: Scale,
-                    label: "Recorded weight",
-                    value: snapshot.totalWeightLb ? `${snapshot.totalWeightLb} lb` : "Not recorded",
-                  },
-                ].map((item) => (
-                  <div className="bg-background p-4" key={item.label}>
-                    <item.icon aria-hidden="true" className="text-accent size-5" />
-                    <dt className="mt-3 text-xs font-semibold uppercase">{item.label}</dt>
-                    <dd className="text-muted-foreground mt-1 text-sm leading-6">{item.value}</dd>
-                  </div>
-                ))}
-              </dl>
-            </section>
+                <dl className="border-border bg-border mt-5 grid gap-px overflow-hidden rounded-md border sm:grid-cols-2 xl:grid-cols-3">
+                  {[
+                    {
+                      icon: Route,
+                      label: "Route",
+                      value: `${snapshot.originCity}, ${snapshot.originCountryCode} to ${snapshot.destinationCity}, ${snapshot.destinationCountryCode}`,
+                    },
+                    {
+                      icon: LocateFixed,
+                      label: "Current location",
+                      value: latestEvent?.currentLocation ?? "Awaiting the next checkpoint",
+                    },
+                    {
+                      icon: CalendarClock,
+                      label: "Estimated delivery",
+                      value: formatDeliveryWindow(snapshot),
+                    },
+                    {
+                      icon: Truck,
+                      label: "Carrier",
+                      value: carrierName,
+                    },
+                    {
+                      icon: ShieldCheck,
+                      label: "Service",
+                      value: snapshot.serviceLevel ?? "Standard managed service",
+                    },
+                    {
+                      icon: Truck,
+                      label: "Transport mode",
+                      value: formatEnum(snapshot.mode),
+                    },
+                    {
+                      icon: Boxes,
+                      label: "Pieces recorded",
+                      value: snapshot.packageCount
+                        ? `${snapshot.packageCount} piece${snapshot.packageCount === 1 ? "" : "s"}`
+                        : "Not recorded",
+                    },
+                    {
+                      icon: Scale,
+                      label: "Recorded weight",
+                      value: snapshot.totalWeightLb
+                        ? `${snapshot.totalWeightLb} lb`
+                        : "Not recorded",
+                    },
+                  ].map((item) => (
+                    <div className="bg-background p-4" key={item.label}>
+                      <item.icon aria-hidden="true" className="text-accent size-5" />
+                      <dt className="mt-3 text-xs font-semibold uppercase">{item.label}</dt>
+                      <dd className="text-muted-foreground mt-1 text-sm leading-6">{item.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
+              <ShipmentLiveMap connectionState={connectionState} snapshot={snapshot} />
+            </div>
 
             <section className="border-border bg-card shadow-panel rounded-lg border p-5 sm:p-6">
               <div className="border-border flex flex-wrap items-end justify-between gap-3 border-b pb-4">
@@ -490,8 +568,6 @@ export function TrackingLookup() {
                 </div>
               </div>
             </section>
-
-            <ShipmentLiveMap connectionState={connectionState} snapshot={snapshot} />
 
             {snapshot.publicDetails ? (
               <section className="border-border bg-card shadow-panel rounded-lg border p-5 sm:p-6">

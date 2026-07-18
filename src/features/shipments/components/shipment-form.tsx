@@ -210,107 +210,119 @@ export function ShipmentForm({
                 {isCreateMode ? "Create agency shipment" : "Edit agency shipment"}
               </CardTitle>
               <p className="text-muted-foreground mt-2 text-sm leading-6">
-                Enter the receiver, delivery address, shipment contents, and routing details. Sender
-                information is optional and billing is handled separately through invoices.
+                Start with the delivery recipient and address. Add the shipment summary next;
+                sender, carrier, and internal details remain optional until your operations team has
+                them.
               </p>
             </div>
             <Badge variant="outline">Current status: {formatShipmentStatus(currentStatus)}</Badge>
           </div>
         </CardHeader>
         <CardContent className="grid gap-8 p-5 xl:grid-cols-2">
-          <section>
-            <SectionTitle icon={UserRound} title="Shipper details" />
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field>
-                <Label htmlFor="origin.name">Shipper name</Label>
-                <Input
-                  defaultValue={initialShipment?.origin.name ?? ""}
-                  id="origin.name"
-                  name="origin.name"
-                  placeholder="Sender or company name"
-                />
-              </Field>
-              <Field>
-                <Label htmlFor="officeDetails.shipperPhone">Phone number</Label>
-                <Input
-                  defaultValue={officeDetails?.shipperPhone ?? ""}
-                  id="officeDetails.shipperPhone"
-                  name="officeDetails.shipperPhone"
-                  placeholder="+1 555 0100"
-                />
-              </Field>
-              <Field className="sm:col-span-2">
-                <Label htmlFor="origin.line1">Pickup / sender address</Label>
-                <Input
-                  defaultValue={initialShipment?.origin.line1 ?? ""}
-                  id="origin.line1"
-                  name="origin.line1"
-                  placeholder="Street address or sender location"
-                />
-                <FieldHint>
-                  Optional. Leave blank if pickup details are not yet available.
-                </FieldHint>
-              </Field>
-              <Field>
-                <Label htmlFor="officeDetails.shipperEmail">Email</Label>
-                <Input
-                  defaultValue={officeDetails?.shipperEmail ?? ""}
-                  id="officeDetails.shipperEmail"
-                  name="officeDetails.shipperEmail"
-                  placeholder="sender@example.com"
-                  type="email"
-                />
-                <ErrorList errors={state.fieldErrors?.officeDetails} />
-              </Field>
-              <Field>
-                <Label htmlFor="origin.city">City</Label>
-                <Input
-                  defaultValue={initialShipment?.origin.city ?? ""}
-                  id="origin.city"
-                  name="origin.city"
-                  placeholder="Rosenberg"
-                />
-              </Field>
-              <Field>
-                <Label htmlFor="origin.state">State / region</Label>
-                <Input
-                  defaultValue={initialShipment?.origin.state ?? ""}
-                  id="origin.state"
-                  name="origin.state"
-                  placeholder="TX"
-                />
-              </Field>
-              <Field>
-                <Label htmlFor="origin.postalCode">Postal code</Label>
-                <Input
-                  defaultValue={initialShipment?.origin.postalCode ?? ""}
-                  id="origin.postalCode"
-                  name="origin.postalCode"
-                />
-              </Field>
-              <Field>
-                <Label htmlFor="origin.countryCode">Origin country</Label>
-                <CountrySelect
-                  defaultValue={initialShipment?.origin.countryCode}
-                  id="origin.countryCode"
-                  name="origin.countryCode"
-                  required={false}
-                />
-              </Field>
-              <input
-                name="origin.line2"
-                type="hidden"
-                value={initialShipment?.origin.line2 ?? ""}
-              />
-            </div>
+          <section className="order-2">
+            <details className="border-border rounded-md border">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 text-sm font-semibold">
+                <span className="flex items-center gap-2">
+                  <UserRound aria-hidden="true" className="text-accent size-4" />
+                  Sender and pickup details
+                </span>
+                <span className="text-muted-foreground text-xs font-normal">Optional</span>
+              </summary>
+              <div className="border-border border-t p-4">
+                <SectionTitle icon={UserRound} title="Sender details" />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field>
+                    <Label htmlFor="origin.name">Shipper name</Label>
+                    <Input
+                      defaultValue={initialShipment?.origin.name ?? ""}
+                      id="origin.name"
+                      name="origin.name"
+                      placeholder="Sender or company name"
+                    />
+                  </Field>
+                  <Field>
+                    <Label htmlFor="officeDetails.shipperPhone">Phone number</Label>
+                    <Input
+                      defaultValue={officeDetails?.shipperPhone ?? ""}
+                      id="officeDetails.shipperPhone"
+                      name="officeDetails.shipperPhone"
+                      placeholder="+1 555 0100"
+                    />
+                  </Field>
+                  <Field className="sm:col-span-2">
+                    <Label htmlFor="origin.line1">Pickup / sender address</Label>
+                    <Input
+                      defaultValue={initialShipment?.origin.line1 ?? ""}
+                      id="origin.line1"
+                      name="origin.line1"
+                      placeholder="Street address or sender location"
+                    />
+                    <FieldHint>
+                      Optional. Leave blank if pickup details are not yet available.
+                    </FieldHint>
+                  </Field>
+                  <Field>
+                    <Label htmlFor="officeDetails.shipperEmail">Email</Label>
+                    <Input
+                      defaultValue={officeDetails?.shipperEmail ?? ""}
+                      id="officeDetails.shipperEmail"
+                      name="officeDetails.shipperEmail"
+                      placeholder="sender@example.com"
+                      type="email"
+                    />
+                    <ErrorList errors={state.fieldErrors?.officeDetails} />
+                  </Field>
+                  <Field>
+                    <Label htmlFor="origin.city">City</Label>
+                    <Input
+                      defaultValue={initialShipment?.origin.city ?? ""}
+                      id="origin.city"
+                      name="origin.city"
+                      placeholder="Rosenberg"
+                    />
+                  </Field>
+                  <Field>
+                    <Label htmlFor="origin.state">State / region</Label>
+                    <Input
+                      defaultValue={initialShipment?.origin.state ?? ""}
+                      id="origin.state"
+                      name="origin.state"
+                      placeholder="TX"
+                    />
+                  </Field>
+                  <Field>
+                    <Label htmlFor="origin.postalCode">Postal code</Label>
+                    <Input
+                      defaultValue={initialShipment?.origin.postalCode ?? ""}
+                      id="origin.postalCode"
+                      name="origin.postalCode"
+                    />
+                  </Field>
+                  <Field>
+                    <Label htmlFor="origin.countryCode">Origin country</Label>
+                    <CountrySelect
+                      defaultValue={initialShipment?.origin.countryCode}
+                      id="origin.countryCode"
+                      name="origin.countryCode"
+                      required={false}
+                    />
+                  </Field>
+                  <input
+                    name="origin.line2"
+                    type="hidden"
+                    value={initialShipment?.origin.line2 ?? ""}
+                  />
+                </div>
+              </div>
+            </details>
           </section>
 
-          <section>
-            <SectionTitle icon={Contact} title="Receiver details" />
+          <section className="order-1">
+            <SectionTitle icon={Contact} title="Delivery recipient" />
             <div className="grid gap-4 sm:grid-cols-2">
               {isCreateMode ? (
                 <Field className="sm:col-span-2">
-                  <Label htmlFor="customerId">Registered customer account</Label>
+                  <Label htmlFor="customerId">Recipient account</Label>
                   <Select
                     defaultValue=""
                     disabled={!customerOptions.length}
@@ -330,8 +342,8 @@ export function ShipmentForm({
                     ))}
                   </Select>
                   <FieldHint>
-                    Select a customer if they have an account. Otherwise enter the receiver details
-                    below and the shipment can still be tracked publicly.
+                    Optional. Select an existing customer to fill their details, or leave this blank
+                    and create the shipment for a receiver without an account.
                   </FieldHint>
                   <ErrorList errors={state.fieldErrors?.customerId} />
                 </Field>
@@ -343,7 +355,7 @@ export function ShipmentForm({
                 <Input
                   id={isCreateMode ? "manualRecipient.name" : "destination.name"}
                   name={isCreateMode ? "manualRecipient.name" : "destination.name"}
-                  placeholder="Receiver name"
+                  placeholder="Full name"
                   {...(isCreateMode
                     ? {
                         onChange: (event) => setRecipientName(event.target.value),
@@ -371,7 +383,7 @@ export function ShipmentForm({
                   defaultValue={initialShipment?.destination.line1 ?? ""}
                   id="destination.line1"
                   name="destination.line1"
-                  placeholder="Street address for final delivery"
+                  placeholder="Street address, apartment, or delivery point"
                   required
                 />
               </Field>
@@ -451,10 +463,11 @@ export function ShipmentForm({
               <Contact aria-hidden="true" className="size-5" />
             </div>
             <div>
-              <CardTitle>Public tracking visibility</CardTitle>
+              <CardTitle>Public tracking settings</CardTitle>
               <p className="text-muted-foreground mt-1 text-sm leading-6">
-                A valid tracking number opens the complete operational record without requiring a
-                customer account. Private contact and billing data always stays protected.
+                A tracking number works without an account. Names and basic pet details are shown
+                only when you keep these options enabled; contact and billing information stays
+                private.
               </p>
             </div>
           </div>
@@ -500,9 +513,10 @@ export function ShipmentForm({
               <ClipboardList aria-hidden="true" className="size-5" />
             </div>
             <div>
-              <CardTitle>Shipment details</CardTitle>
+              <CardTitle>Shipment summary</CardTitle>
               <p className="text-muted-foreground mt-1 text-sm">
-                These fields appear on internal records, documents, receipts, and tracking updates.
+                Complete the essentials below. The shipment is created as booked, and you can
+                publish movement updates from its details page.
               </p>
             </div>
           </div>
@@ -522,18 +536,22 @@ export function ShipmentForm({
               ))}
             </Select>
           </Field>
+          {isCreateMode ? (
+            <input name="status" type="hidden" value="BOOKED" />
+          ) : (
+            <Field>
+              <Label htmlFor="status">Current status</Label>
+              <Select defaultValue={currentStatus} id="status" name="status">
+                {shipmentStatusOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {formatShipmentStatus(option)}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          )}
           <Field>
-            <Label htmlFor="status">Status</Label>
-            <Select defaultValue={currentStatus} id="status" name="status">
-              {shipmentStatusOptions.map((option) => (
-                <option key={option} value={option}>
-                  {formatShipmentStatus(option)}
-                </option>
-              ))}
-            </Select>
-          </Field>
-          <Field>
-            <Label htmlFor="priority">Priority</Label>
+            <Label htmlFor="priority">Service urgency</Label>
             <Select
               defaultValue={initialShipment?.priority ?? "STANDARD"}
               id="priority"
@@ -547,7 +565,7 @@ export function ShipmentForm({
             </Select>
           </Field>
           <Field>
-            <Label htmlFor="mode">Mode</Label>
+            <Label htmlFor="mode">Transport method</Label>
             <Select defaultValue={initialShipment?.mode ?? "ROAD"} id="mode" name="mode">
               {modeOptions.map((option) => (
                 <option key={option} value={option}>
@@ -570,7 +588,7 @@ export function ShipmentForm({
             <FieldHint>Enter the shipment weight in pounds.</FieldHint>
           </Field>
           <Field>
-            <Label htmlFor="officeDetails.quantity">Quantity</Label>
+            <Label htmlFor="officeDetails.quantity">Number of pieces</Label>
             <Input
               defaultValue={officeDetails?.quantity ?? ""}
               id="officeDetails.quantity"
@@ -579,7 +597,7 @@ export function ShipmentForm({
             />
           </Field>
           <Field>
-            <Label htmlFor="packages.0.description">Product / item</Label>
+            <Label htmlFor="packages.0.description">What is being shipped?</Label>
             <Input
               defaultValue={initialShipment?.packages[0]?.description ?? ""}
               id="packages.0.description"
@@ -589,7 +607,7 @@ export function ShipmentForm({
             />
           </Field>
           <Field>
-            <Label htmlFor="packages.0.type">Package type</Label>
+            <Label htmlFor="packages.0.type">Package or crate type</Label>
             <Select
               defaultValue={initialShipment?.packages[0]?.type ?? "BOX"}
               id="packages.0.type"
@@ -635,7 +653,7 @@ export function ShipmentForm({
             </>
           )}
           <Field>
-            <Label htmlFor="referenceNumber">Carrier reference no.</Label>
+            <Label htmlFor="referenceNumber">Carrier reference (optional)</Label>
             <Input
               defaultValue={initialShipment?.referenceNumber ?? ""}
               id="referenceNumber"
@@ -691,9 +709,10 @@ export function ShipmentForm({
               <Truck aria-hidden="true" className="size-5" />
             </div>
             <div>
-              <CardTitle>Carrier and schedule</CardTitle>
+              <CardTitle>Delivery plan</CardTitle>
               <p className="text-muted-foreground mt-1 text-sm">
-                Add the assigned carrier, expected delivery, and any customer-facing handling note.
+                Add this when it is available. You can still create the shipment before a carrier or
+                delivery date is assigned.
               </p>
             </div>
           </div>
@@ -721,7 +740,7 @@ export function ShipmentForm({
             value={officeDetails?.carrierReference ?? ""}
           />
           <Field>
-            <Label htmlFor="officeDetails.departureTime">Departure time</Label>
+            <Label htmlFor="officeDetails.departureTime">Departure time (optional)</Label>
             <Input
               defaultValue={officeDetails?.departureTime ?? ""}
               id="officeDetails.departureTime"
@@ -740,7 +759,7 @@ export function ShipmentForm({
             value={officeDetails?.pickupTime ?? ""}
           />
           <Field>
-            <Label htmlFor="deliveryWindowStart">Expected delivery date</Label>
+            <Label htmlFor="deliveryWindowStart">Expected delivery date (optional)</Label>
             <Input
               defaultValue={getDateOnly(initialShipment?.deliveryWindowStart)}
               id="deliveryWindowStart"
@@ -749,7 +768,7 @@ export function ShipmentForm({
             />
           </Field>
           <Field>
-            <Label htmlFor="officeDetails.comments">Comments</Label>
+            <Label htmlFor="officeDetails.comments">Customer-facing handling note (optional)</Label>
             <Textarea
               defaultValue={officeDetails?.comments ?? ""}
               id="officeDetails.comments"

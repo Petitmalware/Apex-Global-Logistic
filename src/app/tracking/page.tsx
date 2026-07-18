@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 
 import { MarketingShell } from "@/features/marketing/components/marketing-shell";
-import { FinalCta, PageHero } from "@/features/marketing/components/marketing-sections";
 import { TrackingLookup } from "@/features/marketing/components/tracking-lookup";
 
 export const metadata: Metadata = {
@@ -14,18 +13,7 @@ export const metadata: Metadata = {
 export default function TrackingPage() {
   return (
     <MarketingShell>
-      <PageHero
-        badge="Shipment visibility"
-        description="Use tracking references to check milestones, delivery windows, exceptions, warehouse handoffs, and proof-of-delivery readiness."
-        eyebrow="Tracking"
-        primaryHref="/tracking"
-        primaryLabel="Track below"
-        secondaryHref="/contact"
-        secondaryLabel="Need help?"
-        title="Track every shipment with confidence"
-      />
       <TrackingLookup />
-      <FinalCta />
     </MarketingShell>
   );
 }
