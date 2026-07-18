@@ -27,7 +27,7 @@ import { Label } from "@/components/ui/label";
 import { Notification } from "@/components/ui/notification";
 import { ShipmentLiveMap } from "@/features/shipments/components/shipment-live-map";
 import { formatShipmentStatus, formatTrackingEventType } from "@/features/shipments/status-labels";
-import type { ShipmentTrackingSnapshot } from "@/features/shipments/types";
+import type { ShipmentAddressView, ShipmentTrackingSnapshot } from "@/features/shipments/types";
 
 type LookupStatus = "idle" | "loading" | "ready" | "error";
 
@@ -81,6 +81,16 @@ function formatPetAge(ageMonths: number | null) {
   return remainingMonths
     ? `${yearLabel}, ${remainingMonths} ${remainingMonths === 1 ? "month" : "months"}`
     : yearLabel;
+}
+
+function formatAddress(address: ShipmentAddressView) {
+  const locality = [address.city, address.state, address.postalCode]
+    .filter((value): value is string => Boolean(value))
+    .join(", ");
+
+  return [address.line1, address.line2, locality, address.countryCode]
+    .filter((value): value is string => Boolean(value))
+    .join(", ");
 }
 
 function statusVariant(status: ShipmentTrackingSnapshot["status"]) {
@@ -638,34 +648,94 @@ export function TrackingLookup() {
                     </article>
                   ) : null}
 
-                  {snapshot.publicDetails.senderName || snapshot.publicDetails.recipientName ? (
+                  {snapshot.publicDetails.sender || snapshot.publicDetails.recipient ? (
                     <article className="border-border rounded-md border p-4">
                       <div className="flex items-center gap-2">
                         <UserRound aria-hidden="true" className="text-accent size-5" />
-                        <h4 className="font-semibold">Shipment parties</h4>
+                        <h4 className="font-semibold">Shipment contacts</h4>
                       </div>
-                      <dl className="mt-4 grid gap-3 text-sm">
-                        {snapshot.publicDetails.senderName ? (
-                          <div>
-                            <dt className="text-muted-foreground text-xs font-semibold uppercase">
-                              Sender
-                            </dt>
-                            <dd className="mt-1 font-medium">
-                              {snapshot.publicDetails.senderName}
-                            </dd>
-                          </div>
+                      <div className="mt-4 grid gap-5 sm:grid-cols-2">
+                        {snapshot.publicDetails.sender ? (
+                          <dl className="min-w-0 space-y-3 text-sm">
+                            <div>
+                              <dt className="text-muted-foreground text-xs font-semibold uppercase">
+                                Sender information
+                              </dt>
+                              <dd className="mt-1 font-medium">
+                                {snapshot.publicDetails.sender.name ?? "Sender"}
+                              </dd>
+                            </div>
+                            <div>
+                              <dt className="text-muted-foreground text-xs font-semibold uppercase">
+                                Pickup address
+                              </dt>
+                              <dd className="mt-1 leading-6 font-medium">
+                                {formatAddress(snapshot.publicDetails.sender.address)}
+                              </dd>
+                            </div>
+                            {snapshot.publicDetails.sender.phone ? (
+                              <div>
+                                <dt className="text-muted-foreground text-xs font-semibold uppercase">
+                                  Phone
+                                </dt>
+                                <dd className="mt-1 font-medium">
+                                  {snapshot.publicDetails.sender.phone}
+                                </dd>
+                              </div>
+                            ) : null}
+                            {snapshot.publicDetails.sender.email ? (
+                              <div>
+                                <dt className="text-muted-foreground text-xs font-semibold uppercase">
+                                  Email
+                                </dt>
+                                <dd className="mt-1 font-medium break-all">
+                                  {snapshot.publicDetails.sender.email}
+                                </dd>
+                              </div>
+                            ) : null}
+                          </dl>
                         ) : null}
-                        {snapshot.publicDetails.recipientName ? (
-                          <div>
-                            <dt className="text-muted-foreground text-xs font-semibold uppercase">
-                              Recipient
-                            </dt>
-                            <dd className="mt-1 font-medium">
-                              {snapshot.publicDetails.recipientName}
-                            </dd>
-                          </div>
+                        {snapshot.publicDetails.recipient ? (
+                          <dl className="min-w-0 space-y-3 text-sm">
+                            <div>
+                              <dt className="text-muted-foreground text-xs font-semibold uppercase">
+                                Recipient information
+                              </dt>
+                              <dd className="mt-1 font-medium">
+                                {snapshot.publicDetails.recipient.name ?? "Recipient"}
+                              </dd>
+                            </div>
+                            <div>
+                              <dt className="text-muted-foreground text-xs font-semibold uppercase">
+                                Delivery address
+                              </dt>
+                              <dd className="mt-1 leading-6 font-medium">
+                                {formatAddress(snapshot.publicDetails.recipient.address)}
+                              </dd>
+                            </div>
+                            {snapshot.publicDetails.recipient.phone ? (
+                              <div>
+                                <dt className="text-muted-foreground text-xs font-semibold uppercase">
+                                  Phone
+                                </dt>
+                                <dd className="mt-1 font-medium">
+                                  {snapshot.publicDetails.recipient.phone}
+                                </dd>
+                              </div>
+                            ) : null}
+                            {snapshot.publicDetails.recipient.email ? (
+                              <div>
+                                <dt className="text-muted-foreground text-xs font-semibold uppercase">
+                                  Email
+                                </dt>
+                                <dd className="mt-1 font-medium break-all">
+                                  {snapshot.publicDetails.recipient.email}
+                                </dd>
+                              </div>
+                            ) : null}
+                          </dl>
                         ) : null}
-                      </dl>
+                      </div>
                     </article>
                   ) : null}
 
@@ -863,8 +933,9 @@ export function TrackingLookup() {
                   ) : null}
                 </div>
                 <p className="text-muted-foreground mt-5 text-xs leading-5">
-                  Public tracking is available without an account. Contact information, street
-                  addresses, payment details, health records, and shipment documents remain private.
+                  Public tracking is available without an account. Shipment contact and delivery
+                  details are published only when enabled by Apex operations; payment details,
+                  health records, and shipment documents remain private.
                 </p>
               </section>
             ) : null}

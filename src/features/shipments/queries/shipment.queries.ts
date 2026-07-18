@@ -63,16 +63,17 @@ function getPublicTrackingPreferences(
   metadata: Prisma.JsonValue | null,
 ): PublicTrackingPreferences {
   if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
-    return { shareParties: true, sharePetDetails: true };
+    return { shareContactDetails: true, shareParties: true, sharePetDetails: true };
   }
 
   const value = "publicTracking" in metadata ? metadata.publicTracking : null;
 
   if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return { shareParties: true, sharePetDetails: true };
+    return { shareContactDetails: true, shareParties: true, sharePetDetails: true };
   }
 
   return {
+    shareContactDetails: !("shareContactDetails" in value && value.shareContactDetails === false),
     shareParties: !("shareParties" in value && value.shareParties === false),
     sharePetDetails: !("sharePetDetails" in value && value.sharePetDetails === false),
   };
@@ -87,8 +88,8 @@ function getPublicTrackingDetails({
   petTransport,
   freightTransport,
 }: {
-  customer?: { name: string } | null;
-  destinationAddress: { name?: string | null };
+  customer?: { email: string; name: string; phone: string | null } | null;
+  destinationAddress: ShipmentAddressView;
   freightTransport?: {
     commodityDescription: string | null;
     containerNumber: string | null;
@@ -100,7 +101,7 @@ function getPublicTrackingDetails({
     routeName: string | null;
   } | null;
   metadata?: Prisma.JsonValue | null;
-  originAddress: { name?: string | null };
+  originAddress: ShipmentAddressView;
   packages?: Array<{
     description: string | null;
     status: PackageStatus;
@@ -126,6 +127,22 @@ function getPublicTrackingDetails({
     : null;
   const recipientName = preferences.shareParties
     ? (destinationAddress.name ?? customer?.name ?? manualRecipient?.name ?? null)
+    : null;
+  const sender = preferences.shareContactDetails
+    ? {
+        address: originAddress,
+        email: officeDetails?.shipperEmail ?? null,
+        name: senderName,
+        phone: officeDetails?.shipperPhone ?? null,
+      }
+    : null;
+  const recipient = preferences.shareContactDetails
+    ? {
+        address: destinationAddress,
+        email: customer?.email ?? manualRecipient?.email ?? null,
+        name: recipientName,
+        phone: customer?.phone ?? manualRecipient?.phone ?? null,
+      }
     : null;
   const pet =
     preferences.sharePetDetails && petTransport?.petName
@@ -175,7 +192,9 @@ function getPublicTrackingDetails({
     pet,
     productName: officeDetails?.productName ?? null,
     quantity: officeDetails?.quantity ?? null,
+    recipient,
     recipientName,
+    sender,
     senderName,
   };
 
@@ -369,14 +388,20 @@ function mapTimelineEvent(event: {
 
 function mapTrackingSnapshot(shipment: {
   customer?: {
+    email: string;
     name: string;
+    phone: string | null;
   } | null;
   deliveryWindowEnd: Date | null;
   deliveryWindowStart: Date | null;
   destinationAddress: {
     city: string;
     countryCode: string;
-    name?: string | null;
+    line1: string;
+    line2: string | null;
+    name: string | null;
+    postalCode: string | null;
+    state: string | null;
   };
   createdAt: Date;
   deliveredAt: Date | null;
@@ -397,7 +422,11 @@ function mapTrackingSnapshot(shipment: {
   originAddress: {
     city: string;
     countryCode: string;
-    name?: string | null;
+    line1: string;
+    line2: string | null;
+    name: string | null;
+    postalCode: string | null;
+    state: string | null;
   };
   packages?: Array<{
     description: string | null;
@@ -818,19 +847,29 @@ export async function getShipmentTrackingSnapshotForUser(
           select: {
             city: true,
             countryCode: true,
+            line1: true,
+            line2: true,
             name: true,
+            postalCode: true,
+            state: true,
           },
         },
         originAddress: {
           select: {
             city: true,
             countryCode: true,
+            line1: true,
+            line2: true,
             name: true,
+            postalCode: true,
+            state: true,
           },
         },
         customer: {
           select: {
+            email: true,
             name: true,
+            phone: true,
           },
         },
         petTransport: {
@@ -913,19 +952,29 @@ export async function getPublicShipmentTrackingSnapshot(
           select: {
             city: true,
             countryCode: true,
+            line1: true,
+            line2: true,
             name: true,
+            postalCode: true,
+            state: true,
           },
         },
         originAddress: {
           select: {
             city: true,
             countryCode: true,
+            line1: true,
+            line2: true,
             name: true,
+            postalCode: true,
+            state: true,
           },
         },
         customer: {
           select: {
+            email: true,
             name: true,
+            phone: true,
           },
         },
         petTransport: {

@@ -84,8 +84,16 @@ export type ShipmentOfficeDetails = {
 };
 
 export type PublicTrackingPreferences = {
+  shareContactDetails: boolean;
   shareParties: boolean;
   sharePetDetails: boolean;
+};
+
+export type PublicTrackingParty = {
+  address: ShipmentAddressView;
+  email: string | null;
+  name: string | null;
+  phone: string | null;
 };
 
 export type PublicShipmentTrackingDetails = {
@@ -121,7 +129,9 @@ export type PublicShipmentTrackingDetails = {
   } | null;
   productName: string | null;
   quantity: string | null;
+  recipient: PublicTrackingParty | null;
   recipientName: string | null;
+  sender: PublicTrackingParty | null;
   senderName: string | null;
 };
 

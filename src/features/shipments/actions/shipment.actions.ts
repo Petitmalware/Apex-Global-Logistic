@@ -38,9 +38,13 @@ function getBoolean(formData: FormData, key: string) {
 }
 
 function getOptionalBoolean(formData: FormData, key: string) {
-  const value = formData.get(key);
+  const values = formData.getAll(key).filter((value): value is string => typeof value === "string");
 
-  return value === null ? undefined : value === "on" || value === "true";
+  if (!values.length) {
+    return undefined;
+  }
+
+  return values.some((value) => value === "on" || value === "true");
 }
 
 function hasOptionalPackageData(formData: FormData, index: number) {
@@ -134,6 +138,7 @@ function parseShipmentFormData(
     pickupWindowStart: getString(formData, "pickupWindowStart"),
     priority: getString(formData, "priority") || "STANDARD",
     publicTracking: {
+      shareContactDetails: getOptionalBoolean(formData, "publicTracking.shareContactDetails"),
       shareParties: getBoolean(formData, "publicTracking.shareParties"),
       sharePetDetails: getOptionalBoolean(formData, "publicTracking.sharePetDetails"),
     },

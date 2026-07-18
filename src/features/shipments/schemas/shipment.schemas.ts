@@ -130,6 +130,7 @@ export const shipmentFormSchema = z
     priority: z.nativeEnum(ShipmentPriority).default(ShipmentPriority.STANDARD),
     publicTracking: z
       .object({
+        shareContactDetails: z.boolean().optional(),
         shareParties: z.boolean().optional(),
         sharePetDetails: z.boolean().optional(),
       })

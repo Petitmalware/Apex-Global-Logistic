@@ -206,6 +206,11 @@ function getPublicTrackingMetadata(
     !Array.isArray(existing.publicTracking)
       ? (existing.publicTracking as Record<string, unknown>)
       : {};
+  const shareContactDetails =
+    publicTracking.shareContactDetails ??
+    (typeof existingPreferences.shareContactDetails === "boolean"
+      ? existingPreferences.shareContactDetails
+      : true);
   const shareParties =
     publicTracking.shareParties ??
     (typeof existingPreferences.shareParties === "boolean"
@@ -217,7 +222,7 @@ function getPublicTrackingMetadata(
       ? existingPreferences.sharePetDetails
       : true);
 
-  return { shareParties, sharePetDetails };
+  return { shareContactDetails, shareParties, sharePetDetails };
 }
 
 async function logShipmentActivity({
@@ -464,6 +469,7 @@ export async function createShipment(
           manualRecipient ||
           officeDetails ||
           options.customerBooking ||
+          publicTracking.shareContactDetails ||
           publicTracking.shareParties ||
           publicTracking.sharePetDetails
             ? {

@@ -465,14 +465,29 @@ export function ShipmentForm({
             <div>
               <CardTitle>Public tracking settings</CardTitle>
               <p className="text-muted-foreground mt-1 text-sm leading-6">
-                A tracking number works without an account. Names and basic pet details are shown
-                only when you keep these options enabled; contact and billing information stays
-                private.
+                A tracking number works without an account. Choose exactly which shipment and
+                recipient information is visible with that tracking reference.
               </p>
             </div>
           </div>
         </CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-2">
+          <label className="border-border hover:border-accent/60 flex cursor-pointer items-start gap-3 rounded-md border p-4 transition-colors">
+            <input name="publicTracking.shareContactDetails" type="hidden" value="false" />
+            <input
+              className="accent-accent mt-0.5 size-4 shrink-0"
+              defaultChecked={initialShipment?.publicTracking.shareContactDetails ?? true}
+              name="publicTracking.shareContactDetails"
+              type="checkbox"
+            />
+            <span>
+              <span className="block text-sm font-semibold">Show contact and delivery details</span>
+              <span className="text-muted-foreground mt-1 block text-sm leading-6">
+                Shows sender and recipient email, phone number, and delivery address to anyone with
+                the tracking reference.
+              </span>
+            </span>
+          </label>
           <label className="border-border hover:border-accent/60 flex cursor-pointer items-start gap-3 rounded-md border p-4 transition-colors">
             <input
               className="accent-accent mt-0.5 size-4 shrink-0"
@@ -483,8 +498,7 @@ export function ShipmentForm({
             <span>
               <span className="block text-sm font-semibold">Show sender and receiver names</span>
               <span className="text-muted-foreground mt-1 block text-sm leading-6">
-                Only names are shown on public tracking. Email, phone number, street address,
-                documents, and payment details always remain private.
+                Show both parties by name in the public tracking record.
               </span>
             </span>
           </label>
