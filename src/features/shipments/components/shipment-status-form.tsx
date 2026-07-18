@@ -188,7 +188,7 @@ export function ShipmentStatusForm({
           />
           <FieldHint>
             Enter a city, airport, warehouse, landmark, or full address. When you publish, Apex uses
-            Google Maps to save a map pin automatically when coordinates are left blank.
+            MapTiler to save a map pin automatically when coordinates are left blank.
           </FieldHint>
         </Field>
         <Field>
@@ -280,9 +280,8 @@ export function ShipmentStatusForm({
             />
           </Field>
           <p className="text-muted-foreground text-xs leading-5 sm:col-span-2">
-            Leave both coordinates blank to let Google Maps resolve the location field
-            automatically. Enter both only when operations has a verified GPS point to override the
-            result.
+            Leave both coordinates blank to let MapTiler resolve the location field automatically.
+            Enter both only when operations has a verified GPS point to override the result.
           </p>
         </div>
       </details>

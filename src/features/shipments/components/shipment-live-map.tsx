@@ -5,14 +5,14 @@ import { Clock3, MapPinned, Radio, Route } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { clientEnv } from "@/config/env.client";
+import type { ShipmentRouteCheckpoint } from "@/features/shipments/components/shipment-route-map.types";
 import { formatShipmentStatus } from "@/features/shipments/status-labels";
-import type { ShipmentRouteCoordinate } from "@/features/shipments/components/shipment-route-map";
 import type { ShipmentTrackingSnapshot } from "@/features/shipments/types";
 
-const GoogleShipmentRouteMap = dynamic(
+const MapTilerShipmentRouteMap = dynamic(
   () =>
-    import("@/features/shipments/components/google-shipment-route-map").then(
-      (module) => module.GoogleShipmentRouteMap,
+    import("@/features/shipments/components/maptiler-shipment-route-map").then(
+      (module) => module.MapTilerShipmentRouteMap,
     ),
   {
     loading: () => (
@@ -47,8 +47,8 @@ function isValidCoordinate(latitude: string | null, longitude: string | null) {
   );
 }
 
-function getRouteCoordinates(snapshot: ShipmentTrackingSnapshot): ShipmentRouteCoordinate[] {
-  const route = snapshot.timeline
+function getRouteCheckpoints(snapshot: ShipmentTrackingSnapshot): ShipmentRouteCheckpoint[] {
+  return snapshot.timeline
     .slice()
     .reverse()
     .flatMap((event) => {
@@ -58,20 +58,16 @@ function getRouteCoordinates(snapshot: ShipmentTrackingSnapshot): ShipmentRouteC
 
       return [
         {
+          id: event.id,
           label: event.currentLocation ?? "Verified shipment checkpoint",
           latitude: Number(event.latitude),
           longitude: Number(event.longitude),
+          message: event.message,
           occurredAt: event.occurredAt,
+          status: event.shipmentStatus,
         },
       ];
     });
-
-  return route.filter(
-    (coordinate, index) =>
-      index === 0 ||
-      coordinate.latitude !== route[index - 1]?.latitude ||
-      coordinate.longitude !== route[index - 1]?.longitude,
-  );
 }
 
 function ConnectionBadge({ state }: { state: TrackingConnectionState }) {
@@ -98,10 +94,10 @@ export function ShipmentLiveMap({
   connectionState?: TrackingConnectionState;
   snapshot: ShipmentTrackingSnapshot;
 }) {
-  const routeCoordinates = getRouteCoordinates(snapshot);
-  const latestCoordinates = routeCoordinates.at(-1) ?? null;
+  const routeCheckpoints = getRouteCheckpoints(snapshot);
+  const latestCheckpoint = routeCheckpoints.at(-1) ?? null;
   const latestEvent = snapshot.timeline[0] ?? null;
-  const googleMapsKey = clientEnv.NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY?.trim();
+  const mapTilerKey = clientEnv.NEXT_PUBLIC_MAPTILER_API_KEY?.trim();
 
   return (
     <section className="border-border bg-card shadow-panel overflow-hidden rounded-lg border">
@@ -111,10 +107,8 @@ export function ShipmentLiveMap({
             <MapPinned aria-hidden="true" className="size-5" />
           </div>
           <div className="min-w-0">
-            <p className="text-muted-foreground text-xs font-semibold uppercase">
-              Google Maps tracking
-            </p>
-            <h3 className="mt-1 font-semibold">Verified location updates</h3>
+            <p className="text-muted-foreground text-xs font-semibold uppercase">MapTiler map</p>
+            <h3 className="mt-1 font-semibold">Recorded Shipment Progress</h3>
             <p className="text-muted-foreground truncate text-sm">
               {snapshot.originCity} to {snapshot.destinationCity}
             </p>
@@ -123,20 +117,18 @@ export function ShipmentLiveMap({
         <ConnectionBadge state={connectionState} />
       </div>
 
-      {latestCoordinates && googleMapsKey ? (
+      {latestCheckpoint && mapTilerKey ? (
         <div className="relative">
-          <GoogleShipmentRouteMap
-            apiKey={googleMapsKey}
-            coordinates={routeCoordinates}
+          <MapTilerShipmentRouteMap
+            apiKey={mapTilerKey}
+            checkpoints={routeCheckpoints}
             shipmentNumber={snapshot.shipmentNumber}
           />
           <div className="border-border bg-background/95 absolute right-3 bottom-3 left-3 rounded-md border p-3 shadow-sm backdrop-blur sm:right-5 sm:bottom-5 sm:left-auto sm:max-w-sm">
-            <p className="text-sm font-semibold">{latestCoordinates.label}</p>
+            <p className="text-sm font-semibold">{latestCheckpoint.label}</p>
             <p className="text-muted-foreground mt-1 text-xs leading-5">
-              Last verified {formatDate(latestCoordinates.occurredAt)}.{" "}
-              {routeCoordinates.length > 1
-                ? "The line joins recorded checkpoints and is not turn-by-turn navigation."
-                : "More map detail appears as verified checkpoints are published."}
+              Recorded {formatDate(latestCheckpoint.occurredAt)}. This map shows operational
+              checkpoints entered by the delivery team, not continuous GPS tracking.
             </p>
           </div>
         </div>
@@ -147,14 +139,12 @@ export function ShipmentLiveMap({
               <Route aria-hidden="true" className="text-accent mt-0.5 size-5 shrink-0" />
               <div>
                 <p className="font-semibold">
-                  {googleMapsKey
-                    ? "Location updates are active"
-                    : "Google Maps is not configured yet"}
+                  {mapTilerKey ? "Location updates are active" : "MapTiler is not configured yet"}
                 </p>
                 <p className="text-muted-foreground mt-2 text-sm leading-6">
-                  {googleMapsKey
+                  {mapTilerKey
                     ? "The shipment has not received a verified coordinate yet. Apex can still publish the customer-facing location and timeline immediately while a map position is unavailable."
-                    : "The shipment location is saved, but the Google Maps browser key is not configured. Add it to the production environment, rebuild the application, and recorded coordinates will render here."}
+                    : "The shipment location is saved, but the MapTiler browser key is not configured. Add it to the production environment, rebuild the application, and recorded checkpoints will render here."}
                 </p>
               </div>
             </div>
@@ -194,11 +184,11 @@ export function ShipmentLiveMap({
             <p className="text-xs font-semibold uppercase">Map data</p>
             <a
               className="text-muted-foreground mt-1 inline-block text-sm underline-offset-4 hover:underline"
-              href="https://maps.google.com"
+              href="https://www.maptiler.com/copyright/"
               rel="noreferrer"
               target="_blank"
             >
-              Google Maps
+              MapTiler and OpenStreetMap
             </a>
           </div>
         </div>

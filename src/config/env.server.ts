@@ -18,7 +18,7 @@ const serverEnvSchema = z.object({
   EMAIL_RATE_LIMIT_PER_HOUR: z.coerce.number().int().positive().default(60),
   GEMINI_API_KEY: z.string().optional(),
   GEMINI_MODEL: z.string().default("gemini-1.5-flash"),
-  GOOGLE_MAPS_GEOCODING_API_KEY: z.string().optional(),
+  MAPTILER_API_KEY: z.string().optional(),
   GROQ_API_KEY: z.string().optional(),
   GROQ_BASE_URL: z.string().url().default("https://api.groq.com/openai/v1"),
   GROQ_MODEL: z.string().default("llama-3.1-8b-instant"),

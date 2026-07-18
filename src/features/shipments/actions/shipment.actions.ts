@@ -19,7 +19,7 @@ import {
   uploadPackagePhoto,
   uploadShipmentDocument,
 } from "@/features/shipments/services/shipment.service";
-import { geocodeShipmentLocation } from "@/features/shipments/services/google-maps.service";
+import { geocodeShipmentLocation } from "@/features/shipments/services/maptiler-geocoding.service";
 import type { ShipmentActionState } from "@/features/shipments/types";
 import { AUTH_ROLES } from "@/lib/auth/constants";
 import { AuthError } from "@/lib/auth/errors";
@@ -303,14 +303,14 @@ export async function updateShipmentStatusAction(
     if (geocode.coordinates) {
       formData.set("latitude", String(geocode.coordinates.latitude));
       formData.set("longitude", String(geocode.coordinates.longitude));
-      mappingMessage = " Google Maps coordinates were added from the location provided.";
+      mappingMessage = " Map coordinates were added from the location provided.";
     } else if (geocode.reason === "not_configured") {
       mappingMessage =
-        " The location was saved without a map pin because Google Maps is not configured.";
+        " The location was saved without a map pin because MapTiler is not configured.";
     } else if (geocode.reason === "not_found") {
-      mappingMessage = " The location was saved, but Google Maps could not find a map pin for it.";
+      mappingMessage = " The location was saved, but MapTiler could not find a map pin for it.";
     } else {
-      mappingMessage = " The location was saved, but Google Maps was temporarily unavailable.";
+      mappingMessage = " The location was saved, but MapTiler was temporarily unavailable.";
     }
   }
 

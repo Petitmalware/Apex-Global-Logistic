@@ -57,6 +57,21 @@ deploy/scripts/deploy-docker.sh
 
 Important: commit and deploy Prisma migrations before using `npm run db:migrate:deploy` on production. For the very first empty database in a schema-only prototype, run a controlled bootstrap in staging first, then convert the baseline into a committed migration before real production data is accepted.
 
+## MapTiler Tracking
+
+Add the following variables to `/opt/apex-global-logistics/.env.production` before deployment:
+
+```text
+NEXT_PUBLIC_MAPTILER_API_KEY=
+MAPTILER_API_KEY=
+```
+
+Both variables may contain the same MapTiler key. The public variable is embedded into the browser
+map during the Docker build, while `MAPTILER_API_KEY` is used only on the server to geocode the
+location written by an administrator. Configure the MapTiler key to allow
+`apexgloballogistics.net` and `www.apexgloballogistics.net`; `localhost:3000` can be allowed
+temporarily for local development. Never add a real MapTiler key to Git or an example file.
+
 ## Nginx And SSL
 
 Copy the Nginx template, replace `apex.example.com`, and install SSL:

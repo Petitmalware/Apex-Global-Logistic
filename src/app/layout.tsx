@@ -6,7 +6,6 @@ import { ChatWidget } from "@/features/chat/components/chat-widget";
 import { createOrganizationJsonLd, createWebsiteJsonLd, structuredDataToJson } from "@/lib/seo";
 
 import "./globals.css";
-import "leaflet/dist/leaflet.css";
 
 const googleSiteVerification = process.env.GOOGLE_SITE_VERIFICATION?.trim();
 

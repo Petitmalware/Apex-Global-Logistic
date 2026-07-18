@@ -2,17 +2,12 @@ import "server-only";
 
 import { env } from "@/config/env.server";
 
-type GoogleGeocodingResponse = {
-  results?: Array<{
-    formatted_address?: string;
-    geometry?: {
-      location?: {
-        lat?: number;
-        lng?: number;
-      };
-    };
+type MapTilerGeocodingResponse = {
+  features?: Array<{
+    center?: [number, number];
+    place_name?: string;
+    text?: string;
   }>;
-  status?: string;
 };
 
 export type ShipmentLocationGeocode =
@@ -30,8 +25,19 @@ export type ShipmentLocationGeocode =
       reason: "not_configured" | "not_found" | "unavailable";
     };
 
+function isValidCoordinates(latitude: number, longitude: number) {
+  return (
+    Number.isFinite(latitude) &&
+    Number.isFinite(longitude) &&
+    latitude >= -90 &&
+    latitude <= 90 &&
+    longitude >= -180 &&
+    longitude <= 180
+  );
+}
+
 export async function geocodeShipmentLocation(query: string): Promise<ShipmentLocationGeocode> {
-  const apiKey = env.GOOGLE_MAPS_GEOCODING_API_KEY?.trim();
+  const apiKey = env.MAPTILER_API_KEY?.trim();
   const normalizedQuery = query.trim();
 
   if (!apiKey) {
@@ -52,9 +58,7 @@ export async function geocodeShipmentLocation(query: string): Promise<ShipmentLo
 
   try {
     const response = await fetch(
-      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
-        normalizedQuery,
-      )}&key=${encodeURIComponent(apiKey)}`,
+      `https://api.maptiler.com/geocoding/${encodeURIComponent(normalizedQuery)}.json?key=${encodeURIComponent(apiKey)}&limit=1`,
       {
         cache: "no-store",
         signal: AbortSignal.timeout(8000),
@@ -69,12 +73,15 @@ export async function geocodeShipmentLocation(query: string): Promise<ShipmentLo
       };
     }
 
-    const payload = (await response.json()) as GoogleGeocodingResponse;
-    const result = payload.status === "OK" ? payload.results?.[0] : null;
-    const latitude = result?.geometry?.location?.lat;
-    const longitude = result?.geometry?.location?.lng;
+    const payload = (await response.json()) as MapTilerGeocodingResponse;
+    const result = payload.features?.[0];
+    const [longitude, latitude] = result?.center ?? [];
 
-    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    if (
+      typeof latitude !== "number" ||
+      typeof longitude !== "number" ||
+      !isValidCoordinates(latitude, longitude)
+    ) {
       return {
         coordinates: null,
         formattedAddress: null,
@@ -84,10 +91,10 @@ export async function geocodeShipmentLocation(query: string): Promise<ShipmentLo
 
     return {
       coordinates: {
-        latitude: latitude as number,
-        longitude: longitude as number,
+        latitude,
+        longitude,
       },
-      formattedAddress: result?.formatted_address ?? null,
+      formattedAddress: result?.place_name ?? result?.text ?? null,
       reason: null,
     };
   } catch {

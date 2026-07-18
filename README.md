@@ -92,25 +92,25 @@ The local PostgreSQL container uses:
 postgresql://apex:apex_password@localhost:5432/apex_global_logistics?schema=public
 ```
 
-## Google Maps Tracking
+## MapTiler Shipment Tracking
 
 Shipment status updates can use a city, logistics hub, landmark, or full address. When an
 administrator publishes the update with latitude and longitude left blank, the server geocodes
-that location and stores the resulting checkpoint coordinates. The public tracker then shows
-those recorded checkpoints on Google Maps.
+that location and stores the resulting checkpoint coordinates. The public tracker then renders
+those recorded checkpoints with MapTiler and MapLibre GL JS.
 
-Configure two separate API keys:
+Configure the MapTiler key in both variables:
 
 ```text
-NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY=  # Browser key, restricted to the website referrers and Maps JavaScript API
-GOOGLE_MAPS_GEOCODING_API_KEY=        # Server-only key, restricted to the Geocoding API and server IP
+NEXT_PUBLIC_MAPTILER_API_KEY= # Browser map key, restricted to approved domains
+MAPTILER_API_KEY=             # Server-side geocoding key
 ```
 
-Enable billing, Maps JavaScript API, and Geocoding API in the Google Cloud project. The browser
-key is intentionally public to the built app, so restrict it to approved website referrers. Keep
-the geocoding key in the environment file only; it is never sent to the browser. A map is a
-visualisation of manually recorded checkpoints, not an unverified live GPS feed or a turn-by-turn
-driving route.
+Both variables may use the same MapTiler key. Allow `apexgloballogistics.net` and
+`www.apexgloballogistics.net` in MapTiler; add `localhost:3000` temporarily for development. The
+browser key is intentionally public to the built app, while `MAPTILER_API_KEY` stays server-only.
+Store real values in `.env.production` only, never in Git. The map is a visualisation of manually
+recorded checkpoints, not an unverified live GPS feed or a turn-by-turn driving route.
 
 ## Architecture Notes
 
