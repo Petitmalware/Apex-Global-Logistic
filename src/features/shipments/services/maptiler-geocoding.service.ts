@@ -57,10 +57,14 @@ export async function geocodeShipmentLocation(query: string): Promise<ShipmentLo
   }
 
   try {
+    const applicationOrigin = new URL(env.NEXT_PUBLIC_APP_URL).origin;
     const response = await fetch(
       `https://api.maptiler.com/geocoding/${encodeURIComponent(normalizedQuery)}.json?key=${encodeURIComponent(apiKey)}&limit=1`,
       {
         cache: "no-store",
+        headers: {
+          Referer: `${applicationOrigin}/`,
+        },
         signal: AbortSignal.timeout(8000),
       },
     );
