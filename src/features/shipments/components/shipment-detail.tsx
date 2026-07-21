@@ -234,6 +234,18 @@ function ShipmentOverview({
           </Button>
           {canManage ? (
             <Button asChild variant="accent">
+              <Link href="#shipment-status-update">
+                <MapPin aria-hidden="true" />
+                Update location
+              </Link>
+            </Button>
+          ) : null}
+          {canManage ? (
+            <Button
+              asChild
+              className="border-primary-foreground/20 bg-primary-foreground/10 text-primary-foreground hover:bg-primary-foreground/15"
+              variant="outline"
+            >
               <Link href={`/shipments/${shipment.id}/edit` as Route}>
                 <Pencil aria-hidden="true" />
                 Edit shipment
@@ -659,9 +671,13 @@ export function ShipmentDetailView({
         <div className="space-y-6">
           <InvoiceSummary canIssue={canManage} invoice={shipment.invoice} />
           {canManage ? (
-            <Card>
+            <Card id="shipment-status-update">
               <CardHeader>
-                <CardTitle>Status update</CardTitle>
+                <CardTitle>Update location and status</CardTitle>
+                <p className="text-muted-foreground mt-1 text-sm leading-6">
+                  Choose the customer-facing stage, add the current location when the shipment is in
+                  transit, and publish one clear update.
+                </p>
               </CardHeader>
               <CardContent>
                 <ShipmentStatusForm

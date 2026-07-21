@@ -140,8 +140,6 @@ export function EmailComposer({ initialTemplateId, options }: EmailComposerProps
         ...current,
         customerName: shipment.customerName ?? current.customerName ?? "",
         recipientName: shipment.customerName ?? current.recipientName ?? "",
-        shipmentStatus: shipment.status.replaceAll("_", " "),
-        trackingNumber: shipment.shipmentNumber,
       }));
     }
   }

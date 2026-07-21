@@ -64,10 +64,11 @@ export function MapTilerShipmentRouteMap({
 
   useEffect(() => {
     let cancelled = false;
+    let hasLoaded = false;
     let map: import("maplibre-gl").Map | null = null;
 
     function handleMapError() {
-      if (!cancelled) {
+      if (!cancelled && !hasLoaded) {
         map?.remove();
         map = null;
         setLoadError(true);
@@ -76,6 +77,7 @@ export function MapTilerShipmentRouteMap({
 
     async function initializeMap() {
       try {
+        setLoadError(false);
         const { default: maplibregl } = await import("maplibre-gl");
 
         if (cancelled || !mapElement.current) {
@@ -88,7 +90,7 @@ export function MapTilerShipmentRouteMap({
           container: mapElement.current,
           maxZoom: 18,
           minZoom: 2,
-          style: `https://api.maptiler.com/maps/streets-v2/style.json?key=${encodeURIComponent(apiKey)}`,
+          style: `https://api.maptiler.com/maps/streets-v4/style.json?key=${encodeURIComponent(apiKey)}`,
           zoom: 12,
         });
         map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
@@ -97,6 +99,8 @@ export function MapTilerShipmentRouteMap({
           if (cancelled || !map) {
             return;
           }
+
+          hasLoaded = true;
 
           const bounds = new maplibregl.LngLatBounds();
 
@@ -168,7 +172,13 @@ export function MapTilerShipmentRouteMap({
           map.resize();
         });
 
-        map.on("error", handleMapError);
+        // A single failed tile after the style has loaded should not remove a usable map.
+        // Only treat startup errors as fatal to the map surface.
+        map.on("error", () => {
+          if (!hasLoaded) {
+            handleMapError();
+          }
+        });
       } catch {
         handleMapError();
       }

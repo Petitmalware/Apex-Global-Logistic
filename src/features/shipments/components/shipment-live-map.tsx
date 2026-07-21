@@ -52,7 +52,10 @@ function getRouteCheckpoints(snapshot: ShipmentTrackingSnapshot): ShipmentRouteC
     .slice()
     .reverse()
     .flatMap((event) => {
-      if (!isValidCoordinate(event.latitude, event.longitude)) {
+      if (
+        event.shipmentStatus !== "IN_TRANSIT" ||
+        !isValidCoordinate(event.latitude, event.longitude)
+      ) {
         return [];
       }
 
@@ -70,12 +73,22 @@ function getRouteCheckpoints(snapshot: ShipmentTrackingSnapshot): ShipmentRouteC
     });
 }
 
-function ConnectionBadge({ state }: { state: TrackingConnectionState }) {
+function ConnectionBadge({
+  state,
+  status,
+}: {
+  state: TrackingConnectionState;
+  status: ShipmentTrackingSnapshot["status"];
+}) {
+  if (status !== "IN_TRANSIT") {
+    return <Badge variant="warning">Movement paused</Badge>;
+  }
+
   if (state === "live") {
     return (
       <Badge variant="success">
         <Radio aria-hidden="true" className="size-3.5" />
-        Live updates
+        Update feed live
       </Badge>
     );
   }
@@ -110,13 +123,13 @@ export function ShipmentLiveMap({
             <p className="text-muted-foreground text-xs font-semibold uppercase">
               Shipment location
             </p>
-            <h3 className="mt-1 font-semibold">Recorded location updates</h3>
+            <h3 className="mt-1 font-semibold">Movement checkpoints</h3>
             <p className="text-muted-foreground truncate text-sm">
               {snapshot.originCity} to {snapshot.destinationCity}
             </p>
           </div>
         </div>
-        <ConnectionBadge state={connectionState} />
+        <ConnectionBadge state={connectionState} status={snapshot.status} />
       </div>
 
       {latestCheckpoint && mapTilerKey ? (
@@ -129,7 +142,10 @@ export function ShipmentLiveMap({
           <div className="border-border bg-background/95 absolute right-3 bottom-3 left-3 rounded-md border p-3 shadow-sm backdrop-blur sm:right-5 sm:bottom-5 sm:left-auto sm:max-w-sm">
             <p className="text-sm font-semibold">{latestCheckpoint.label}</p>
             <p className="text-muted-foreground mt-1 text-xs leading-5">
-              Recorded {formatDate(latestCheckpoint.occurredAt)}. This map shows operational
+              {snapshot.status === "IN_TRANSIT"
+                ? "Latest movement checkpoint"
+                : "Last movement checkpoint"}{" "}
+              recorded {formatDate(latestCheckpoint.occurredAt)}. This map shows operational
               checkpoints entered by the delivery team, not continuous GPS tracking.
             </p>
           </div>

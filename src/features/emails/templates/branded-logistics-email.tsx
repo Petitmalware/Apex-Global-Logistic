@@ -12,6 +12,7 @@ import {
 } from "@react-email/components";
 
 type BrandedLogisticsEmailProps = {
+  companyName?: string;
   contentHtml: string;
   preheader?: string | null;
   shipment?: {
@@ -38,6 +39,7 @@ const colors = {
 };
 
 export function BrandedLogisticsEmail({
+  companyName = "Apex Global Logistics",
   contentHtml,
   preheader,
   shipment,
@@ -95,7 +97,7 @@ export function BrandedLogisticsEmail({
                 margin: "10px 0 0",
               }}
             >
-              Apex Global Logistics
+              {companyName}
             </Heading>
             <Text
               style={{
@@ -203,7 +205,7 @@ export function BrandedLogisticsEmail({
               Need help?
             </Text>
             <Text style={{ color: colors.muted, fontSize: "13px", lineHeight: "21px", margin: 0 }}>
-              Contact Apex Global Logistics support at {supportEmail} or {supportPhone}. Our team is
+              Contact {companyName} support at {supportEmail} or {supportPhone}. Our team is
               available for shipment, billing, freight, and pet transportation questions.
             </Text>
           </Section>
@@ -216,8 +218,8 @@ export function BrandedLogisticsEmail({
           >
             <Text style={{ color: colors.muted, fontSize: "12px", lineHeight: "19px", margin: 0 }}>
               This message may contain confidential logistics, shipment, customer, or billing
-              information. If you received it in error, please delete it and contact Apex Global
-              Logistics support.
+              information. If you received it in error, please delete it and contact {companyName}{" "}
+              support.
             </Text>
             <Text
               style={{
@@ -227,7 +229,7 @@ export function BrandedLogisticsEmail({
                 margin: "12px 0 0",
               }}
             >
-              © {new Date().getFullYear()} Apex Global Logistics. All rights reserved.
+              (c) {new Date().getFullYear()} {companyName}. All rights reserved.
             </Text>
           </Section>
         </Container>

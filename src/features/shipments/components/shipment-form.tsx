@@ -465,8 +465,8 @@ export function ShipmentForm({
             <div>
               <CardTitle>Shipment summary</CardTitle>
               <p className="text-muted-foreground mt-1 text-sm">
-                Complete the essentials below. The shipment is created as booked, and you can
-                publish movement updates from its details page.
+                Complete the essentials below. Set the opening customer-facing stage, then publish
+                future location and movement updates from the shipment details page.
               </p>
             </div>
           </div>
@@ -487,17 +487,30 @@ export function ShipmentForm({
             </Select>
           </Field>
           {isCreateMode ? (
-            <input name="status" type="hidden" value="BOOKED" />
-          ) : (
             <Field>
-              <Label htmlFor="status">Current status</Label>
-              <Select defaultValue={currentStatus} id="status" name="status">
+              <Label htmlFor="status">Initial shipment status</Label>
+              <Select defaultValue="BOOKED" id="status" name="status">
                 {shipmentStatusOptions.map((option) => (
                   <option key={option} value={option}>
                     {formatShipmentStatus(option)}
                   </option>
                 ))}
               </Select>
+              <FieldHint>
+                Use “Order received” for a newly created shipment. Use “In transit” only when a
+                location update is ready to publish.
+              </FieldHint>
+            </Field>
+          ) : (
+            <Field>
+              <Label>Current status</Label>
+              <div className="border-input bg-surface rounded-md border px-3 py-2 text-sm font-medium">
+                {formatShipmentStatus(currentStatus)}
+              </div>
+              <FieldHint>
+                Use “Update location and status” on the shipment details page to change it and
+                record the timeline entry together.
+              </FieldHint>
             </Field>
           )}
           <Field>

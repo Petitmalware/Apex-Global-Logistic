@@ -3,9 +3,8 @@
 import Link from "next/link";
 import type { Route } from "next";
 import { useActionState, useMemo, useState } from "react";
-import { ArrowRight, Calculator, PackagePlus } from "lucide-react";
+import { ArrowRight, Calculator, PackagePlus, Trash2 } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, FieldHint } from "@/components/ui/field";
@@ -14,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { CustomerSelectCard } from "@/features/customers/components/customer-select-card";
+import { ShipmentWorkflowGuide } from "@/features/shipments/components/shipment-workflow-guide";
 import { calculateParcelQuote } from "@/features/shipments/services/parcel-pricing";
 import type { CustomerOption, ShipmentActionState } from "@/features/shipments/types";
 import { initialShipmentActionState } from "@/features/shipments/types";
@@ -36,38 +36,19 @@ type PackageDraft = {
   widthCm: string;
 };
 
-const defaultPackages: PackageDraft[] = [
-  {
-    declaredValue: "",
-    description: "",
-    fragile: false,
-    hazardous: false,
-    heightCm: "",
-    lengthCm: "",
-    weightLb: "",
-    widthCm: "",
-  },
-  {
-    declaredValue: "",
-    description: "",
-    fragile: false,
-    hazardous: false,
-    heightCm: "",
-    lengthCm: "",
-    weightLb: "",
-    widthCm: "",
-  },
-  {
-    declaredValue: "",
-    description: "",
-    fragile: false,
-    hazardous: false,
-    heightCm: "",
-    lengthCm: "",
-    weightLb: "",
-    widthCm: "",
-  },
-];
+const emptyPackage: PackageDraft = {
+  declaredValue: "",
+  description: "",
+  fragile: false,
+  hazardous: false,
+  heightCm: "",
+  lengthCm: "",
+  weightLb: "",
+  widthCm: "",
+};
+
+const defaultPackages: PackageDraft[] = [{ ...emptyPackage }];
+const maxPackageCount = 10;
 
 function getNumber(value: string) {
   const number = Number(value);
@@ -209,10 +190,55 @@ export function ParcelBookingForm({
     );
   }
 
+  function addPackage() {
+    setPackages((currentPackages) => [...currentPackages, { ...emptyPackage }]);
+  }
+
+  function removePackage(index: number) {
+    setPackages((currentPackages) =>
+      currentPackages.filter((_, packageIndex) => packageIndex !== index),
+    );
+  }
+
   return (
     <form action={formAction} className="space-y-6">
       <input name="status" type="hidden" value={isCustomerBooking ? "DRAFT" : "BOOKED"} />
       <input name="serviceLevel" type="hidden" value="Parcel Standard" />
+      <ShipmentWorkflowGuide
+        title={isCustomerBooking ? "Parcel booking request" : "Create parcel shipment"}
+        steps={
+          isCustomerBooking
+            ? [
+                {
+                  label: "Delivery details",
+                  description: "Enter collection and recipient information.",
+                },
+                {
+                  label: "Package",
+                  description: "Add the parcel contents, dimensions, and weight in pounds.",
+                },
+                {
+                  label: "Submit request",
+                  description: "Apex operations reviews the booking before dispatch.",
+                },
+              ]
+            : [
+                {
+                  label: "Recipient",
+                  description: "Select a customer account or enter a manual receiver.",
+                },
+                {
+                  label: "Parcel",
+                  description: "Record the package, handling needs, and route details.",
+                },
+                {
+                  label: "Create shipment",
+                  description:
+                    "Publish later status and location updates from the shipment record.",
+                },
+              ]
+        }
+      />
       {!isCustomerBooking ? (
         <CustomerSelectCard
           allowManualRecipient
@@ -320,10 +346,22 @@ export function ParcelBookingForm({
             <CardContent className="space-y-4">
               {packages.map((shipmentPackage, index) => (
                 <div className="border-border bg-surface rounded-lg border p-4" key={index}>
-                  <div className="mb-4 flex items-center gap-2">
-                    <PackagePlus aria-hidden="true" className="text-accent size-4" />
-                    <h3 className="text-sm font-semibold">Package {index + 1}</h3>
-                    {index > 0 ? <Badge variant="outline">Optional</Badge> : null}
+                  <div className="mb-4 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <PackagePlus aria-hidden="true" className="text-accent size-4" />
+                      <h3 className="text-sm font-semibold">Package {index + 1}</h3>
+                    </div>
+                    {index > 0 ? (
+                      <Button
+                        aria-label={`Remove package ${index + 1}`}
+                        onClick={() => removePackage(index)}
+                        size="icon"
+                        type="button"
+                        variant="ghost"
+                      >
+                        <Trash2 aria-hidden="true" />
+                      </Button>
+                    ) : null}
                   </div>
                   <input name={`packages.${index}.currency`} type="hidden" value="USD" />
                   <input name={`packages.${index}.status`} type="hidden" value="PENDING" />
@@ -435,6 +473,15 @@ export function ParcelBookingForm({
                   </div>
                 </div>
               ))}
+              <Button
+                disabled={packages.length >= maxPackageCount}
+                onClick={addPackage}
+                type="button"
+                variant="outline"
+              >
+                <PackagePlus aria-hidden="true" />
+                Add another package
+              </Button>
             </CardContent>
           </Card>
         </div>

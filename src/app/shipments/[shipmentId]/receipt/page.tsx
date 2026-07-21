@@ -26,7 +26,7 @@ type ShipmentReceiptPageProps = {
 };
 
 export const metadata: Metadata = {
-  title: "Parcel Receipt | Apex Global Logistics",
+  title: "Shipment Receipt | Apex Global Logistics",
 };
 
 function formatDate(value: string | null) {
@@ -40,17 +40,10 @@ function formatDate(value: string | null) {
   }).format(new Date(value));
 }
 
-function formatMoney(value: string | number, currency = "USD") {
-  return new Intl.NumberFormat("en", {
-    currency,
-    style: "currency",
-  }).format(Number(value));
-}
-
 function AddressBlock({ address, title }: { address: ShipmentDetail["origin"]; title: string }) {
   return (
     <div>
-      <p className="text-xs font-bold tracking-[0.24em] text-slate-500 uppercase">{title}</p>
+      <p className="text-xs font-bold tracking-[0.18em] text-slate-500 uppercase">{title}</p>
       <div className="mt-3 text-sm leading-6">
         <p className="font-bold">{address.name ?? address.city}</p>
         <p>{address.line1}</p>
@@ -78,13 +71,14 @@ export default async function ShipmentReceiptPage({
     notFound();
   }
 
-  if (format !== "a4") {
-    const profile = await getCompanyProfile();
+  const profile = await getCompanyProfile();
 
+  if (format === "thermal") {
     return <CompactShipmentReceipt profile={profile} shipment={shipment} />;
   }
 
-  const invoice = shipment.invoice;
+  const companyName = profile.legalName || "Apex Global Logistics";
+  const shipmentNote = shipment.officeDetails?.comments ?? shipment.notes;
 
   return (
     <main
@@ -95,25 +89,8 @@ export default async function ShipmentReceiptPage({
       <style>
         {`
           @media print {
-            @page {
-              size: A4;
-              margin: 8mm;
-            }
-
-            .parcel-receipt-sheet {
-              page-break-after: avoid;
-              page-break-inside: avoid;
-            }
-
-            .parcel-receipt-sheet h1 {
-              font-size: 26px !important;
-            }
-
-            .parcel-receipt-table th,
-            .parcel-receipt-table td {
-              padding-bottom: 5px !important;
-              padding-top: 5px !important;
-            }
+            @page { size: A4; margin: 8mm; }
+            .shipment-receipt-sheet { box-shadow: none !important; }
           }
         `}
       </style>
@@ -127,122 +104,102 @@ export default async function ShipmentReceiptPage({
           </Button>
           <div className="flex flex-wrap gap-2">
             <Button asChild variant="outline">
-              <Link href={`/shipments/${shipment.id}/receipt` as Route}>80 mm receipt</Link>
+              <Link href={`/shipments/${shipment.id}/receipt?format=thermal` as Route}>
+                Thermal receipt
+              </Link>
             </Button>
             <PrintButton label="Print receipt" />
           </div>
         </div>
-        <section className="parcel-receipt-sheet border-border shadow-panel rounded-lg border bg-white p-8 print:rounded-none print:border-0 print:p-0 print:text-[11px] print:shadow-none">
-          <header className="flex flex-wrap items-start justify-between gap-6 border-b border-slate-300 pb-8 print:pb-4">
-            <div>
-              <p className="text-sm font-bold tracking-[0.32em] text-slate-500 uppercase">
-                Apex Global Logistics authorized parcel receipt
-              </p>
-              <h1 className="mt-2 text-4xl font-black tracking-normal">Parcel Receipt</h1>
-              <p className="mt-3 text-sm text-slate-600">{shipment.shipmentNumber}</p>
+
+        <section className="shipment-receipt-sheet border-border shadow-panel rounded-lg border bg-white p-8 print:rounded-none print:border-0 print:p-0 print:text-[10px] print:shadow-none">
+          <header className="flex flex-wrap items-start justify-between gap-6 border-b-2 border-slate-950 pb-6 print:pb-4">
+            <div className="flex items-center gap-3">
+              <div className="grid size-11 place-items-center rounded-md bg-slate-950 text-sm font-black text-white">
+                AG
+              </div>
+              <div>
+                <p className="text-lg font-black">{companyName}</p>
+                <p className="mt-1 text-xs font-bold tracking-[0.18em] text-slate-500 uppercase">
+                  Shipment receipt
+                </p>
+              </div>
             </div>
-            <div className="text-right text-sm">
-              <p className="text-xs font-bold tracking-[0.24em] text-slate-500 uppercase">
-                Invoice
+            <div className="text-left text-sm sm:text-right">
+              <p className="text-xs font-bold tracking-[0.16em] text-slate-500 uppercase">
+                Tracking number
               </p>
-              <p className="mt-2 font-bold">{invoice?.invoiceNumber ?? "Not generated"}</p>
-              <p className="mt-1 text-slate-600">Issued {formatDate(invoice?.issuedAt ?? null)}</p>
+              <p className="mt-2 font-black break-all">{shipment.shipmentNumber}</p>
+              <p className="mt-1 text-xs text-slate-600">Issued {formatDate(shipment.createdAt)}</p>
             </div>
           </header>
 
-          <div className="grid gap-8 border-b border-slate-300 py-8 md:grid-cols-2 print:gap-4 print:py-4">
-            <AddressBlock address={shipment.origin} title="Pickup" />
-            <AddressBlock address={shipment.destination} title="Delivery" />
+          <div className="grid gap-6 border-b border-slate-300 py-6 md:grid-cols-2 print:gap-4 print:py-4">
+            <AddressBlock address={shipment.origin} title="Sender / pickup" />
+            <AddressBlock address={shipment.destination} title="Recipient / delivery" />
           </div>
 
-          <div className="grid gap-4 border-b border-slate-300 py-8 sm:grid-cols-2 lg:grid-cols-4 print:gap-2 print:py-4">
+          <div className="grid gap-3 border-b border-slate-300 py-5 sm:grid-cols-2 lg:grid-cols-4 print:gap-2 print:py-3">
             {[
               { label: "Status", value: formatShipmentStatus(shipment.status) },
-              { label: "Service", value: shipment.serviceLevel ?? "Parcel Standard" },
-              { label: "Packages", value: String(shipment.packageCount) },
+              { label: "Service", value: shipment.serviceLevel ?? "Standard" },
+              { label: "Pieces", value: String(shipment.packageCount) },
               {
-                label: "Chargeable",
-                value: `${kilogramsToPoundsString(shipment.weightSummary.chargeableWeightKg)} lb`,
+                label: "Weight",
+                value: `${kilogramsToPoundsString(shipment.weightSummary.actualWeightKg) || "0"} lb`,
               },
             ].map((item) => (
-              <div className="rounded-md border border-slate-300 p-4 print:p-2" key={item.label}>
-                <p className="text-xs font-bold tracking-[0.16em] text-slate-500 uppercase">
+              <div className="rounded-md border border-slate-300 p-3 print:p-2" key={item.label}>
+                <p className="text-[10px] font-bold tracking-[0.14em] text-slate-500 uppercase">
                   {item.label}
                 </p>
-                <p className="mt-2 font-bold">{item.value}</p>
+                <p className="mt-1.5 text-sm font-bold">{item.value}</p>
               </div>
             ))}
           </div>
 
-          {shipment.timeline[0]?.currentLocation ? (
-            <div className="border-b border-slate-300 py-4 text-sm print:py-2 print:text-[10px]">
-              <span className="font-bold">Latest recorded location:</span>{" "}
-              {shipment.timeline[0].currentLocation}
-              <span className="text-slate-500">
-                {" "}
-                · {formatDate(shipment.timeline[0].occurredAt)}
-              </span>
-            </div>
+          {shipment.packages.length ? (
+            <section className="border-b border-slate-300 py-5 print:py-3">
+              <h2 className="text-xs font-bold tracking-[0.16em] text-slate-500 uppercase">
+                Contents summary
+              </h2>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                {shipment.packages.slice(0, 4).map((shipmentPackage) => (
+                  <div
+                    className="rounded-md border border-slate-200 px-3 py-2 text-sm"
+                    key={shipmentPackage.id}
+                  >
+                    <p className="font-semibold">
+                      {shipmentPackage.description ?? shipmentPackage.type}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-600">
+                      {shipmentPackage.packageNumber}
+                      {shipmentPackage.weightKg
+                        ? ` | ${kilogramsToPoundsString(shipmentPackage.weightKg)} lb`
+                        : ""}
+                    </p>
+                  </div>
+                ))}
+              </div>
+              {shipment.packages.length > 4 ? (
+                <p className="mt-2 text-xs text-slate-600">
+                  Additional pieces are recorded in the shipment file.
+                </p>
+              ) : null}
+            </section>
           ) : null}
 
-          <div className="py-8 print:py-4">
-            <p className="text-xs font-bold tracking-[0.24em] text-slate-500 uppercase">
-              Invoice lines
-            </p>
-            {invoice ? (
-              <div className="mt-4 overflow-hidden border border-slate-300">
-                <table className="parcel-receipt-table w-full border-collapse text-sm print:text-[10px]">
-                  <thead className="bg-slate-100">
-                    <tr>
-                      <th className="px-4 py-3 text-left font-bold">Description</th>
-                      <th className="px-4 py-3 text-right font-bold">Qty</th>
-                      <th className="px-4 py-3 text-right font-bold">Unit</th>
-                      <th className="px-4 py-3 text-right font-bold">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200">
-                    {invoice.lineItems.map((lineItem) => (
-                      <tr key={lineItem.id}>
-                        <td className="px-4 py-3">{lineItem.description}</td>
-                        <td className="px-4 py-3 text-right">{lineItem.quantity}</td>
-                        <td className="px-4 py-3 text-right">
-                          {formatMoney(lineItem.unitPrice, invoice.currency)}
-                        </td>
-                        <td className="px-4 py-3 text-right font-bold">
-                          {formatMoney(lineItem.total, invoice.currency)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                <div className="ml-auto w-full max-w-sm space-y-3 border-t border-slate-300 p-4 text-sm print:max-w-[62mm] print:space-y-1.5 print:p-3 print:text-[10px]">
-                  <div className="flex items-center justify-between gap-4">
-                    <span className="text-slate-600">Subtotal</span>
-                    <span>{formatMoney(invoice.subtotal, invoice.currency)}</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-4">
-                    <span className="text-slate-600">Tax</span>
-                    <span>{formatMoney(invoice.taxTotal, invoice.currency)}</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-4 text-lg font-black">
-                    <span>Total</span>
-                    <span>{formatMoney(invoice.total, invoice.currency)}</span>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <p className="mt-4 rounded-md border border-slate-300 p-4 text-sm text-slate-600">
-                No invoice has been generated for this shipment yet.
-              </p>
-            )}
-          </div>
+          {shipmentNote ? (
+            <section className="border-b border-slate-300 py-5 print:py-3">
+              <h2 className="text-xs font-bold tracking-[0.16em] text-slate-500 uppercase">
+                Shipment note
+              </h2>
+              <p className="mt-2 text-sm leading-6 whitespace-pre-wrap">{shipmentNote}</p>
+            </section>
+          ) : null}
 
-          <footer className="border-t border-slate-300 pt-5 text-xs leading-5 text-slate-600 print:pt-3 print:text-[9px] print:leading-4">
-            <p className="font-bold text-slate-950">Official shipment receipt</p>
-            <p className="mt-1">
-              This receipt is issued from Apex Global Logistics operating records as proof of the
-              shipment intake, route, package count, and billing summary shown above.
-            </p>
+          <footer className="pt-5 text-center text-sm font-black">
+            Thank you for choosing Apex.
           </footer>
         </section>
       </div>

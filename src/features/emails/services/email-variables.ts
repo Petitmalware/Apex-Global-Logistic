@@ -2,17 +2,27 @@ import "server-only";
 
 import { env } from "@/config/env.server";
 import { emailVariableKeys } from "@/features/emails/constants";
+import { getCompanyProfile } from "@/features/settings/queries/company-profile.queries";
+import { formatShipmentStatus } from "@/features/shipments/status-labels";
 import { prisma } from "@/lib/db";
 
 export type EmailVariableMap = Partial<Record<(typeof emailVariableKeys)[number], string>>;
 
 export type ShipmentEmailContext = {
+  currentLocation?: string | null;
   destinationCity?: string | null;
   estimatedDeliveryDate?: string | null;
   originCity?: string | null;
   shipmentNumber?: string | null;
   shipmentStatus?: string | null;
   trackingNumber?: string | null;
+};
+
+export type EmailBranding = {
+  companyName: string;
+  supportEmail: string;
+  supportPhone: string;
+  website: string;
 };
 
 export type EmailVariableContext = {
@@ -70,6 +80,15 @@ export async function getShipmentEmailContext(shipmentId?: string) {
           city: true,
         },
       },
+      trackingEvents: {
+        orderBy: {
+          occurredAt: "desc",
+        },
+        select: {
+          metadata: true,
+        },
+        take: 1,
+      },
     },
     where: {
       id: shipmentId,
@@ -80,19 +99,44 @@ export async function getShipmentEmailContext(shipmentId?: string) {
     return null;
   }
 
+  const latestTrackingMetadata = shipment.trackingEvents[0]?.metadata;
+  const currentLocation =
+    latestTrackingMetadata &&
+    typeof latestTrackingMetadata === "object" &&
+    !Array.isArray(latestTrackingMetadata) &&
+    "location" in latestTrackingMetadata &&
+    typeof latestTrackingMetadata.location === "string"
+      ? latestTrackingMetadata.location
+      : null;
+
   return {
     customerEmail: shipment.customer?.email ?? null,
     customerName: shipment.customer?.name ?? null,
+    currentLocation,
     destinationCity: shipment.destinationAddress.city,
     estimatedDeliveryDate: formatDate(shipment.deliveryWindowEnd),
     originCity: shipment.originAddress.city,
     shipmentNumber: shipment.shipmentNumber,
-    shipmentStatus: shipment.status.replaceAll("_", " "),
+    shipmentStatus: formatShipmentStatus(shipment.status),
     trackingNumber: shipment.shipmentNumber,
   };
 }
 
-export function buildEmailVariables(context: EmailVariableContext): EmailVariableMap {
+export async function getEmailBranding(): Promise<EmailBranding> {
+  const profile = await getCompanyProfile();
+
+  return {
+    companyName: profile.legalName || "Apex Global Logistics",
+    supportEmail: profile.email || env.SUPPORT_EMAIL,
+    supportPhone: profile.phone || env.SUPPORT_PHONE,
+    website: profile.website || env.NEXT_PUBLIC_APP_URL,
+  };
+}
+
+export function buildEmailVariables(
+  context: EmailVariableContext,
+  branding: EmailBranding,
+): EmailVariableMap {
   const recipientName =
     context.variables?.recipientName ??
     context.recipientName ??
@@ -102,8 +146,9 @@ export function buildEmailVariables(context: EmailVariableContext): EmailVariabl
 
   return {
     amountDue: context.variables?.amountDue ?? "",
-    companyName: "Apex Global Logistics",
+    companyName: context.variables?.companyName ?? branding.companyName,
     currentLocation:
+      context.shipment?.currentLocation ??
       context.variables?.currentLocation ??
       context.shipment?.destinationCity ??
       context.shipment?.originCity ??
@@ -116,7 +161,7 @@ export function buildEmailVariables(context: EmailVariableContext): EmailVariabl
       "Customer",
     documentDate: context.variables?.documentDate ?? formatDocumentDate(),
     estimatedDeliveryDate:
-      context.variables?.estimatedDeliveryDate ?? context.shipment?.estimatedDeliveryDate ?? "",
+      context.shipment?.estimatedDeliveryDate ?? context.variables?.estimatedDeliveryDate ?? "",
     invoiceNumber: context.variables?.invoiceNumber ?? "",
     paymentInstructions:
       context.variables?.paymentInstructions ?? "Use the approved Apex invoice or payment portal.",
@@ -124,14 +169,16 @@ export function buildEmailVariables(context: EmailVariableContext): EmailVariabl
     recipientName,
     refundTerms:
       context.variables?.refundTerms ?? "Terms are shown on the approved billing record.",
-    shipmentStatus: context.variables?.shipmentStatus ?? context.shipment?.shipmentStatus ?? "",
-    supportEmail: context.variables?.supportEmail ?? env.SUPPORT_EMAIL,
-    supportPhone: context.variables?.supportPhone ?? env.SUPPORT_PHONE,
+    // A linked shipment is the source of truth for operational fields. This keeps a
+    // previously selected status in the composer from replacing the current status at send time.
+    shipmentStatus: context.shipment?.shipmentStatus ?? context.variables?.shipmentStatus ?? "",
+    supportEmail: context.variables?.supportEmail ?? branding.supportEmail,
+    supportPhone: context.variables?.supportPhone ?? branding.supportPhone,
     trackingNumber:
-      context.variables?.trackingNumber ??
       context.shipment?.trackingNumber ??
       context.shipment?.shipmentNumber ??
+      context.variables?.trackingNumber ??
       "",
-    website: context.variables?.website ?? env.NEXT_PUBLIC_APP_URL,
+    website: context.variables?.website ?? branding.website,
   };
 }

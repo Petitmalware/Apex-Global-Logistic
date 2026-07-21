@@ -36,7 +36,9 @@ function buildContentSecurityPolicy(request: NextRequest) {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
-    `connect-src 'self' ${appOrigin} ws: wss:`,
+    // MapTiler loads its style, tiles, glyphs, and sprites through its API origin.
+    // Keep this allow-list narrow so the map can work without weakening the rest of the CSP.
+    `connect-src 'self' ${appOrigin} https://api.maptiler.com https://*.maptiler.com ws: wss:`,
     "frame-src 'self'",
     "media-src 'self' blob:",
     "worker-src 'self' blob:",

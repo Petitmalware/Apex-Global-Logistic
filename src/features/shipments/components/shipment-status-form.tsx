@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { formatShipmentStatus, formatTrackingEventType } from "@/features/shipments/status-labels";
+import { formatShipmentStatus } from "@/features/shipments/status-labels";
 import type { ShipmentActionState } from "@/features/shipments/types";
 import { initialShipmentActionState } from "@/features/shipments/types";
 
@@ -32,21 +32,16 @@ const statusOptions = [
   "RETURNED",
 ] as const;
 
-const eventTypeOptions = [
-  "CREATED",
-  "PICKED_UP",
-  "CHECKED_IN",
-  "IN_TRANSIT",
-  "CUSTOMS_HOLD",
-  "DELAYED",
-  "OUT_FOR_DELIVERY",
-  "DELIVERED",
-  "CANCELLED",
-  "EXCEPTION",
-] as const;
-
 type ShipmentStatusOption = (typeof statusOptions)[number];
-type TrackingEventOption = (typeof eventTypeOptions)[number];
+type TrackingEventOption =
+  | "CREATED"
+  | "PICKED_UP"
+  | "CHECKED_IN"
+  | "IN_TRANSIT"
+  | "EXCEPTION"
+  | "OUT_FOR_DELIVERY"
+  | "DELIVERED"
+  | "CANCELLED";
 
 const statusGuidance: Record<ShipmentStatusOption, string> = {
   BOOKED: "Shipment is registered and ready for its first operations step.",
@@ -136,7 +131,7 @@ export function ShipmentStatusForm({
   }
 
   return (
-    <form action={formAction} className="space-y-5">
+    <form action={formAction} className="space-y-5" id="shipment-status-update">
       <div className="border-border bg-surface rounded-lg border p-4">
         <p className="text-muted-foreground text-xs font-semibold uppercase">
           Current shipment status
@@ -178,21 +173,46 @@ export function ShipmentStatusForm({
         </div>
       </div>
 
-      <div className="grid gap-4">
+      <input name="eventType" type="hidden" value={selectedEventType} />
+
+      <div className="grid gap-4 sm:grid-cols-2">
         <Field>
-          <Label htmlFor="location">2. Where is the shipment now?</Label>
+          <Label htmlFor="status">2. Customer-visible status</Label>
+          <Select
+            id="status"
+            name="status"
+            onChange={(event) => {
+              const nextStatus = event.target.value as ShipmentStatusOption;
+              setSelectedStatus(nextStatus);
+              setSelectedEventType(defaultEventByStatus[nextStatus]);
+            }}
+            required
+            value={selectedStatus}
+          >
+            {statusOptions.map((option) => (
+              <option key={option} value={option}>
+                {formatShipmentStatus(option)}
+              </option>
+            ))}
+          </Select>
+          <FieldHint>{statusGuidance[selectedStatus]}</FieldHint>
+        </Field>
+        <Field>
+          <Label htmlFor="location">3. Where is the shipment now?</Label>
           <Input
             id="location"
             name="location"
             placeholder="City, airport, warehouse, checkpoint, or delivery area"
+            required={selectedStatus === "IN_TRANSIT"}
           />
           <FieldHint>
-            Enter a city, airport, warehouse, landmark, or full address. When you publish, Apex uses
-            MapTiler to save a map pin automatically when coordinates are left blank.
+            {selectedStatus === "IN_TRANSIT"
+              ? "Required while the shipment is moving. Enter a city, airport, warehouse, landmark, or full address."
+              : "Optional for a non-moving update. Add it when the customer should see where the shipment is held or delivered."}
           </FieldHint>
         </Field>
-        <Field>
-          <Label htmlFor="message">3. What should the customer know?</Label>
+        <Field className="sm:col-span-2">
+          <Label htmlFor="message">4. What should the customer know?</Label>
           <Textarea
             id="message"
             name="message"
@@ -217,48 +237,10 @@ export function ShipmentStatusForm({
         </summary>
         <div className="border-border grid gap-4 border-t p-4 sm:grid-cols-2">
           <Field>
-            <Label htmlFor="status">Customer-visible status</Label>
-            <Select
-              id="status"
-              name="status"
-              onChange={(event) => {
-                const nextStatus = event.target.value as ShipmentStatusOption;
-                setSelectedStatus(nextStatus);
-                setSelectedEventType(defaultEventByStatus[nextStatus]);
-              }}
-              required
-              value={selectedStatus}
-            >
-              {statusOptions.map((option) => (
-                <option key={option} value={option}>
-                  {formatShipmentStatus(option)}
-                </option>
-              ))}
-            </Select>
-            <FieldHint>{statusGuidance[selectedStatus]}</FieldHint>
-          </Field>
-          <Field>
-            <Label htmlFor="eventType">Timeline event</Label>
-            <Select
-              id="eventType"
-              name="eventType"
-              onChange={(event) => setSelectedEventType(event.target.value as TrackingEventOption)}
-              required
-              value={selectedEventType}
-            >
-              {eventTypeOptions.map((option) => (
-                <option key={option} value={option}>
-                  {formatTrackingEventType(option)}
-                </option>
-              ))}
-            </Select>
-          </Field>
-          <Field>
             <Label htmlFor="occurredAt">Date and time (optional)</Label>
             <Input id="occurredAt" name="occurredAt" type="datetime-local" />
             <FieldHint>Leave blank to use the current time.</FieldHint>
           </Field>
-          <div className="hidden sm:block" />
           <Field>
             <Label htmlFor="latitude">Verified map latitude (optional)</Label>
             <Input

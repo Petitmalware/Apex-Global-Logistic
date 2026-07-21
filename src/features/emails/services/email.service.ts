@@ -24,6 +24,7 @@ import { sendEmailWithConfiguredProvider } from "@/features/emails/services/emai
 import { assertEmailRateLimit } from "@/features/emails/services/email-rate-limit.service";
 import {
   buildEmailVariables,
+  getEmailBranding,
   getShipmentEmailContext,
   replaceEmailVariables,
   type ShipmentEmailContext,
@@ -202,21 +203,27 @@ async function prepareAdminEmail(
     getTemplateForInput(input, actor),
     getShipmentForInput(input.shipmentId, actor),
   ]);
-  const shipmentContext = shipmentRecord ? await getShipmentEmailContext(shipmentRecord.id) : null;
+  const [shipmentContext, branding] = await Promise.all([
+    shipmentRecord ? getShipmentEmailContext(shipmentRecord.id) : null,
+    getEmailBranding(),
+  ]);
   const trackingNumber =
-    input.trackingNumber ||
     shipmentContext?.trackingNumber ||
     shipmentRecord?.shipmentNumber ||
+    input.trackingNumber ||
     null;
-  const variables = buildEmailVariables({
-    recipientEmail: recipient.email,
-    recipientName: recipient.name,
-    shipment: shipmentContext,
-    variables: {
-      ...input.variables,
-      trackingNumber: input.variables?.trackingNumber || trackingNumber || undefined,
+  const variables = buildEmailVariables(
+    {
+      recipientEmail: recipient.email,
+      recipientName: recipient.name,
+      shipment: shipmentContext,
+      variables: {
+        ...input.variables,
+        trackingNumber: trackingNumber || undefined,
+      },
     },
-  });
+    branding,
+  );
   const subject = replaceEmailVariables(input.subject || template?.subject || "", variables);
   const rawBody = replaceEmailVariables(input.bodyHtml || template?.bodyHtml || "", variables);
   const bodyHtml = sanitizeEmailHtml(rawBody);
@@ -238,6 +245,7 @@ async function prepareAdminEmail(
     recipientEmail: recipient.email,
     recipientName: recipient.name,
     renderedHtml: renderBrandedEmail({
+      branding,
       contentHtml: bodyHtml,
       shipment,
       subject,
@@ -450,25 +458,32 @@ export async function sendAdminTestEmail(rawInput: AdminEmailTestInput, actor: A
 }
 
 export async function queueBrandedEmail(input: QueueBrandedEmailInput) {
-  const shipmentContext = await getShipmentEmailContext(input.shipmentId ?? undefined);
+  const [shipmentContext, branding] = await Promise.all([
+    getShipmentEmailContext(input.shipmentId ?? undefined),
+    getEmailBranding(),
+  ]);
   const trackingNumber =
-    input.trackingNumber ||
     shipmentContext?.trackingNumber ||
     shipmentContext?.shipmentNumber ||
+    input.trackingNumber ||
     null;
-  const variables = buildEmailVariables({
-    recipientEmail: input.recipientEmail,
-    recipientName: input.recipientName,
-    shipment: shipmentContext,
-    variables: {
-      ...input.variables,
-      trackingNumber: input.variables?.trackingNumber || trackingNumber || undefined,
+  const variables = buildEmailVariables(
+    {
+      recipientEmail: input.recipientEmail,
+      recipientName: input.recipientName,
+      shipment: shipmentContext,
+      variables: {
+        ...input.variables,
+        trackingNumber: trackingNumber || undefined,
+      },
     },
-  });
+    branding,
+  );
   const subject = replaceEmailVariables(input.subject, variables);
   const bodyHtml = sanitizeEmailHtml(replaceEmailVariables(input.bodyHtml, variables));
   const bodyText = htmlToPlainText(bodyHtml);
   const renderedHtml = renderBrandedEmail({
+    branding,
     contentHtml: bodyHtml,
     shipment: shipmentContext
       ? {

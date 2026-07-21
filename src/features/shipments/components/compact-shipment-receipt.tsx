@@ -82,10 +82,7 @@ function CompanyReceiptHeader({ profile }: { profile: CompanyProfileInput }) {
       <div className="mx-auto grid size-11 place-items-center rounded-md bg-slate-950 text-sm font-black text-white">
         AG
       </div>
-      <p className="mt-3 text-base font-black">Apex Global Logistics</p>
-      {profile.legalName && profile.legalName !== "Apex Global Logistics" ? (
-        <p className="mt-1 text-[10px] text-slate-600">{profile.legalName}</p>
-      ) : null}
+      <p className="mt-3 text-base font-black">{profile.legalName || siteConfig.name}</p>
       {address.map((line) => (
         <p className="text-[10px] leading-4 text-slate-600" key={line}>
           {line}

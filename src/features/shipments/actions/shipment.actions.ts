@@ -322,6 +322,16 @@ export async function updateShipmentStatusAction(
     };
   }
 
+  if (parsed.data.status === "IN_TRANSIT" && !parsed.data.location) {
+    return {
+      fieldErrors: {
+        location: ["Enter the current location before publishing an in-transit update."],
+      },
+      message: "Add the current location for an in-transit update.",
+      status: "error",
+    };
+  }
+
   try {
     await updateShipmentStatus(shipmentId, parsed.data, user);
   } catch (error) {

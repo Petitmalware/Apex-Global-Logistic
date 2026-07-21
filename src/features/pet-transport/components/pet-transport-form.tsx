@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { CustomerSelectCard } from "@/features/customers/components/customer-select-card";
+import { ShipmentWorkflowGuide } from "@/features/shipments/components/shipment-workflow-guide";
 import type { PetTransportActionState, PetTransportDetail } from "@/features/pet-transport/types";
 import { formatPetTransportStatus } from "@/features/shipments/status-labels";
 import type { CustomerOption } from "@/features/shipments/types";
@@ -222,6 +223,44 @@ export function PetTransportForm({
 
   return (
     <form action={formAction} className="space-y-6">
+      {!isEdit ? (
+        <ShipmentWorkflowGuide
+          title={isCustomerBooking ? "Pet transport request" : "Create pet shipment"}
+          steps={
+            isCustomerBooking
+              ? [
+                  {
+                    label: "Pet and sender",
+                    description: "Add the pet identity and sender contact details.",
+                  },
+                  {
+                    label: "Delivery plan",
+                    description:
+                      "Tell Apex where the pet should travel and the preferred delivery date.",
+                  },
+                  {
+                    label: "Submit request",
+                    description: "Operations reviews the request before scheduling transport.",
+                  },
+                ]
+              : [
+                  {
+                    label: "Recipient",
+                    description: "Select a customer account or record a manual recipient.",
+                  },
+                  {
+                    label: "Pet profile",
+                    description: "Add the animal, sender, health readiness, and care essentials.",
+                  },
+                  {
+                    label: "Route and create",
+                    description:
+                      "Add delivery details, then publish tracking updates from the shipment record.",
+                  },
+                ]
+          }
+        />
+      ) : null}
       {state.message ? (
         <div className="border-border bg-secondary text-secondary-foreground rounded-md border px-3 py-2 text-sm">
           <p className="font-semibold">{state.message}</p>

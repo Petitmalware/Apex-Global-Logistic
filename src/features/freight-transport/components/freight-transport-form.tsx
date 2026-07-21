@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { CustomerSelectCard } from "@/features/customers/components/customer-select-card";
+import { ShipmentWorkflowGuide } from "@/features/shipments/components/shipment-workflow-guide";
 import type {
   FreightTransportActionState,
   FreightTransportDetail,
@@ -126,19 +127,11 @@ function ShipmentPlanFields({ customerBooking }: { customerBooking: boolean }) {
           </Select>
         </Field>
         <Field>
-          <Label htmlFor="pickupWindowStart">Pickup starts</Label>
-          <Input id="pickupWindowStart" name="pickupWindowStart" type="datetime-local" />
-        </Field>
-        <Field>
-          <Label htmlFor="pickupWindowEnd">Pickup ends</Label>
-          <Input id="pickupWindowEnd" name="pickupWindowEnd" type="datetime-local" />
-        </Field>
-        <Field>
-          <Label htmlFor="deliveryWindowStart">Delivery starts</Label>
+          <Label htmlFor="deliveryWindowStart">Expected delivery window begins</Label>
           <Input id="deliveryWindowStart" name="deliveryWindowStart" type="datetime-local" />
         </Field>
         <Field>
-          <Label htmlFor="deliveryWindowEnd">Delivery ends</Label>
+          <Label htmlFor="deliveryWindowEnd">Expected delivery window ends</Label>
           <Input id="deliveryWindowEnd" name="deliveryWindowEnd" type="datetime-local" />
         </Field>
         <Field className="sm:col-span-2">
@@ -166,6 +159,40 @@ export function FreightTransportForm({
 
   return (
     <form action={formAction} className="space-y-6">
+      {mode === "create" ? (
+        <ShipmentWorkflowGuide
+          title={isCustomerBooking ? "Freight booking request" : "Create freight shipment"}
+          steps={
+            isCustomerBooking
+              ? [
+                  {
+                    label: "Cargo",
+                    description: "Describe the freight, weight, and any handling needs.",
+                  },
+                  { label: "Route", description: "Provide collection and delivery locations." },
+                  {
+                    label: "Submit request",
+                    description: "Apex operations will plan and confirm the movement.",
+                  },
+                ]
+              : [
+                  {
+                    label: "Recipient",
+                    description: "Select the customer account or add a manual consignee.",
+                  },
+                  {
+                    label: "Cargo profile",
+                    description: "Record the freight, equipment, and compliance details.",
+                  },
+                  {
+                    label: "Route and create",
+                    description:
+                      "Set the delivery plan, then manage updates from the shipment record.",
+                  },
+                ]
+          }
+        />
+      ) : null}
       {state.message ? (
         <p className="border-border bg-secondary text-secondary-foreground rounded-md border px-3 py-2 text-sm">
           {state.message}
