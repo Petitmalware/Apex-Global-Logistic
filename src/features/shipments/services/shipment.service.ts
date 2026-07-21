@@ -4,7 +4,6 @@ import { randomUUID } from "node:crypto";
 import {
   ActivityAction,
   AddressType,
-  EmailTemplateCategory,
   InvoiceLineType,
   InvoiceStatus,
   PackageStatus,
@@ -27,7 +26,6 @@ import {
   type ParcelQuote,
 } from "@/features/shipments/services/parcel-pricing";
 import { notifyShipmentStatusChanged } from "@/features/notifications/services/notification.service";
-import { queueBrandedEmail } from "@/features/emails/services/email.service";
 import { publishShipmentTrackingUpdate } from "@/features/shipments/services/shipment-realtime.service";
 import { AUTH_ROLES } from "@/lib/auth/constants";
 import { PERMISSIONS, hasPermission } from "@/lib/auth/rbac";
@@ -192,37 +190,6 @@ function getManualRecipientFromMetadata(
   const phone = "phone" in value && typeof value.phone === "string" ? value.phone : null;
 
   return email || name || phone ? { email, name, phone } : null;
-}
-
-function getPublicTrackingMetadata(
-  publicTracking: ShipmentFormInput["publicTracking"],
-  existingMetadata?: Prisma.JsonValue | null,
-) {
-  const existing = getJsonObject(existingMetadata ?? null);
-  const existingPreferences =
-    "publicTracking" in existing &&
-    existing.publicTracking &&
-    typeof existing.publicTracking === "object" &&
-    !Array.isArray(existing.publicTracking)
-      ? (existing.publicTracking as Record<string, unknown>)
-      : {};
-  const shareContactDetails =
-    publicTracking.shareContactDetails ??
-    (typeof existingPreferences.shareContactDetails === "boolean"
-      ? existingPreferences.shareContactDetails
-      : true);
-  const shareParties =
-    publicTracking.shareParties ??
-    (typeof existingPreferences.shareParties === "boolean"
-      ? existingPreferences.shareParties
-      : true);
-  const sharePetDetails =
-    publicTracking.sharePetDetails ??
-    (typeof existingPreferences.sharePetDetails === "boolean"
-      ? existingPreferences.sharePetDetails
-      : true);
-
-  return { shareContactDetails, shareParties, sharePetDetails };
 }
 
 async function logShipmentActivity({
@@ -433,7 +400,6 @@ export async function createShipment(
   const shipmentNumber = await generateShipmentNumber(organizationId);
   const status = input.status;
   const officeDetails = getOfficeDetailsMetadata(input.officeDetails);
-  const publicTracking = getPublicTrackingMetadata(input.publicTracking);
 
   const shipment = await prisma.$transaction(async (transaction) => {
     const [originAddress, destinationAddress] = await Promise.all([
@@ -466,17 +432,11 @@ export async function createShipment(
         deliveryWindowStart: input.deliveryWindowStart,
         destinationAddressId: destinationAddress.id,
         metadata:
-          manualRecipient ||
-          officeDetails ||
-          options.customerBooking ||
-          publicTracking.shareContactDetails ||
-          publicTracking.shareParties ||
-          publicTracking.sharePetDetails
+          manualRecipient || officeDetails || options.customerBooking
             ? {
                 creationSource: options.customerBooking ? "CUSTOMER_BOOKING" : "ADMIN_CREATED",
                 manualRecipient,
                 officeDetails,
-                publicTracking,
               }
             : undefined,
         mode: input.mode,
@@ -550,22 +510,6 @@ export async function createShipment(
     shipmentNumber: shipment.shipmentNumber,
     status,
   }).catch(() => null);
-
-  if (manualRecipient?.email) {
-    await queueBrandedEmail({
-      bodyHtml: `<p>Hello {{customerName}},</p><p>${creationMessage}</p><p>Use tracking number <strong>{{trackingNumber}}</strong> on the Apex Global Logistics tracking page for updates.</p>`,
-      category: EmailTemplateCategory.SHIPMENT,
-      organizationId: shipment.organizationId,
-      recipientEmail: manualRecipient.email,
-      recipientName: manualRecipient.name,
-      shipmentId: shipment.id,
-      subject: `Shipment ${shipment.shipmentNumber} created`,
-      trackingNumber: shipment.shipmentNumber,
-      variables: {
-        customerName: manualRecipient.name ?? "Customer",
-      },
-    }).catch(() => null);
-  }
 
   return shipment;
 }
@@ -799,8 +743,6 @@ export async function updateShipment(
     throw new AuthError("Shipment not found.", 404, "SHIPMENT_NOT_FOUND");
   }
 
-  const publicTracking = getPublicTrackingMetadata(input.publicTracking, existingShipment.metadata);
-
   const isOwner =
     existingShipment.customerId === user.id || existingShipment.createdById === user.id;
   const canEditOwnedDraft =
@@ -843,7 +785,6 @@ export async function updateShipment(
         metadata: {
           ...getJsonObject(existingShipment.metadata),
           officeDetails,
-          publicTracking,
         },
         notes: input.notes,
         pickupWindowEnd: input.pickupWindowEnd,

@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Clock3, MapPinned, Radio, Route } from "lucide-react";
+import { MapPinned, Radio, Route } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { clientEnv } from "@/config/env.client";
@@ -107,8 +107,10 @@ export function ShipmentLiveMap({
             <MapPinned aria-hidden="true" className="size-5" />
           </div>
           <div className="min-w-0">
-            <p className="text-muted-foreground text-xs font-semibold uppercase">MapTiler map</p>
-            <h3 className="mt-1 font-semibold">Recorded Shipment Progress</h3>
+            <p className="text-muted-foreground text-xs font-semibold uppercase">
+              Shipment location
+            </p>
+            <h3 className="mt-1 font-semibold">Recorded location updates</h3>
             <p className="text-muted-foreground truncate text-sm">
               {snapshot.originCity} to {snapshot.destinationCity}
             </p>
@@ -139,12 +141,12 @@ export function ShipmentLiveMap({
               <Route aria-hidden="true" className="text-accent mt-0.5 size-5 shrink-0" />
               <div>
                 <p className="font-semibold">
-                  {mapTilerKey ? "Location updates are active" : "MapTiler is not configured yet"}
+                  {mapTilerKey ? "Location update pending" : "Map location unavailable"}
                 </p>
                 <p className="text-muted-foreground mt-2 text-sm leading-6">
                   {mapTilerKey
                     ? "The shipment has not received a verified coordinate yet. Apex can still publish the customer-facing location and timeline immediately while a map position is unavailable."
-                    : "The shipment location is saved, but the MapTiler browser key is not configured. Add it to the production environment, rebuild the application, and recorded checkpoints will render here."}
+                    : "Apex has not published a map location for this shipment yet. The latest verified location and status remain available above."}
                 </p>
               </div>
             </div>
@@ -169,30 +171,6 @@ export function ShipmentLiveMap({
           </div>
         </div>
       )}
-
-      <div className="border-border grid gap-3 border-t p-4 sm:grid-cols-2 sm:p-5">
-        <div className="flex items-start gap-3">
-          <Clock3 aria-hidden="true" className="text-accent mt-0.5 size-4 shrink-0" />
-          <div>
-            <p className="text-xs font-semibold uppercase">Last system update</p>
-            <p className="text-muted-foreground mt-1 text-sm">{formatDate(snapshot.updatedAt)}</p>
-          </div>
-        </div>
-        <div className="flex items-start gap-3 sm:justify-end sm:text-right">
-          <MapPinned aria-hidden="true" className="text-accent mt-0.5 size-4 shrink-0" />
-          <div>
-            <p className="text-xs font-semibold uppercase">Map data</p>
-            <a
-              className="text-muted-foreground mt-1 inline-block text-sm underline-offset-4 hover:underline"
-              href="https://www.maptiler.com/copyright/"
-              rel="noreferrer"
-              target="_blank"
-            >
-              MapTiler and OpenStreetMap
-            </a>
-          </div>
-        </div>
-      </div>
     </section>
   );
 }

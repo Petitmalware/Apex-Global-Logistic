@@ -12,7 +12,6 @@ import type {
   ShipmentListItem,
   ShipmentPackageView,
   PublicShipmentTrackingDetails,
-  PublicTrackingPreferences,
   ShipmentTrackingSnapshot,
 } from "@/features/shipments/types";
 import { AUTH_ROLES } from "@/lib/auth/constants";
@@ -59,26 +58,6 @@ function getManualRecipient(metadata: Prisma.JsonValue | null): ManualRecipientV
   return email || name || phone ? { email, name, phone } : null;
 }
 
-function getPublicTrackingPreferences(
-  metadata: Prisma.JsonValue | null,
-): PublicTrackingPreferences {
-  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
-    return { shareContactDetails: true, shareParties: true, sharePetDetails: true };
-  }
-
-  const value = "publicTracking" in metadata ? metadata.publicTracking : null;
-
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return { shareContactDetails: true, shareParties: true, sharePetDetails: true };
-  }
-
-  return {
-    shareContactDetails: !("shareContactDetails" in value && value.shareContactDetails === false),
-    shareParties: !("shareParties" in value && value.shareParties === false),
-    sharePetDetails: !("sharePetDetails" in value && value.sharePetDetails === false),
-  };
-}
-
 function getPublicTrackingDetails({
   customer,
   destinationAddress,
@@ -119,45 +98,35 @@ function getPublicTrackingDetails({
     weightKg: Prisma.Decimal | null;
   } | null;
 }): PublicShipmentTrackingDetails | null {
-  const preferences = getPublicTrackingPreferences(metadata ?? null);
   const manualRecipient = getManualRecipient(metadata ?? null);
   const officeDetails = getOfficeDetails(metadata ?? null);
-  const senderName = preferences.shareParties
-    ? (originAddress.name ?? petTransport?.ownerName ?? null)
-    : null;
-  const recipientName = preferences.shareParties
-    ? (destinationAddress.name ?? customer?.name ?? manualRecipient?.name ?? null)
-    : null;
-  const sender = preferences.shareContactDetails
+  const senderName = originAddress.name ?? petTransport?.ownerName ?? null;
+  const recipientName = destinationAddress.name ?? customer?.name ?? manualRecipient?.name ?? null;
+  const sender = {
+    address: originAddress,
+    email: officeDetails?.shipperEmail ?? null,
+    name: senderName,
+    phone: officeDetails?.shipperPhone ?? null,
+  };
+  const recipient = {
+    address: destinationAddress,
+    email: customer?.email ?? manualRecipient?.email ?? null,
+    name: recipientName,
+    phone: customer?.phone ?? manualRecipient?.phone ?? null,
+  };
+  const pet = petTransport?.petName
     ? {
-        address: originAddress,
-        email: officeDetails?.shipperEmail ?? null,
-        name: senderName,
-        phone: officeDetails?.shipperPhone ?? null,
+        ageMonths: petTransport.ageMonths,
+        breed: petTransport.breed,
+        color: petTransport.color,
+        name: petTransport.petName,
+        sex: petTransport.sex,
+        species: petTransport.species,
+        weightLb: petTransport.weightKg
+          ? numberToWeightString(kilogramsToPounds(petTransport.weightKg.toNumber()))
+          : null,
       }
     : null;
-  const recipient = preferences.shareContactDetails
-    ? {
-        address: destinationAddress,
-        email: customer?.email ?? manualRecipient?.email ?? null,
-        name: recipientName,
-        phone: customer?.phone ?? manualRecipient?.phone ?? null,
-      }
-    : null;
-  const pet =
-    preferences.sharePetDetails && petTransport?.petName
-      ? {
-          ageMonths: petTransport.ageMonths,
-          breed: petTransport.breed,
-          color: petTransport.color,
-          name: petTransport.petName,
-          sex: petTransport.sex,
-          species: petTransport.species,
-          weightLb: petTransport.weightKg
-            ? numberToWeightString(kilogramsToPounds(petTransport.weightKg.toNumber()))
-            : null,
-        }
-      : null;
   const consignment = packages?.length
     ? {
         packages: packages.map((shipmentPackage) => ({
@@ -749,7 +718,6 @@ export async function getShipmentForUser(
     const invoice = shipment.invoices[0] ?? null;
     const manualRecipient = getManualRecipient(shipment.metadata);
     const officeDetails = getOfficeDetails(shipment.metadata);
-    const publicTracking = getPublicTrackingPreferences(shipment.metadata);
 
     return {
       cancelledAt: formatDate(shipment.cancelledAt),
@@ -812,7 +780,6 @@ export async function getShipmentForUser(
       pickupWindowEnd: formatDate(shipment.pickupWindowEnd),
       pickupWindowStart: formatDate(shipment.pickupWindowStart),
       priority: shipment.priority,
-      publicTracking,
       recipientEmail: shipment.customer?.email ?? manualRecipient?.email ?? null,
       recipientName: shipment.customer?.name ?? manualRecipient?.name ?? null,
       referenceNumber: shipment.referenceNumber,

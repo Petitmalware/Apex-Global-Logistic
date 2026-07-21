@@ -128,13 +128,6 @@ export const shipmentFormSchema = z
     pickupWindowEnd: optionalDate,
     pickupWindowStart: optionalDate,
     priority: z.nativeEnum(ShipmentPriority).default(ShipmentPriority.STANDARD),
-    publicTracking: z
-      .object({
-        shareContactDetails: z.boolean().optional(),
-        shareParties: z.boolean().optional(),
-        sharePetDetails: z.boolean().optional(),
-      })
-      .default({}),
     referenceNumber: optionalString(120),
     recipientRequired: z.boolean().default(true),
     serviceLevel: optionalString(80),

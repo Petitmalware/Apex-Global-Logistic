@@ -83,12 +83,6 @@ export type ShipmentOfficeDetails = {
   totalFreight: string | null;
 };
 
-export type PublicTrackingPreferences = {
-  shareContactDetails: boolean;
-  shareParties: boolean;
-  sharePetDetails: boolean;
-};
-
 export type PublicTrackingParty = {
   address: ShipmentAddressView;
   email: string | null;
@@ -216,7 +210,6 @@ export type ShipmentDetail = ShipmentListItem & {
   packages: ShipmentPackageView[];
   pickupWindowEnd: string | null;
   pickupWindowStart: string | null;
-  publicTracking: PublicTrackingPreferences;
   serviceLevel: string | null;
   weightSummary: {
     actualWeightKg: string;

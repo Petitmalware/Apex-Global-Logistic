@@ -528,6 +528,7 @@ export async function notifyShipmentStatusChanged({
   shipmentId,
   shipmentNumber,
   status,
+  sendEmail = false,
 }: {
   customerId: string | null;
   createdById: string | null;
@@ -536,6 +537,7 @@ export async function notifyShipmentStatusChanged({
   shipmentId: string;
   shipmentNumber: string;
   status: string;
+  sendEmail?: boolean;
 }) {
   const recipientIds = unique([customerId, createdById].filter(Boolean) as string[]);
   const recipients = recipientIds.length
@@ -552,26 +554,6 @@ export async function notifyShipmentStatusChanged({
         },
       })
     : [];
-  const shipment = await prisma.shipment.findUnique({
-    select: {
-      metadata: true,
-    },
-    where: {
-      id: shipmentId,
-    },
-  });
-  const manualRecipient = getManualRecipient(shipment?.metadata ?? null);
-  const templateKey =
-    status === "DELIVERED"
-      ? "delivered"
-      : status === "OUT_FOR_DELIVERY"
-        ? "out-for-delivery"
-        : status === "HELD"
-          ? "shipment-delayed"
-          : status === "IN_TRANSIT"
-            ? "shipment-in-transit"
-            : "shipment-created";
-
   await Promise.all(
     recipientIds.map((userId) =>
       createUserNotification({
@@ -593,6 +575,30 @@ export async function notifyShipmentStatusChanged({
       }),
     ),
   );
+
+  if (!sendEmail) {
+    return;
+  }
+
+  const shipment = await prisma.shipment.findUnique({
+    select: {
+      metadata: true,
+    },
+    where: {
+      id: shipmentId,
+    },
+  });
+  const manualRecipient = getManualRecipient(shipment?.metadata ?? null);
+  const templateKey =
+    status === "DELIVERED"
+      ? "delivered"
+      : status === "OUT_FOR_DELIVERY"
+        ? "out-for-delivery"
+        : status === "HELD"
+          ? "shipment-delayed"
+          : status === "IN_TRANSIT"
+            ? "shipment-in-transit"
+            : "shipment-created";
   const recipientEmails = new Set(recipients.map((recipient) => recipient.email.toLowerCase()));
   const emailRecipients = [
     ...recipients.map((recipient) => ({

@@ -22,13 +22,6 @@ function formatDate(value: string | null) {
   }).format(new Date(value));
 }
 
-function formatMoney(value: string | number, currency = "USD") {
-  return new Intl.NumberFormat("en", {
-    currency,
-    style: "currency",
-  }).format(Number(value));
-}
-
 function formatEnum(value: string) {
   return value
     .replaceAll("_", " ")
@@ -119,9 +112,6 @@ export function CompactShipmentReceipt({
   profile: CompanyProfileInput;
   shipment: ShipmentDetail;
 }) {
-  const invoice = shipment.invoice;
-  const balanceDue = invoice ? Number(invoice.total) - Number(invoice.amountPaid) : null;
-  const issuedAt = formatDate(invoice?.issuedAt ?? shipment.createdAt);
   const recipientPhone = shipment.manualRecipient?.phone ?? null;
   const officeDetails = shipment.officeDetails;
 
@@ -168,7 +158,6 @@ export function CompactShipmentReceipt({
 
           <dl>
             <DetailRow label="Receipt" value={`RCT-${shipment.shipmentNumber}`} />
-            <DetailRow label="Issued" value={issuedAt} />
             <DetailRow label="Tracking" value={shipment.shipmentNumber} />
             <DetailRow label="Reference" value={shipment.referenceNumber} />
             <DetailRow label="Status" value={formatShipmentStatus(shipment.status)} />
@@ -177,13 +166,7 @@ export function CompactShipmentReceipt({
               label="Updated"
               value={formatDate(shipment.timeline[0]?.occurredAt ?? null)}
             />
-            <DetailRow label="Mode" value={formatEnum(shipment.mode)} />
             <DetailRow label="Service" value={shipment.serviceLevel} />
-            <DetailRow label="Priority" value={formatEnum(shipment.priority)} />
-            <DetailRow label="Carrier" value={officeDetails?.carrier} />
-            <DetailRow label="Carrier ref" value={officeDetails?.carrierReference} />
-            <DetailRow label="Courier" value={officeDetails?.courier} />
-            <DetailRow label="Payment" value={officeDetails?.paymentMode} />
             <DetailRow label="Packages" value={String(shipment.packageCount)} />
             <DetailRow
               label="Weight"
@@ -224,58 +207,11 @@ export function CompactShipmentReceipt({
                           : null
                       }
                     />
-                    <DetailRow
-                      label="Declared"
-                      value={
-                        shipmentPackage.declaredValue
-                          ? formatMoney(shipmentPackage.declaredValue, shipmentPackage.currency)
-                          : null
-                      }
-                    />
                   </div>
                 ))}
               </div>
             </section>
           ) : null}
-
-          <section className="border-t border-dashed border-slate-400 py-3">
-            <h2 className="text-xs font-black uppercase">Billing summary</h2>
-            {invoice ? (
-              <dl className="mt-2">
-                <DetailRow label="Invoice" value={invoice.invoiceNumber} />
-                <DetailRow label="Status" value={formatEnum(invoice.status)} />
-                <DetailRow
-                  label="Subtotal"
-                  value={formatMoney(invoice.subtotal, invoice.currency)}
-                />
-                {Number(invoice.taxTotal) > 0 ? (
-                  <DetailRow label="Tax" value={formatMoney(invoice.taxTotal, invoice.currency)} />
-                ) : null}
-                {Number(invoice.amountPaid) > 0 ? (
-                  <DetailRow
-                    label="Paid"
-                    value={formatMoney(invoice.amountPaid, invoice.currency)}
-                  />
-                ) : null}
-                <div className="mt-2 flex items-center justify-between border-y-2 border-slate-950 py-2 text-sm font-black">
-                  <dt>Balance due</dt>
-                  <dd>{formatMoney(balanceDue ?? 0, invoice.currency)}</dd>
-                </div>
-              </dl>
-            ) : officeDetails?.totalFreight ? (
-              <dl className="mt-2">
-                <DetailRow label="Freight total" value={officeDetails.totalFreight} />
-                <p className="mt-2 text-[10px] leading-4 text-slate-600">
-                  No invoice is attached. Verify any payment request against an official invoice
-                  before paying.
-                </p>
-              </dl>
-            ) : (
-              <p className="mt-2 text-[10px] leading-4 text-slate-600">
-                No invoice or payment total is recorded for this shipment.
-              </p>
-            )}
-          </section>
 
           {officeDetails?.comments || shipment.notes ? (
             <section className="border-t border-dashed border-slate-400 py-3">
@@ -286,20 +222,8 @@ export function CompactShipmentReceipt({
             </section>
           ) : null}
 
-          <footer className="border-t border-dashed border-slate-400 pt-4 text-center text-[9px] leading-4 text-slate-600">
-            <p className="font-bold text-slate-950">Verify this receipt before payment</p>
-            <p className="mt-1 break-all">
-              Enter tracking number {shipment.shipmentNumber} at {siteConfig.url}/tracking
-            </p>
-            <p className="mt-2">
-              This receipt reflects the shipment and billing information stored in Apex operating
-              records when issued. It is not a government license or insurance certificate.
-            </p>
-            <div className="mt-7 grid grid-cols-2 gap-4 text-left">
-              <div className="border-t border-slate-500 pt-1">Issued by</div>
-              <div className="border-t border-slate-500 pt-1">Recipient signature</div>
-            </div>
-            <p className="mt-6 font-black text-slate-950">Thank you for choosing Apex.</p>
+          <footer className="border-t border-dashed border-slate-400 pt-4 text-center text-[10px] leading-4 text-slate-600">
+            <p className="font-black text-slate-950">Thank you for choosing Apex.</p>
           </footer>
         </article>
       </div>

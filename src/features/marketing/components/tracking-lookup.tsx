@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import type { Route as NextRoute } from "next";
 import { useEffect, useState, type FormEvent } from "react";
 import {
   Boxes,
@@ -7,7 +9,7 @@ import {
   CheckCircle2,
   ChevronRight,
   CirclePause,
-  Clock3,
+  FileText,
   LocateFixed,
   MapPinned,
   PackageSearch,
@@ -125,21 +127,6 @@ function getStatusMessage(status: ShipmentTrackingSnapshot["status"]) {
   return messages[status];
 }
 
-function getNextStep(status: ShipmentTrackingSnapshot["status"]) {
-  const nextSteps = {
-    BOOKED: "Apex is confirming the next collection or facility handoff.",
-    CANCELLED: "No further movement is planned for this shipment.",
-    DELIVERED: "Delivery has been completed and the record is retained for reference.",
-    DRAFT: "The shipment is still being prepared by Apex operations.",
-    HELD: "Apex operations is reviewing the hold before movement can continue.",
-    IN_TRANSIT: "The next update will be published when the shipment reaches another checkpoint.",
-    PENDING_PICKUP: "The shipment is awaiting collection or release at the current location.",
-    RETURNED: "The return journey is being coordinated with the sender.",
-  } satisfies Record<ShipmentTrackingSnapshot["status"], string>;
-
-  return nextSteps[status];
-}
-
 function TrackingStatusIcon({ status }: { status: ShipmentTrackingSnapshot["status"] }) {
   if (status === "DELIVERED") {
     return <CheckCircle2 aria-hidden="true" className="size-5" />;
@@ -151,38 +138,6 @@ function TrackingStatusIcon({ status }: { status: ShipmentTrackingSnapshot["stat
 
   return <Truck aria-hidden="true" className="size-5" />;
 }
-
-function getProgressStage(snapshot: ShipmentTrackingSnapshot, latestEventType?: string) {
-  if (snapshot.status === "DELIVERED") {
-    return 4;
-  }
-
-  if (latestEventType === "OUT_FOR_DELIVERY") {
-    return 3;
-  }
-
-  if (
-    snapshot.status === "IN_TRANSIT" ||
-    snapshot.status === "HELD" ||
-    snapshot.status === "RETURNED"
-  ) {
-    return 2;
-  }
-
-  if (snapshot.status === "PENDING_PICKUP" || latestEventType === "PICKED_UP") {
-    return 1;
-  }
-
-  return 0;
-}
-
-const progressSteps = [
-  "Order confirmed",
-  "Picked up",
-  "In transit",
-  "Out for delivery",
-  "Delivered",
-] as const;
 
 export function TrackingLookup() {
   const [connectionState, setConnectionState] = useState<"live" | "reconnecting" | "idle">("idle");
@@ -252,8 +207,6 @@ export function TrackingLookup() {
   }, [trackedReference]);
 
   const latestEvent = snapshot?.timeline[0] ?? null;
-  const nextStep = snapshot ? getNextStep(snapshot.status) : null;
-  const progressStage = snapshot ? getProgressStage(snapshot, latestEvent?.eventType) : 0;
   const carrierName = snapshot?.publicDetails?.carrier ?? "Apex Global Logistics";
 
   return (
@@ -356,6 +309,16 @@ export function TrackingLookup() {
                           ? "Reconnecting"
                           : "Connecting"}
                     </Badge>
+                    <Button asChild size="sm" variant="outline">
+                      <Link
+                        href={
+                          `/tracking/${encodeURIComponent(snapshot.shipmentNumber)}/receipt` as NextRoute
+                        }
+                      >
+                        <FileText aria-hidden="true" />
+                        Print receipt
+                      </Link>
+                    </Button>
                   </div>
                 </div>
 
@@ -392,48 +355,7 @@ export function TrackingLookup() {
                   </div>
                 </div>
 
-                <div className="border-border mt-5 border-t pt-5">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-sm font-semibold">Delivery progress</p>
-                    <p className="text-muted-foreground text-xs">
-                      Updated as checkpoints are published
-                    </p>
-                  </div>
-                  <ol className="mt-4 grid gap-3 sm:grid-cols-5">
-                    {progressSteps.map((step, index) => {
-                      const complete = index <= progressStage;
-                      const current = index === progressStage;
-
-                      return (
-                        <li className="min-w-0" key={step}>
-                          <div className="flex items-center gap-2 sm:block">
-                            <span
-                              aria-hidden="true"
-                              className={
-                                complete
-                                  ? "bg-success text-success-foreground grid size-7 shrink-0 place-items-center rounded-full text-xs font-bold"
-                                  : "border-border text-muted-foreground grid size-7 shrink-0 place-items-center rounded-full border text-xs font-bold"
-                              }
-                            >
-                              {complete ? "OK" : index + 1}
-                            </span>
-                            <span
-                              className={
-                                current
-                                  ? "text-foreground text-sm font-semibold sm:mt-2 sm:block"
-                                  : "text-muted-foreground text-sm sm:mt-2 sm:block"
-                              }
-                            >
-                              {step}
-                            </span>
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ol>
-                </div>
-
-                <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+                <div className="mt-5">
                   <div className="border-border rounded-md border p-4">
                     <div className="flex items-start gap-3">
                       <MapPinned
@@ -454,15 +376,6 @@ export function TrackingLookup() {
                           {latestEvent?.currentLocation ?? "Location update pending"}
                           {latestEvent ? ` · ${formatDate(latestEvent.occurredAt)}` : null}
                         </p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="border-border rounded-md border p-4">
-                    <div className="flex items-start gap-3">
-                      <Clock3 aria-hidden="true" className="text-accent mt-0.5 size-5 shrink-0" />
-                      <div>
-                        <p className="text-xs font-semibold uppercase">What happens next</p>
-                        <p className="text-muted-foreground mt-2 text-sm leading-6">{nextStep}</p>
                       </div>
                     </div>
                   </div>

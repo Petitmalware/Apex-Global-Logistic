@@ -156,10 +156,6 @@ function parsePetShipmentFormData(
     pickupWindowEnd: "",
     pickupWindowStart: "",
     priority: getString(formData, "priority") || "STANDARD",
-    publicTracking: {
-      shareParties: getBoolean(formData, "publicTracking.shareParties"),
-      sharePetDetails: getBoolean(formData, "publicTracking.sharePetDetails"),
-    },
     referenceNumber: getString(formData, "referenceNumber"),
     serviceLevel: getString(formData, "serviceLevel") || "Pet Shipment Care",
     status: options.customerBooking ? "DRAFT" : "BOOKED",

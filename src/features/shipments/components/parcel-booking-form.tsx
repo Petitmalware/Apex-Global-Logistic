@@ -189,7 +189,6 @@ export function ParcelBookingForm({
         pickupWindowEnd: undefined,
         pickupWindowStart: undefined,
         priority: priority as "EXPEDITED" | "STANDARD" | "URGENT",
-        publicTracking: {},
         referenceNumber: undefined,
         recipientRequired: false,
         serviceLevel: "Parcel Standard",
