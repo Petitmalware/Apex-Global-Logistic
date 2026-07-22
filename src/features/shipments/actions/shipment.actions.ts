@@ -293,6 +293,7 @@ export async function updateShipmentStatusAction(
     if (geocode.coordinates) {
       formData.set("latitude", String(geocode.coordinates.latitude));
       formData.set("longitude", String(geocode.coordinates.longitude));
+      formData.set("location", geocode.formattedAddress ?? location);
       mappingMessage = " Map coordinates were added from the location provided.";
     } else if (geocode.reason === "not_configured") {
       mappingMessage =

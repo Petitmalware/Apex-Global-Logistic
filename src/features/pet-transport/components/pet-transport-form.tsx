@@ -304,161 +304,174 @@ export function PetTransportForm({
             </FieldHint>
           </div>
         </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Field>
-            <Label htmlFor="petName">Pet name</Label>
-            <Input
-              id="petName"
-              name="petName"
-              required
-              defaultValue={initialPetTransport?.petName ?? ""}
-            />
-            {state.fieldErrors?.petName?.[0] ? (
-              <FieldError>{state.fieldErrors.petName[0]}</FieldError>
-            ) : null}
-          </Field>
-          <Field>
-            <Label htmlFor="species">Species</Label>
-            <Select
-              id="species"
-              name="species"
-              defaultValue={initialPetTransport?.species ?? "DOG"}
-            >
-              <option value="DOG">Dog</option>
-              <option value="CAT">Cat</option>
-              <option value="BIRD">Bird</option>
-              <option value="REPTILE">Reptile</option>
-              <option value="OTHER">Other</option>
-            </Select>
-          </Field>
-          <Field>
-            <Label htmlFor="breed">Breed</Label>
-            <Input id="breed" name="breed" defaultValue={initialPetTransport?.breed ?? ""} />
-          </Field>
-          <Field>
-            <Label htmlFor="ageMonths">Age in months (optional)</Label>
-            <Input
-              id="ageMonths"
-              min="0"
-              name="ageMonths"
-              type="number"
-              defaultValue={initialPetTransport?.ageMonths ?? ""}
-            />
-          </Field>
-          <Field>
-            <Label htmlFor="dateOfBirth">Date of birth (optional)</Label>
-            <Input
-              id="dateOfBirth"
-              name="dateOfBirth"
-              type="date"
-              defaultValue={initialPetTransport?.dateOfBirth ?? ""}
-            />
-          </Field>
-          <Field>
-            <Label htmlFor="weightLb">Weight (lb)</Label>
-            <Input
-              id="weightLb"
-              min="0"
-              name="weightLb"
-              step="0.001"
-              type="number"
-              defaultValue={kilogramsToPoundsString(initialPetTransport?.weightKg)}
-            />
-          </Field>
-          <Field>
-            <Label htmlFor="sex">Sex</Label>
-            <Input
-              id="sex"
-              name="sex"
-              placeholder="Female, neutered male..."
-              defaultValue={initialPetTransport?.sex ?? ""}
-            />
-          </Field>
-          <Field>
-            <Label htmlFor="color">Color</Label>
-            <Input id="color" name="color" defaultValue={initialPetTransport?.color ?? ""} />
-          </Field>
-          <Field>
-            <Label htmlFor="microchipNumber">Microchip number (optional)</Label>
-            <Input
-              id="microchipNumber"
-              name="microchipNumber"
-              defaultValue={initialPetTransport?.microchipNumber ?? ""}
-            />
-          </Field>
-          <Field>
-            <Label htmlFor="ownerName">Sender / pet owner name</Label>
-            <Input
-              id="ownerName"
-              name="ownerName"
-              defaultValue={initialPetTransport?.ownerName ?? ""}
-            />
-          </Field>
-          <Field>
-            <Label htmlFor="ownerEmail">Sender email</Label>
-            <Input
-              id="ownerEmail"
-              name="ownerEmail"
-              type="email"
-              defaultValue={initialPetTransport?.ownerEmail ?? ""}
-            />
-          </Field>
-          <Field>
-            <Label htmlFor="ownerPhone">Sender phone</Label>
-            <Input
-              id="ownerPhone"
-              name="ownerPhone"
-              defaultValue={initialPetTransport?.ownerPhone ?? ""}
-            />
-          </Field>
-          <Field>
-            <Label htmlFor="healthCertificateNumber">Health certificate (optional)</Label>
-            <Input
-              id="healthCertificateNumber"
-              name="healthCertificateNumber"
-              defaultValue={initialPetTransport?.healthCertificateNumber ?? ""}
-            />
-          </Field>
-          {!isCustomerBooking ? (
+        <CardContent className="space-y-5">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Field>
-              <Label htmlFor="status">Operational status</Label>
-              <Select
-                id="status"
-                name="status"
-                defaultValue={initialPetTransport?.status ?? "REQUESTED"}
-              >
-                {petStatusOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {formatPetTransportStatus(option)}
-                  </option>
-                ))}
-              </Select>
-              <FieldHint>
-                Use awaiting payment or on hold only when the record has a documented billing or
-                operational dependency.
-              </FieldHint>
+              <Label htmlFor="petName">Pet name</Label>
+              <Input
+                id="petName"
+                name="petName"
+                required
+                defaultValue={initialPetTransport?.petName ?? ""}
+              />
+              {state.fieldErrors?.petName?.[0] ? (
+                <FieldError>{state.fieldErrors.petName[0]}</FieldError>
+              ) : null}
             </Field>
-          ) : (
-            <input name="status" type="hidden" value="REQUESTED" />
-          )}
-          <div className="flex flex-wrap items-center gap-5 pt-6">
-            <label className="flex items-center gap-2 text-sm font-medium">
-              <input
-                defaultChecked={initialPetTransport?.crateRequired ?? true}
-                name="crateRequired"
-                type="checkbox"
+            <Field>
+              <Label htmlFor="species">Species</Label>
+              <Select
+                id="species"
+                name="species"
+                defaultValue={initialPetTransport?.species ?? "DOG"}
+              >
+                <option value="DOG">Dog</option>
+                <option value="CAT">Cat</option>
+                <option value="BIRD">Bird</option>
+                <option value="REPTILE">Reptile</option>
+                <option value="OTHER">Other</option>
+              </Select>
+            </Field>
+            <Field>
+              <Label htmlFor="weightLb">Weight (lb)</Label>
+              <Input
+                id="weightLb"
+                min="0"
+                name="weightLb"
+                step="0.001"
+                type="number"
+                defaultValue={kilogramsToPoundsString(initialPetTransport?.weightKg)}
               />
-              Travel crate required
-            </label>
-            <label className="flex items-center gap-2 text-sm font-medium">
-              <input
-                defaultChecked={initialPetTransport?.vaccinationVerified ?? false}
-                name="vaccinationVerified"
-                type="checkbox"
+            </Field>
+            <Field>
+              <Label htmlFor="ownerName">Sender / pet owner name</Label>
+              <Input
+                id="ownerName"
+                name="ownerName"
+                defaultValue={initialPetTransport?.ownerName ?? ""}
               />
-              Vaccination proof verified
-            </label>
+            </Field>
+            <Field>
+              <Label htmlFor="ownerEmail">Sender email</Label>
+              <Input
+                id="ownerEmail"
+                name="ownerEmail"
+                type="email"
+                defaultValue={initialPetTransport?.ownerEmail ?? ""}
+              />
+            </Field>
+            <Field>
+              <Label htmlFor="ownerPhone">Sender phone</Label>
+              <Input
+                id="ownerPhone"
+                name="ownerPhone"
+                defaultValue={initialPetTransport?.ownerPhone ?? ""}
+              />
+            </Field>
+            {!isCustomerBooking ? (
+              <Field>
+                <Label htmlFor="status">Operational status</Label>
+                <Select
+                  id="status"
+                  name="status"
+                  defaultValue={initialPetTransport?.status ?? "REQUESTED"}
+                >
+                  {petStatusOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {formatPetTransportStatus(option)}
+                    </option>
+                  ))}
+                </Select>
+                <FieldHint>
+                  Use awaiting payment or on hold only when the record has a documented billing or
+                  operational dependency.
+                </FieldHint>
+              </Field>
+            ) : (
+              <input name="status" type="hidden" value="REQUESTED" />
+            )}
+            <div className="flex flex-wrap items-center gap-5 pt-6 sm:col-span-2">
+              <label className="flex items-center gap-2 text-sm font-medium">
+                <input
+                  defaultChecked={initialPetTransport?.crateRequired ?? true}
+                  name="crateRequired"
+                  type="checkbox"
+                />
+                Travel crate required
+              </label>
+              <label className="flex items-center gap-2 text-sm font-medium">
+                <input
+                  defaultChecked={initialPetTransport?.vaccinationVerified ?? false}
+                  name="vaccinationVerified"
+                  type="checkbox"
+                />
+                Vaccination proof verified
+              </label>
+            </div>
           </div>
+
+          <details className="border-border rounded-md border" open={isEdit}>
+            <summary className="cursor-pointer list-none px-4 py-3">
+              <span className="block text-sm font-semibold">Pet identity and health details</span>
+              <span className="text-muted-foreground mt-1 block text-sm">
+                Optional breed, age, microchip, and certificate information.
+              </span>
+            </summary>
+            <div className="border-border grid gap-4 border-t p-4 sm:grid-cols-2 lg:grid-cols-3">
+              <Field>
+                <Label htmlFor="breed">Breed</Label>
+                <Input id="breed" name="breed" defaultValue={initialPetTransport?.breed ?? ""} />
+              </Field>
+              <Field>
+                <Label htmlFor="ageMonths">Age in months</Label>
+                <Input
+                  id="ageMonths"
+                  min="0"
+                  name="ageMonths"
+                  type="number"
+                  defaultValue={initialPetTransport?.ageMonths ?? ""}
+                />
+              </Field>
+              <Field>
+                <Label htmlFor="dateOfBirth">Date of birth</Label>
+                <Input
+                  id="dateOfBirth"
+                  name="dateOfBirth"
+                  type="date"
+                  defaultValue={initialPetTransport?.dateOfBirth ?? ""}
+                />
+              </Field>
+              <Field>
+                <Label htmlFor="sex">Sex</Label>
+                <Input
+                  id="sex"
+                  name="sex"
+                  placeholder="Female, neutered male..."
+                  defaultValue={initialPetTransport?.sex ?? ""}
+                />
+              </Field>
+              <Field>
+                <Label htmlFor="color">Color</Label>
+                <Input id="color" name="color" defaultValue={initialPetTransport?.color ?? ""} />
+              </Field>
+              <Field>
+                <Label htmlFor="microchipNumber">Microchip number</Label>
+                <Input
+                  id="microchipNumber"
+                  name="microchipNumber"
+                  defaultValue={initialPetTransport?.microchipNumber ?? ""}
+                />
+              </Field>
+              <Field className="sm:col-span-2">
+                <Label htmlFor="healthCertificateNumber">Health certificate number</Label>
+                <Input
+                  id="healthCertificateNumber"
+                  name="healthCertificateNumber"
+                  defaultValue={initialPetTransport?.healthCertificateNumber ?? ""}
+                />
+              </Field>
+            </div>
+          </details>
         </CardContent>
       </Card>
 

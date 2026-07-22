@@ -442,10 +442,9 @@ export function TrackingLookup() {
             <section className="border-border bg-card shadow-panel rounded-lg border p-5 sm:p-6">
               <div className="border-border flex flex-wrap items-end justify-between gap-3 border-b pb-4">
                 <div>
-                  <h3 className="text-lg font-semibold">Journey overview</h3>
+                  <h3 className="text-lg font-semibold">Route summary</h3>
                   <p className="text-muted-foreground mt-1 text-sm leading-6">
-                    The route is summarized from the shipment record and the latest verified
-                    checkpoint.
+                    Origin, current recorded location, and final delivery destination.
                   </p>
                 </div>
                 <p className="text-muted-foreground text-sm">
@@ -855,9 +854,9 @@ export function TrackingLookup() {
 
             <section className="border-border bg-card shadow-panel rounded-lg border p-5 sm:p-6">
               <div className="border-border border-b pb-4">
-                <h3 className="text-lg font-semibold">Shipment progress</h3>
+                <h3 className="text-lg font-semibold">Shipment updates</h3>
                 <p className="text-muted-foreground mt-1 text-sm">
-                  Every published checkpoint is retained in chronological order.
+                  Published operational updates, newest first.
                 </p>
               </div>
               <div className="mt-5 space-y-1">
@@ -873,7 +872,9 @@ export function TrackingLookup() {
                       <div className="min-w-0 flex-1 pb-5">
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="font-semibold">
-                            {formatTrackingEventType(trackingEvent.eventType)}
+                            {trackingEvent.shipmentStatus
+                              ? formatShipmentStatus(trackingEvent.shipmentStatus)
+                              : formatTrackingEventType(trackingEvent.eventType)}
                           </p>
                           {trackingEvent.shipmentStatus ? (
                             <Badge variant="outline">

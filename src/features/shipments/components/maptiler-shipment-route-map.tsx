@@ -24,7 +24,7 @@ function createPopupContent(checkpoint: ShipmentRouteCheckpoint, isLatest: boole
 
   const title = document.createElement("p");
   title.className = "shipment-map-popup-title";
-  title.textContent = isLatest ? "Latest recorded checkpoint" : "Recorded checkpoint";
+  title.textContent = isLatest ? "Current recorded position" : "Recorded checkpoint";
   container.append(title);
 
   const location = document.createElement("p");
