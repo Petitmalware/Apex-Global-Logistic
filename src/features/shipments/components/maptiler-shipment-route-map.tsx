@@ -91,11 +91,11 @@ export function MapTilerShipmentRouteMap({
 
   useEffect(() => {
     let cancelled = false;
-    let hasLoaded = false;
+    let hasRenderedMap = false;
     let map: import("maplibre-gl").Map | null = null;
 
     function handleMapError() {
-      if (!cancelled && !hasLoaded) {
+      if (!cancelled && !hasRenderedMap) {
         map?.remove();
         map = null;
         setLoadError(true);
@@ -132,8 +132,6 @@ export function MapTilerShipmentRouteMap({
           if (cancelled || !map) {
             return;
           }
-
-          hasLoaded = true;
 
           const bounds = new maplibregl.LngLatBounds();
 
@@ -303,12 +301,13 @@ export function MapTilerShipmentRouteMap({
           }
 
           map.resize();
+          map.once("idle", () => {
+            hasRenderedMap = true;
+          });
         });
 
-        // A single failed tile after the style has loaded should not remove a usable map.
-        // Only treat startup errors as fatal to the map surface.
         map.on("error", () => {
-          if (!hasLoaded) {
+          if (!hasRenderedMap) {
             handleMapError();
           }
         });
@@ -326,12 +325,39 @@ export function MapTilerShipmentRouteMap({
   }, [apiKey, checkpoints, estimatedRoute]);
 
   if (loadError) {
+    const latestCheckpoint = checkpoints.at(-1) ?? null;
+
     return (
-      <div className="bg-surface flex h-[22rem] items-center justify-center p-6 text-center sm:h-[28rem]">
-        <p className="text-muted-foreground max-w-sm text-sm leading-6">
-          The street map is temporarily unavailable. Recorded shipment updates and the delivery
-          timeline remain available above.
-        </p>
+      <div className="bg-surface flex min-h-[22rem] items-center p-5 sm:min-h-[28rem] sm:p-8">
+        <div className="border-border bg-background mx-auto w-full max-w-xl rounded-lg border p-5 shadow-sm sm:p-6">
+          <p className="text-sm font-semibold">Route map temporarily unavailable</p>
+          <p className="text-muted-foreground mt-2 text-sm leading-6">
+            Shipment tracking is still available. Use the route summary and the latest published
+            update below while the street map reconnects.
+          </p>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            <div className="border-border rounded-md border p-3">
+              <p className="text-muted-foreground text-xs font-semibold uppercase">Route</p>
+              <p className="mt-2 text-sm font-semibold">
+                {estimatedRoute
+                  ? `${estimatedRoute.origin.label} to ${estimatedRoute.destination.label}`
+                  : (latestCheckpoint?.label ?? "Route update pending")}
+              </p>
+            </div>
+            <div className="border-border rounded-md border p-3">
+              <p className="text-muted-foreground text-xs font-semibold uppercase">
+                {estimatedRoute ? "Schedule progress" : "Latest checkpoint"}
+              </p>
+              <p className="mt-2 text-sm font-semibold">
+                {estimatedRoute
+                  ? `${estimatedRoute.progressPercent}% of the planned schedule`
+                  : latestCheckpoint
+                    ? formatDate(latestCheckpoint.occurredAt)
+                    : "Awaiting location update"}
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

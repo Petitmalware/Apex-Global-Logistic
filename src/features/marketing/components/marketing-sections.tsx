@@ -86,11 +86,11 @@ export function HomeHero() {
       <div className="from-background absolute inset-x-0 bottom-0 -z-10 h-32 bg-linear-to-t to-transparent" />
       <div className="mx-auto flex min-h-[calc(100svh-73px)] w-full max-w-7xl items-center px-4 py-16 sm:px-6">
         <div className="animate-fade-up max-w-3xl">
-          <Badge variant="accent">Global logistics control tower</Badge>
+          <Badge variant="accent">Logistics, made clear</Badge>
           <Display className="mt-6 text-5xl sm:text-6xl">Apex Global Logistics</Display>
           <p className="text-muted-foreground mt-6 max-w-2xl text-base leading-8 sm:text-lg">
-            Premium parcel delivery, pet transportation, freight coordination, billing
-            documentation, and tracking built for customers who need every handoff to be visible.
+            Parcel delivery, pet transportation, freight coordination, and transparent shipment
+            records from initial setup through delivery.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Button asChild size="xl" variant="accent">

@@ -3,18 +3,12 @@ import type { Metadata } from "next";
 import { MarketingShell } from "@/features/marketing/components/marketing-shell";
 import {
   ContactPanel,
-  ClientAssuranceSection,
-  CustomerJourneySection,
   DeliveryProofSection,
   DocumentsAndBillingSection,
   FinalCta,
-  GettingStartedGuideSection,
   HomeHero,
-  PaymentConfidenceSection,
   ProcessSection,
-  ServiceDetailsSection,
   ServiceGrid,
-  TrustAndSafetySection,
   TrustBar,
 } from "@/features/marketing/components/marketing-sections";
 import { createLogisticsServicesJsonLd, structuredDataToJson } from "@/lib/seo";
@@ -45,16 +39,10 @@ export default function HomePage() {
       />
       <HomeHero />
       <TrustBar />
-      <ClientAssuranceSection />
-      <GettingStartedGuideSection />
-      <DeliveryProofSection />
       <ServiceGrid />
-      <ServiceDetailsSection />
-      <CustomerJourneySection />
       <ProcessSection />
+      <DeliveryProofSection />
       <DocumentsAndBillingSection />
-      <PaymentConfidenceSection />
-      <TrustAndSafetySection />
       <ContactPanel />
       <FinalCta />
     </MarketingShell>
