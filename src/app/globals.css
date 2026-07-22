@@ -125,6 +125,27 @@
   min-width: 2.5rem;
 }
 
+.shipment-map-marker-planned {
+  border-color: oklch(0.56 0.17 250);
+  font-size: 0.66rem;
+  min-width: 2.55rem;
+}
+
+.shipment-map-marker-estimated {
+  animation: shipment-map-estimate-pulse 2s ease-in-out infinite;
+  background: oklch(0.56 0.17 250);
+  border-color: var(--background);
+  color: white;
+  font-size: 0.66rem;
+  min-width: 2.35rem;
+}
+
+@keyframes shipment-map-estimate-pulse {
+  50% {
+    box-shadow: 0 0 0 0.45rem oklch(0.56 0.17 250 / 18%);
+  }
+}
+
 .shipment-map-popup {
   font-family: var(--font-geist-sans);
   padding: 0.1rem;

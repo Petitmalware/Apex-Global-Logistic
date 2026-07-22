@@ -1,11 +1,15 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useEffect, useMemo, useState } from "react";
 import { MapPinned, Radio, Route } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { clientEnv } from "@/config/env.client";
-import type { ShipmentRouteCheckpoint } from "@/features/shipments/components/shipment-route-map.types";
+import type {
+  ShipmentEstimatedRoute,
+  ShipmentRouteCheckpoint,
+} from "@/features/shipments/components/shipment-route-map.types";
 import { formatShipmentStatus } from "@/features/shipments/status-labels";
 import type { ShipmentTrackingSnapshot } from "@/features/shipments/types";
 
@@ -47,6 +51,180 @@ function isValidCoordinate(latitude: string | null, longitude: string | null) {
   );
 }
 
+type MapCoordinate = {
+  latitude: number;
+  longitude: number;
+};
+
+type MapTilerGeocodingResponse = {
+  features?: Array<{
+    center?: [number, number];
+  }>;
+};
+
+function getRouteSchedule(
+  snapshot: ShipmentTrackingSnapshot,
+  latestCheckpoint: ShipmentRouteCheckpoint | null,
+) {
+  const startsAt =
+    latestCheckpoint?.occurredAt ??
+    snapshot.dispatchedAt ??
+    snapshot.pickupWindowStart ??
+    snapshot.createdAt;
+  const endsAt = snapshot.deliveryWindowEnd ?? snapshot.deliveryWindowStart;
+
+  if (!endsAt) {
+    return null;
+  }
+
+  const startTime = new Date(startsAt).getTime();
+  const endTime = new Date(endsAt).getTime();
+
+  if (!Number.isFinite(startTime) || !Number.isFinite(endTime) || endTime <= startTime) {
+    return null;
+  }
+
+  return { endTime, startTime };
+}
+
+async function geocodePlannedLocation(apiKey: string, location: string, signal: AbortSignal) {
+  const response = await fetch(
+    `https://api.maptiler.com/geocoding/${encodeURIComponent(location)}.json?key=${encodeURIComponent(apiKey)}&limit=1`,
+    { signal },
+  );
+
+  if (!response.ok) {
+    return null;
+  }
+
+  const payload = (await response.json()) as MapTilerGeocodingResponse;
+  const [longitude, latitude] = payload.features?.[0]?.center ?? [];
+
+  return typeof latitude === "number" && typeof longitude === "number"
+    ? { latitude, longitude }
+    : null;
+}
+
+function getEstimatedProgress({
+  destination,
+  destinationLabel,
+  now,
+  origin,
+  originLabel,
+  schedule,
+}: {
+  destination: MapCoordinate;
+  destinationLabel: string;
+  now: number;
+  origin: MapCoordinate;
+  originLabel: string;
+  schedule: { endTime: number; startTime: number };
+}): ShipmentEstimatedRoute {
+  const elapsed = (now - schedule.startTime) / (schedule.endTime - schedule.startTime);
+  // Keep an estimate inside the route until an actual delivered update is published.
+  const progress = Math.min(0.95, Math.max(0.02, elapsed));
+
+  return {
+    destination: {
+      label: destinationLabel,
+      ...destination,
+    },
+    estimatedPosition: {
+      latitude: origin.latitude + (destination.latitude - origin.latitude) * progress,
+      longitude: origin.longitude + (destination.longitude - origin.longitude) * progress,
+    },
+    origin: {
+      label: originLabel,
+      ...origin,
+    },
+    progressPercent: Math.round(progress * 100),
+  };
+}
+
+function useEstimatedRoute({
+  apiKey,
+  enabled,
+  latestCheckpoint,
+  snapshot,
+}: {
+  apiKey: string | undefined;
+  enabled: boolean;
+  latestCheckpoint: ShipmentRouteCheckpoint | null;
+  snapshot: ShipmentTrackingSnapshot;
+}) {
+  const [coordinates, setCoordinates] = useState<{
+    destination: MapCoordinate;
+    origin: MapCoordinate;
+  } | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+  const schedule = useMemo(
+    () => getRouteSchedule(snapshot, latestCheckpoint),
+    [latestCheckpoint, snapshot],
+  );
+
+  useEffect(() => {
+    if (!enabled || !apiKey || !schedule) {
+      setCoordinates(null);
+      return;
+    }
+
+    const controller = new AbortController();
+    const originQuery = `${snapshot.originCity}, ${snapshot.originCountryCode}`;
+    const destinationQuery = `${snapshot.destinationCity}, ${snapshot.destinationCountryCode}`;
+
+    void Promise.all([
+      latestCheckpoint
+        ? Promise.resolve({
+            latitude: latestCheckpoint.latitude,
+            longitude: latestCheckpoint.longitude,
+          })
+        : geocodePlannedLocation(apiKey, originQuery, controller.signal),
+      geocodePlannedLocation(apiKey, destinationQuery, controller.signal),
+    ]).then(([origin, destination]) => {
+      if (!controller.signal.aborted && origin && destination) {
+        setCoordinates({ destination, origin });
+      }
+    });
+
+    return () => controller.abort();
+  }, [
+    apiKey,
+    enabled,
+    latestCheckpoint,
+    schedule,
+    snapshot.destinationCity,
+    snapshot.destinationCountryCode,
+    snapshot.originCity,
+    snapshot.originCountryCode,
+  ]);
+
+  useEffect(() => {
+    if (!enabled || !coordinates || !schedule) {
+      return;
+    }
+
+    setNow(Date.now());
+    const timer = window.setInterval(() => setNow(Date.now()), 60_000);
+
+    return () => window.clearInterval(timer);
+  }, [coordinates, enabled, schedule]);
+
+  return useMemo(() => {
+    if (!enabled || !coordinates || !schedule) {
+      return null;
+    }
+
+    return getEstimatedProgress({
+      destination: coordinates.destination,
+      destinationLabel: "Planned delivery destination",
+      now,
+      origin: coordinates.origin,
+      originLabel: latestCheckpoint?.label ?? "Planned origin",
+      schedule,
+    });
+  }, [coordinates, enabled, latestCheckpoint, now, schedule]);
+}
+
 function getRouteCheckpoints(snapshot: ShipmentTrackingSnapshot): ShipmentRouteCheckpoint[] {
   const latestPositionId = snapshot.timeline.find((event) =>
     isValidCoordinate(event.latitude, event.longitude),
@@ -78,14 +256,20 @@ function getRouteCheckpoints(snapshot: ShipmentTrackingSnapshot): ShipmentRouteC
 }
 
 function ConnectionBadge({
+  hasEstimatedRoute,
   state,
   status,
 }: {
+  hasEstimatedRoute: boolean;
   state: TrackingConnectionState;
   status: ShipmentTrackingSnapshot["status"];
 }) {
   if (status !== "IN_TRANSIT") {
     return <Badge variant="warning">Movement paused</Badge>;
+  }
+
+  if (hasEstimatedRoute) {
+    return <Badge variant="outline">Schedule estimate</Badge>;
   }
 
   if (state === "live") {
@@ -107,10 +291,17 @@ export function ShipmentLiveMap({
   connectionState?: TrackingConnectionState;
   snapshot: ShipmentTrackingSnapshot;
 }) {
-  const routeCheckpoints = getRouteCheckpoints(snapshot);
+  const routeCheckpoints = useMemo(() => getRouteCheckpoints(snapshot), [snapshot]);
   const latestCheckpoint = routeCheckpoints.at(-1) ?? null;
   const latestEvent = snapshot.timeline[0] ?? null;
   const mapTilerKey = clientEnv.NEXT_PUBLIC_MAPTILER_API_KEY?.trim();
+  const estimatedRoute = useEstimatedRoute({
+    apiKey: mapTilerKey,
+    enabled: snapshot.status === "IN_TRANSIT",
+    latestCheckpoint,
+    snapshot,
+  });
+  const hasMap = Boolean(mapTilerKey && (latestCheckpoint || estimatedRoute));
 
   return (
     <section className="border-border bg-card shadow-panel overflow-hidden rounded-lg border">
@@ -121,29 +312,49 @@ export function ShipmentLiveMap({
           </div>
           <div className="min-w-0">
             <p className="text-muted-foreground text-xs font-semibold uppercase">
-              Shipment location
+              {estimatedRoute ? "Estimated route" : "Shipment location"}
             </p>
-            <h3 className="mt-1 font-semibold">Current recorded location</h3>
+            <h3 className="mt-1 font-semibold">
+              {estimatedRoute ? "Estimated route progress" : "Current recorded location"}
+            </h3>
             <p className="text-muted-foreground truncate text-sm">
               {snapshot.originCity} to {snapshot.destinationCity}
             </p>
           </div>
         </div>
-        <ConnectionBadge state={connectionState} status={snapshot.status} />
+        <ConnectionBadge
+          hasEstimatedRoute={Boolean(estimatedRoute)}
+          state={connectionState}
+          status={snapshot.status}
+        />
       </div>
 
-      {latestCheckpoint && mapTilerKey ? (
+      {hasMap && mapTilerKey ? (
         <div className="relative">
           <MapTilerShipmentRouteMap
             apiKey={mapTilerKey}
             checkpoints={routeCheckpoints}
+            estimatedRoute={estimatedRoute}
             shipmentNumber={snapshot.shipmentNumber}
           />
           <div className="border-border bg-background/95 absolute right-3 bottom-3 max-w-[calc(100%-1.5rem)] rounded-md border px-3 py-2 shadow-sm backdrop-blur sm:right-5 sm:bottom-5 sm:max-w-xs">
-            <p className="text-sm font-semibold">{latestCheckpoint.label}</p>
-            <p className="text-muted-foreground mt-1 text-xs">
-              Updated {formatDate(latestCheckpoint.occurredAt)}
-            </p>
+            {estimatedRoute ? (
+              <>
+                <p className="text-sm font-semibold">
+                  {estimatedRoute.progressPercent}% through planned schedule
+                </p>
+                <p className="text-muted-foreground mt-1 text-xs leading-5">
+                  Estimated schedule-based progress, not live GPS.
+                </p>
+              </>
+            ) : latestCheckpoint ? (
+              <>
+                <p className="text-sm font-semibold">{latestCheckpoint.label}</p>
+                <p className="text-muted-foreground mt-1 text-xs">
+                  Updated {formatDate(latestCheckpoint.occurredAt)}
+                </p>
+              </>
+            ) : null}
           </div>
         </div>
       ) : (
@@ -157,7 +368,7 @@ export function ShipmentLiveMap({
                 </p>
                 <p className="text-muted-foreground mt-2 text-sm leading-6">
                   {mapTilerKey
-                    ? "The shipment has not received a verified coordinate yet. Apex can still publish the customer-facing location and timeline immediately while a map position is unavailable."
+                    ? "Publish an in-transit location for a verified map pin, or add a delivery window to enable the clearly labelled route estimate while the shipment is moving."
                     : "Apex has not published a map location for this shipment yet. The latest verified location and status remain available above."}
                 </p>
               </div>

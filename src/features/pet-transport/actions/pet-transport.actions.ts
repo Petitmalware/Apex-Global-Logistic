@@ -137,6 +137,20 @@ function parsePetShipmentFormData(
       phone: getString(formData, "manualRecipient.phone"),
     },
     notes: getString(formData, "notes"),
+    officeDetails: {
+      carrier: getString(formData, "officeDetails.carrier"),
+      carrierReference: getString(formData, "officeDetails.carrierReference"),
+      comments: getString(formData, "officeDetails.comments"),
+      courier: getString(formData, "officeDetails.courier"),
+      departureTime: getString(formData, "officeDetails.departureTime"),
+      paymentMode: getString(formData, "officeDetails.paymentMode"),
+      pickupTime: getString(formData, "officeDetails.pickupTime"),
+      productName: petName,
+      quantity: "1",
+      shipperEmail: getString(formData, "ownerEmail"),
+      shipperPhone: getString(formData, "ownerPhone"),
+      totalFreight: getString(formData, "officeDetails.totalFreight"),
+    },
     origin: getPetShipmentOriginAddress(formData, destination),
     packages: [
       {

@@ -20,6 +20,15 @@ import type { CustomerOption } from "@/features/shipments/types";
 import { initialPetTransportActionState } from "@/features/pet-transport/types";
 import { kilogramsToPoundsString } from "@/lib/measurements";
 
+const paymentModeOptions = [
+  "Invoice pending",
+  "Invoice issued",
+  "Bank transfer",
+  "Card",
+  "Cash",
+  "Other",
+];
+
 type PetTransportFormProps = {
   action: (state: PetTransportActionState, formData: FormData) => Promise<PetTransportActionState>;
   cancelHref: Route | string;
@@ -184,6 +193,81 @@ function TransportPlanFields({ workflow }: { workflow: "admin_creation" | "custo
               ? "Include handling, accessibility, or preferred delivery information."
               : "For staff routing notes. Customer-facing updates are added from tracking."}
           </FieldHint>
+        </Field>
+      </CardContent>
+    </Card>
+  );
+}
+
+function BillingSetupFields({ workflow }: { workflow: "admin_creation" | "customer_booking" }) {
+  const isCustomerBooking = workflow === "customer_booking";
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Billing and customer communication</CardTitle>
+        <FieldHint>
+          {isCustomerBooking
+            ? "You can add a note for the operations team. Apex will confirm any billing separately."
+            : "Record the planned billing details here, then issue the official invoice after the pet shipment is created."}
+        </FieldHint>
+      </CardHeader>
+      <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <Field>
+          <Label htmlFor="serviceLevel">Service level</Label>
+          <Input
+            defaultValue="Pet Shipment Care"
+            id="serviceLevel"
+            name="serviceLevel"
+            placeholder="Climate-controlled pet transport"
+          />
+        </Field>
+        {!isCustomerBooking ? (
+          <>
+            <Field>
+              <Label htmlFor="officeDetails.paymentMode">Billing status</Label>
+              <Select
+                defaultValue="Invoice pending"
+                id="officeDetails.paymentMode"
+                name="officeDetails.paymentMode"
+              >
+                {paymentModeOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field>
+              <Label htmlFor="officeDetails.totalFreight">Planned shipment amount</Label>
+              <Input
+                id="officeDetails.totalFreight"
+                name="officeDetails.totalFreight"
+                placeholder="USD 0.00"
+              />
+              <FieldHint>This is a planning value, not an issued invoice.</FieldHint>
+            </Field>
+          </>
+        ) : null}
+        <Field>
+          <Label htmlFor="officeDetails.carrier">Carrier or transport partner</Label>
+          <Input
+            id="officeDetails.carrier"
+            name="officeDetails.carrier"
+            placeholder="Apex Global Logistics"
+          />
+        </Field>
+        <Field>
+          <Label htmlFor="officeDetails.courier">Assigned coordinator</Label>
+          <Input id="officeDetails.courier" name="officeDetails.courier" placeholder="Optional" />
+        </Field>
+        <Field className="sm:col-span-2 lg:col-span-3">
+          <Label htmlFor="officeDetails.comments">Customer-facing shipment note</Label>
+          <Textarea
+            id="officeDetails.comments"
+            name="officeDetails.comments"
+            placeholder="Optional note shown with the shipment record and included when your team sends an approved customer update."
+          />
         </Field>
       </CardContent>
     </Card>
@@ -557,6 +641,7 @@ export function PetTransportForm({
       {!isEdit ? (
         <>
           <TransportPlanFields workflow={workflow} />
+          <BillingSetupFields workflow={workflow} />
           <div className="grid gap-6 lg:grid-cols-2">
             <AddressFields
               errors={state.fieldErrors}

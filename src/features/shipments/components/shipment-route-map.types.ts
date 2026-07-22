@@ -9,3 +9,21 @@ export type ShipmentRouteCheckpoint = {
   occurredAt: string;
   status: ShipmentTrackingTimelineEvent["shipmentStatus"];
 };
+
+export type ShipmentEstimatedRoute = {
+  destination: {
+    label: string;
+    latitude: number;
+    longitude: number;
+  };
+  estimatedPosition: {
+    latitude: number;
+    longitude: number;
+  };
+  origin: {
+    label: string;
+    latitude: number;
+    longitude: number;
+  };
+  progressPercent: number;
+};
