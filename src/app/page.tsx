@@ -7,6 +7,7 @@ import {
   DocumentsAndBillingSection,
   FinalCta,
   HomeHero,
+  PetTransportPartnerSection,
   ProcessSection,
   ServiceGrid,
   TrustBar,
@@ -40,6 +41,7 @@ export default function HomePage() {
       <HomeHero />
       <TrustBar />
       <ServiceGrid />
+      <PetTransportPartnerSection />
       <ProcessSection />
       <DeliveryProofSection />
       <DocumentsAndBillingSection />

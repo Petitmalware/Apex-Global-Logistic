@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { Route } from "next";
 import type { LucideIcon } from "lucide-react";
-import { ArrowRight, Check, Mail, MessageCircle, PackageSearch } from "lucide-react";
+import { ArrowRight, Check, Handshake, Mail, MessageCircle, PackageSearch } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -503,6 +503,41 @@ export function ServiceGrid() {
             </span>
           </Link>
         ))}
+      </div>
+    </section>
+  );
+}
+
+export function PetTransportPartnerSection() {
+  return (
+    <section className="bg-surface py-16">
+      <div className="mx-auto grid w-full max-w-7xl gap-8 px-4 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+        <div>
+          <div className="bg-accent/15 text-accent grid size-11 place-items-center rounded-md">
+            <Handshake aria-hidden="true" className="size-5" />
+          </div>
+          <Kicker className="mt-5">Pet transportation</Kicker>
+          <Heading className="mt-3">In partnership with CitizenShipper</Heading>
+          <Text className="mt-4 max-w-xl">
+            Apex Global Logistics coordinates eligible pet transportation services with
+            CitizenShipper, combining structured pet records, clear customer communication, and
+            route-specific transport planning.
+          </Text>
+          <p className="text-muted-foreground mt-4 max-w-xl text-sm leading-6">
+            Every transport plan is confirmed for the individual pet and route before movement
+            begins, including the required handoff, care, and delivery details.
+          </p>
+        </div>
+        <div className="border-border bg-card shadow-panel overflow-hidden rounded-lg border">
+          <Image
+            alt="Pet travel carrier prepared for a coordinated transportation handoff"
+            className="aspect-[16/10] w-full object-cover"
+            height={600}
+            sizes="(min-width: 1024px) 50vw, 100vw"
+            src={marketingImages.petHandoff.src}
+            width={960}
+          />
+        </div>
       </div>
     </section>
   );

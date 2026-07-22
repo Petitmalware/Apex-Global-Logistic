@@ -122,6 +122,50 @@ function AddressFields({
   );
 }
 
+function SenderContactFields({
+  initialPetTransport,
+}: {
+  initialPetTransport?: PetTransportDetail;
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Sender contact</CardTitle>
+        <FieldHint>
+          Record the pet owner or sender who can confirm handoff and transport instructions.
+        </FieldHint>
+      </CardHeader>
+      <CardContent className="grid gap-4 sm:grid-cols-3">
+        <Field>
+          <Label htmlFor="ownerName">Sender / pet owner name</Label>
+          <Input
+            defaultValue={initialPetTransport?.ownerName ?? ""}
+            id="ownerName"
+            name="ownerName"
+          />
+        </Field>
+        <Field>
+          <Label htmlFor="ownerEmail">Sender email</Label>
+          <Input
+            defaultValue={initialPetTransport?.ownerEmail ?? ""}
+            id="ownerEmail"
+            name="ownerEmail"
+            type="email"
+          />
+        </Field>
+        <Field>
+          <Label htmlFor="ownerPhone">Sender phone</Label>
+          <Input
+            defaultValue={initialPetTransport?.ownerPhone ?? ""}
+            id="ownerPhone"
+            name="ownerPhone"
+          />
+        </Field>
+      </CardContent>
+    </Card>
+  );
+}
+
 function TransportPlanFields({ workflow }: { workflow: "admin_creation" | "customer_booking" }) {
   const isCustomerBooking = workflow === "customer_booking";
 
@@ -329,17 +373,17 @@ export function PetTransportForm({
                 ]
               : [
                   {
-                    label: "Recipient",
-                    description: "Select a customer account or record a manual recipient.",
+                    label: "People and locations",
+                    description: "Record the sender, receiver, and pickup and delivery details.",
                   },
                   {
                     label: "Pet profile",
-                    description: "Add the animal, sender, health readiness, and care essentials.",
+                    description: "Add the animal identity, health readiness, and care essentials.",
                   },
                   {
-                    label: "Route and create",
+                    label: "Transport and billing",
                     description:
-                      "Add delivery details, then publish tracking updates from the shipment record.",
+                      "Choose the route and billing plan before creating the shipment record.",
                   },
                 ]
           }
@@ -372,6 +416,22 @@ export function PetTransportForm({
           title="Recipient customer"
         />
       ) : null}
+      <SenderContactFields initialPetTransport={initialPetTransport} />
+      {!isEdit ? (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <AddressFields
+            errors={state.fieldErrors}
+            prefix="origin"
+            required={false}
+            title="Sender pickup address"
+          />
+          <AddressFields
+            errors={state.fieldErrors}
+            prefix="destination"
+            title="Recipient delivery address"
+          />
+        </div>
+      ) : null}
       <Card>
         <CardHeader className="flex flex-row items-start gap-3">
           <div className="bg-accent/15 text-accent-foreground grid size-10 place-items-center rounded-md">
@@ -383,8 +443,8 @@ export function PetTransportForm({
             </CardTitle>
             <FieldHint>
               {isCustomerBooking
-                ? "Provide the pet and sender information Apex operations needs to review the request."
-                : "Record the animal identity, sender contact, health readiness, and operational status."}
+                ? "Provide the animal identity and readiness information Apex operations needs to review the request."
+                : "Record the animal identity, health readiness, and operational status."}
             </FieldHint>
           </div>
         </CardHeader>
@@ -425,31 +485,6 @@ export function PetTransportForm({
                 step="0.001"
                 type="number"
                 defaultValue={kilogramsToPoundsString(initialPetTransport?.weightKg)}
-              />
-            </Field>
-            <Field>
-              <Label htmlFor="ownerName">Sender / pet owner name</Label>
-              <Input
-                id="ownerName"
-                name="ownerName"
-                defaultValue={initialPetTransport?.ownerName ?? ""}
-              />
-            </Field>
-            <Field>
-              <Label htmlFor="ownerEmail">Sender email</Label>
-              <Input
-                id="ownerEmail"
-                name="ownerEmail"
-                type="email"
-                defaultValue={initialPetTransport?.ownerEmail ?? ""}
-              />
-            </Field>
-            <Field>
-              <Label htmlFor="ownerPhone">Sender phone</Label>
-              <Input
-                id="ownerPhone"
-                name="ownerPhone"
-                defaultValue={initialPetTransport?.ownerPhone ?? ""}
               />
             </Field>
             {!isCustomerBooking ? (
@@ -642,19 +677,6 @@ export function PetTransportForm({
         <>
           <TransportPlanFields workflow={workflow} />
           <BillingSetupFields workflow={workflow} />
-          <div className="grid gap-6 lg:grid-cols-2">
-            <AddressFields
-              errors={state.fieldErrors}
-              prefix="origin"
-              required={false}
-              title="Sender pickup address"
-            />
-            <AddressFields
-              errors={state.fieldErrors}
-              prefix="destination"
-              title="Recipient delivery address"
-            />
-          </div>
         </>
       ) : null}
 
