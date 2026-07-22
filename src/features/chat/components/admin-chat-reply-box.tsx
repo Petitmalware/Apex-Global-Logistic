@@ -61,15 +61,22 @@ export function AdminChatReplyBox({ action, conversationId }: AdminChatReplyBoxP
   }
 
   return (
-    <form action={formAction} className="border-border bg-surface rounded-lg border p-4">
+    <form action={formAction} className="border-border bg-card rounded-lg border p-4 shadow-sm">
+      <div className="mb-4">
+        <p className="text-sm font-semibold">Reply to customer</p>
+        <p className="text-muted-foreground mt-1 text-xs">
+          The message is saved to the support case. Email notification delivery is recorded in Email
+          Studio.
+        </p>
+      </div>
       <Field>
-        <Label htmlFor="chat-reply">Admin reply</Label>
+        <Label htmlFor="chat-reply">Message</Label>
         <Textarea
           className="min-h-28"
           id="chat-reply"
           name="body"
           onChange={(event) => setBody(event.target.value)}
-          placeholder="Write a customer-safe reply..."
+          placeholder="Write a clear, customer-safe update..."
           value={body}
         />
         <FieldHint>AI drafts are suggestions only. Review before sending.</FieldHint>

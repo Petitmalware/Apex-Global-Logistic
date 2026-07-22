@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import { LifeBuoy, MessageCircle, Paperclip, Send, X } from "lucide-react";
+import { LifeBuoy, MessageCircle, Paperclip, Send, ShieldCheck, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldHint } from "@/components/ui/field";
@@ -89,6 +89,13 @@ function formatAuthor(authorType: PublicChatConversationView["messages"][number]
   }
 
   return "You";
+}
+
+function formatMessageTime(value: string) {
+  return new Intl.DateTimeFormat("en", {
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(value));
 }
 
 export function ChatWidget({ surface = "public" }: ChatWidgetProps) {
@@ -353,28 +360,42 @@ export function ChatWidget({ surface = "public" }: ChatWidgetProps) {
   return (
     <div className="fixed right-4 bottom-4 z-50">
       {isOpen ? (
-        <section className="border-border bg-popover text-popover-foreground shadow-panel flex h-[520px] w-[min(420px,calc(100vw-2rem))] flex-col overflow-hidden rounded-lg border">
-          <header className="bg-primary text-primary-foreground flex items-center justify-between gap-3 px-4 py-3">
+        <section className="border-border bg-popover text-popover-foreground shadow-panel flex h-[min(640px,calc(100dvh-2rem))] w-[min(420px,calc(100vw-2rem))] flex-col overflow-hidden rounded-lg border">
+          <header className="bg-primary text-primary-foreground flex items-center justify-between gap-3 px-4 py-3.5">
             <div className="flex items-center gap-2">
-              <LifeBuoy aria-hidden="true" className="size-5" />
+              <span className="bg-primary-foreground/10 grid size-9 shrink-0 place-items-center rounded-md">
+                <LifeBuoy aria-hidden="true" className="size-5" />
+              </span>
               <div>
-                <p className="text-sm font-semibold">Apex live support</p>
-                <p className="text-xs opacity-80">Admin replies appear here</p>
+                <p className="text-sm font-semibold">Apex Support Desk</p>
+                <p className="text-xs opacity-80">Secure delivery assistance</p>
               </div>
             </div>
-            <button
-              className="grid size-8 place-items-center rounded-md hover:bg-white/10"
-              onClick={() => setIsOpen(false)}
-              type="button"
-            >
-              <X aria-hidden="true" className="size-4" />
-              <span className="sr-only">Close chat</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <span className="hidden rounded border border-white/20 px-2 py-1 text-[10px] font-semibold uppercase sm:inline-flex">
+                Support case
+              </span>
+              <button
+                className="grid size-8 place-items-center rounded-md hover:bg-white/10"
+                onClick={() => setIsOpen(false)}
+                type="button"
+              >
+                <X aria-hidden="true" className="size-4" />
+                <span className="sr-only">Close chat</span>
+              </button>
+            </div>
           </header>
 
-          <div className="flex-1 overflow-y-auto p-4">
+          <div className="bg-muted/20 flex-1 overflow-y-auto p-4">
             {conversation ? (
-              <div className="space-y-3">
+              <div aria-live="polite" className="space-y-3" role="log">
+                <div className="border-border bg-background flex items-center gap-2 rounded-md border px-3 py-2 text-xs">
+                  <ShieldCheck aria-hidden="true" className="text-success size-4 shrink-0" />
+                  <span className="text-muted-foreground">
+                    Your messages are saved to this support case. New replies appear here
+                    automatically.
+                  </span>
+                </div>
                 {conversation.messages.map((chatMessage) => {
                   const isCustomer = ["CUSTOMER", "VISITOR"].includes(chatMessage.authorType);
 
@@ -386,13 +407,16 @@ export function ChatWidget({ surface = "public" }: ChatWidgetProps) {
                       <div
                         className={
                           isCustomer
-                            ? "bg-primary text-primary-foreground max-w-[82%] rounded-lg px-3 py-2 text-sm"
-                            : "bg-secondary text-secondary-foreground max-w-[82%] rounded-lg px-3 py-2 text-sm"
+                            ? "bg-primary text-primary-foreground max-w-[84%] rounded-lg px-3 py-2.5 text-sm shadow-sm"
+                            : "border-border bg-background text-foreground max-w-[84%] rounded-lg border px-3 py-2.5 text-sm shadow-sm"
                         }
                       >
-                        <p className="text-[11px] font-semibold opacity-75">
-                          {formatAuthor(chatMessage.authorType)}
-                        </p>
+                        <div className="flex items-center justify-between gap-4 text-[11px] font-semibold opacity-75">
+                          <p>{formatAuthor(chatMessage.authorType)}</p>
+                          <time dateTime={chatMessage.createdAt}>
+                            {formatMessageTime(chatMessage.createdAt)}
+                          </time>
+                        </div>
                         <p className="mt-1 whitespace-pre-wrap">{chatMessage.body}</p>
                         <ChatAttachmentList
                           accessKey={conversation.accessKey}
@@ -406,8 +430,23 @@ export function ChatWidget({ surface = "public" }: ChatWidgetProps) {
               </div>
             ) : (
               <div className="space-y-4">
+                <div className="border-border bg-background rounded-md border p-3">
+                  <div className="flex items-start gap-2">
+                    <ShieldCheck
+                      aria-hidden="true"
+                      className="text-accent mt-0.5 size-4 shrink-0"
+                    />
+                    <div>
+                      <p className="text-sm font-semibold">Start a support case</p>
+                      <p className="text-muted-foreground mt-1 text-xs leading-5">
+                        Use the email connected to your delivery. One active case is kept per email
+                        so your support history stays together.
+                      </p>
+                    </div>
+                  </div>
+                </div>
                 <Field>
-                  <Label htmlFor="chat-name">Name</Label>
+                  <Label htmlFor="chat-name">Full name</Label>
                   <Input
                     autoComplete="name"
                     id="chat-name"
@@ -433,7 +472,7 @@ export function ChatWidget({ surface = "public" }: ChatWidgetProps) {
                     value={identity.email}
                   />
                   <FieldHint>
-                    This email identifies your support thread and prevents duplicate chats.
+                    This email identifies your support case and prevents duplicate chats.
                   </FieldHint>
                 </Field>
                 <Field>
@@ -464,7 +503,11 @@ export function ChatWidget({ surface = "public" }: ChatWidgetProps) {
                 className="min-h-20"
                 id="chat-message"
                 onChange={(event) => setMessage(event.target.value)}
-                placeholder="Write your message..."
+                placeholder={
+                  conversation
+                    ? "Write a reply to Apex Support..."
+                    : "Describe how Apex Support can help..."
+                }
                 value={message}
               />
               {error ? <FieldError>{error}</FieldError> : null}
@@ -476,7 +519,7 @@ export function ChatWidget({ surface = "public" }: ChatWidgetProps) {
             </Field>
             <Field className="mt-3">
               <Label
-                className="border-border hover:bg-secondary flex cursor-pointer items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm font-semibold transition-colors"
+                className="border-border bg-background hover:bg-secondary flex cursor-pointer items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm font-semibold transition-colors"
                 htmlFor="chat-attachments"
               >
                 <Paperclip aria-hidden="true" className="size-4" />
@@ -507,7 +550,7 @@ export function ChatWidget({ surface = "public" }: ChatWidgetProps) {
               variant="accent"
             >
               <Send aria-hidden="true" />
-              {conversation ? "Send message" : "Start chat"}
+              {conversation ? "Send message" : "Open support case"}
             </Button>
           </div>
         </section>
@@ -519,7 +562,7 @@ export function ChatWidget({ surface = "public" }: ChatWidgetProps) {
           variant="accent"
         >
           <MessageCircle aria-hidden="true" />
-          Live chat
+          Contact support
         </Button>
       )}
     </div>

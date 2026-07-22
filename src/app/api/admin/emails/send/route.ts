@@ -1,3 +1,4 @@
+import { EmailLogStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 import { adminEmailComposerSchema } from "@/features/emails/schemas/email.schemas";
@@ -26,12 +27,25 @@ export async function POST(request: Request) {
   try {
     const emailLog = await sendAdminEmail(parsed.data, user);
 
+    if (emailLog?.status === EmailLogStatus.FAILED) {
+      return NextResponse.json(
+        {
+          emailLog: {
+            id: emailLog.id,
+            status: emailLog.status,
+          },
+          message: emailLog.failureReason ?? "Email delivery failed. Review Email Studio logs.",
+        },
+        { status: 502 },
+      );
+    }
+
     return NextResponse.json({
       emailLog: {
         id: emailLog?.id,
         status: emailLog?.status,
       },
-      message: "Email queued.",
+      message: "Email sent.",
     });
   } catch (error) {
     if (error instanceof AuthError) {

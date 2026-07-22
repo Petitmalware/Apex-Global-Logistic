@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Route } from "next";
-import { CheckCircle2, Inbox, MessageSquareText, XCircle } from "lucide-react";
+import { CheckCircle2, Inbox, MessageSquareText, ShieldCheck, XCircle } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -49,11 +49,19 @@ export function AdminChatConsole({
   return (
     <div className="grid gap-6 xl:grid-cols-[360px_1fr]">
       <ChatAutoRefresh />
-      <aside className="border-border bg-card overflow-hidden rounded-lg border">
-        <div className="border-border border-b p-4">
-          <h2 className="font-semibold tracking-normal">Live chat inbox</h2>
+      <aside className="border-border bg-card overflow-hidden rounded-lg border shadow-sm">
+        <div className="border-border bg-surface border-b p-4">
+          <div className="flex items-center gap-2">
+            <span className="bg-primary text-primary-foreground grid size-8 place-items-center rounded-md">
+              <Inbox aria-hidden="true" className="size-4" />
+            </span>
+            <div>
+              <h2 className="font-semibold tracking-normal">Support desk</h2>
+              <p className="text-muted-foreground mt-0.5 text-xs">Open customer conversations</p>
+            </div>
+          </div>
           <p className="text-muted-foreground mt-1 text-sm">
-            Customer and visitor conversations from the public widget.
+            Customer and visitor messages from the public support widget.
           </p>
         </div>
         <div className="max-h-[720px] overflow-y-auto">
@@ -62,7 +70,7 @@ export function AdminChatConsole({
               <Link
                 className={
                   selectedConversation?.id === conversation.id
-                    ? "bg-secondary border-accent block border-l-4 p-4"
+                    ? "bg-secondary border-accent block border-l-4 p-4 shadow-sm"
                     : "hover:bg-secondary/70 border-border block border-l-4 border-transparent p-4 transition-colors"
                 }
                 href={`/admin/chat?conversation=${conversation.id}` as Route}
@@ -110,10 +118,16 @@ export function AdminChatConsole({
       <section className="min-w-0">
         {selectedConversation ? (
           <div className="space-y-4">
-            <div className="border-border bg-card rounded-lg border p-5">
+            <div className="border-border bg-card rounded-lg border p-5 shadow-sm">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <p className="text-sm font-semibold">{getContactName(selectedConversation)}</p>
+                  <div className="text-muted-foreground flex items-center gap-2 text-xs font-semibold uppercase">
+                    <ShieldCheck aria-hidden="true" className="text-success size-4" />
+                    Customer support case
+                  </div>
+                  <p className="mt-3 text-sm font-semibold">
+                    {getContactName(selectedConversation)}
+                  </p>
                   <h2 className="mt-2 text-2xl font-semibold tracking-normal">
                     {selectedConversation.subject}
                   </h2>
@@ -151,23 +165,36 @@ export function AdminChatConsole({
               </div>
             </div>
 
-            <div className="border-border bg-card max-h-[560px] space-y-3 overflow-y-auto rounded-lg border p-4">
-              {selectedConversation.messages.map((message) => (
-                <div className="space-y-1" key={message.id}>
-                  <div
-                    className={`max-w-[82%] rounded-lg px-3 py-2 text-sm ${getMessageTone(message.authorType)}`}
-                  >
-                    <p className="text-[11px] font-semibold opacity-75">
-                      {message.authorName ?? message.authorType.replaceAll("_", " ")}
+            <div
+              aria-live="polite"
+              className="border-border bg-surface max-h-[560px] space-y-3 overflow-y-auto rounded-lg border p-4"
+              role="log"
+            >
+              {selectedConversation.messages.map((message) => {
+                const isStaff = message.authorType === "STAFF" || message.authorType === "AI";
+
+                return (
+                  <div className={`space-y-1 ${isStaff ? "text-right" : ""}`} key={message.id}>
+                    <div
+                      className={`max-w-[82%] rounded-lg px-3 py-2 text-sm ${getMessageTone(message.authorType)}`}
+                    >
+                      <p className="text-[11px] font-semibold opacity-75">
+                        {message.authorName ?? message.authorType.replaceAll("_", " ")}
+                      </p>
+                      <p className="mt-1 whitespace-pre-wrap">{message.body}</p>
+                      <ChatAttachmentList
+                        attachments={message.attachments}
+                        messageId={message.id}
+                      />
+                    </div>
+                    <p
+                      className={`text-muted-foreground text-[11px] ${isStaff ? "text-right" : ""}`}
+                    >
+                      {formatDate(message.createdAt)}
                     </p>
-                    <p className="mt-1 whitespace-pre-wrap">{message.body}</p>
-                    <ChatAttachmentList attachments={message.attachments} messageId={message.id} />
                   </div>
-                  <p className="text-muted-foreground text-[11px]">
-                    {formatDate(message.createdAt)}
-                  </p>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             <AdminChatReplyBox

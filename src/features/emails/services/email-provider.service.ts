@@ -22,6 +22,12 @@ type SendEmailResult = {
   response: Record<string, unknown>;
 };
 
+type SmtpError = {
+  code?: string;
+  command?: string;
+  responseCode?: number;
+};
+
 function getConfiguredProvider() {
   if (env.EMAIL_PROVIDER === "resend") {
     return EmailProvider.RESEND;
@@ -43,6 +49,64 @@ function getSenderAddress(input?: SendEmailInput) {
     input?.senderAddress ||
     (env.EMAIL_PROVIDER === "smtp" && env.SMTP_FROM ? env.SMTP_FROM : env.EMAIL_FROM)
   );
+}
+
+function getConfiguredValue(value?: string) {
+  const normalized = value?.trim();
+
+  return normalized || undefined;
+}
+
+function getSmtpCredentials(senderAddress: string) {
+  const supportUsername = getConfiguredValue(env.SUPPORT_SMTP_USERNAME);
+  const supportPassword = getConfiguredValue(env.SUPPORT_SMTP_PASSWORD);
+  const usesSupportMailbox =
+    senderAddress.toLowerCase() === env.SUPPORT_EMAIL.toLowerCase() &&
+    Boolean(supportUsername && supportPassword);
+
+  return {
+    pass: usesSupportMailbox ? supportPassword! : env.SMTP_PASSWORD!,
+    user: usesSupportMailbox ? supportUsername! : env.SMTP_USERNAME!,
+  };
+}
+
+function getSmtpFailureMessage(error: unknown) {
+  const smtpError = error as SmtpError;
+
+  if (smtpError.code === "EAUTH" || smtpError.responseCode === 535) {
+    return "SMTP authentication failed. Confirm the configured mailbox username and password.";
+  }
+
+  if (["ECONNREFUSED", "ECONNRESET", "ESOCKET", "ETIMEDOUT"].includes(smtpError.code ?? "")) {
+    return "SMTP connection failed. Confirm the SMTP host, port, TLS setting, and VPS network access.";
+  }
+
+  if (smtpError.code === "EENVELOPE" || smtpError.command === "MAIL FROM") {
+    return "SMTP rejected the sender address. Use the configured mailbox or configure matching support mailbox credentials.";
+  }
+
+  return "SMTP delivery failed. Review the Email Studio log for the delivery status and try again.";
+}
+
+function createSmtpTransporter(senderAddress: string) {
+  if (!env.SMTP_HOST || !env.SMTP_USERNAME || !env.SMTP_PASSWORD) {
+    throw new Error("SMTP_HOST, SMTP_USERNAME, and SMTP_PASSWORD must be configured.");
+  }
+
+  const port = env.SMTP_PORT ?? 587;
+
+  return nodemailer.createTransport({
+    auth: getSmtpCredentials(senderAddress),
+    connectionTimeout: 30_000,
+    greetingTimeout: 30_000,
+    host: env.SMTP_HOST,
+    port,
+    secure: port === 465,
+    socketTimeout: 60_000,
+    tls: {
+      rejectUnauthorized: true,
+    },
+  });
 }
 
 async function sendWithResend(input: SendEmailInput): Promise<SendEmailResult> {
@@ -126,43 +190,37 @@ async function sendWithBrevo(input: SendEmailInput): Promise<SendEmailResult> {
 }
 
 async function sendWithSmtp(input: SendEmailInput): Promise<SendEmailResult> {
-  if (!env.SMTP_HOST || !env.SMTP_USERNAME || !env.SMTP_PASSWORD) {
-    throw new Error("SMTP_HOST, SMTP_USERNAME, and SMTP_PASSWORD must be configured.");
-  }
+  const senderAddress = getSenderAddress(input);
+  const transporter = createSmtpTransporter(senderAddress);
+  let info: Awaited<ReturnType<typeof transporter.sendMail>>;
 
-  const port = env.SMTP_PORT ?? 587;
-  const isSupportSender = getSenderAddress(input).toLowerCase() === env.SUPPORT_EMAIL.toLowerCase();
-  const transporter = nodemailer.createTransport({
-    auth: {
-      pass: isSupportSender ? (env.SUPPORT_SMTP_PASSWORD ?? env.SMTP_PASSWORD) : env.SMTP_PASSWORD,
-      user: isSupportSender ? (env.SUPPORT_SMTP_USERNAME ?? env.SUPPORT_EMAIL) : env.SMTP_USERNAME,
-    },
-    connectionTimeout: 30_000,
-    greetingTimeout: 30_000,
-    host: env.SMTP_HOST,
-    port,
-    secure: port === 465,
-    socketTimeout: 60_000,
-    tls: {
-      rejectUnauthorized: true,
-    },
-  });
-  const info = await transporter.sendMail({
-    from: {
-      address: getSenderAddress(input),
-      name: input.senderName ?? "Apex Global Logistics",
-    },
-    html: input.html,
-    replyTo: input.replyTo ?? env.SUPPORT_EMAIL,
-    subject: input.subject,
-    text: input.text ?? undefined,
-    to: input.recipientName
-      ? {
-          address: input.recipientEmail,
-          name: input.recipientName,
-        }
-      : input.recipientEmail,
-  });
+  try {
+    info = await transporter.sendMail({
+      from: {
+        address: senderAddress,
+        name: input.senderName ?? "Apex Global Logistics",
+      },
+      html: input.html,
+      replyTo: input.replyTo ?? env.SUPPORT_EMAIL,
+      subject: input.subject,
+      text: input.text ?? undefined,
+      to: input.recipientName
+        ? {
+            address: input.recipientEmail,
+            name: input.recipientName,
+          }
+        : input.recipientEmail,
+    });
+  } catch (error) {
+    const smtpError = error as SmtpError;
+
+    console.error("SMTP delivery failed", {
+      code: smtpError.code ?? null,
+      command: smtpError.command ?? null,
+      responseCode: smtpError.responseCode ?? null,
+    });
+    throw new Error(getSmtpFailureMessage(error));
+  }
 
   return {
     messageId: info.messageId || `smtp-${Date.now()}`,
@@ -203,4 +261,41 @@ export async function sendEmailWithConfiguredProvider(input: SendEmailInput) {
   }
 
   return sendWithConsole(input);
+}
+
+export async function verifyConfiguredEmailProvider() {
+  const provider = getConfiguredProvider();
+
+  if (provider === EmailProvider.SMTP) {
+    try {
+      await createSmtpTransporter(getSenderAddress()).verify();
+    } catch (error) {
+      const smtpError = error as SmtpError;
+
+      console.error("SMTP connection check failed", {
+        code: smtpError.code ?? null,
+        command: smtpError.command ?? null,
+        responseCode: smtpError.responseCode ?? null,
+      });
+      throw new Error(getSmtpFailureMessage(error));
+    }
+
+    return {
+      message: "SMTP connection confirmed. Send a test email to verify inbox delivery.",
+      provider,
+    };
+  }
+
+  if (provider === EmailProvider.CONSOLE) {
+    return {
+      message:
+        "Email is in console mode. Configure SMTP, Resend, or Brevo before sending real email.",
+      provider,
+    };
+  }
+
+  return {
+    message: `${provider} is configured. Send a test email to verify delivery.`,
+    provider,
+  };
 }

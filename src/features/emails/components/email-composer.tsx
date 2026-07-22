@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Bot, Eye, MailCheck, Send, Sparkles } from "lucide-react";
+import { Bot, Eye, MailCheck, Send, ServerCog, Sparkles } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -192,7 +192,10 @@ export function EmailComposer({ initialTemplateId, options }: EmailComposerProps
         ...payload,
         testRecipientEmail,
       });
-      setMessage({ text: "Test email queued.", variant: "success" });
+      setMessage({
+        text: "Test email sent. Check the recipient inbox and Email Studio logs.",
+        variant: "success",
+      });
     } catch (error) {
       setMessage({
         text: error instanceof Error ? error.message : "Unable to send test email.",
@@ -217,10 +220,27 @@ export function EmailComposer({ initialTemplateId, options }: EmailComposerProps
 
     try {
       await postJson("/api/admin/emails/send", payload);
-      setMessage({ text: "Final email queued.", variant: "success" });
+      setMessage({ text: "Final email sent and recorded in Email Studio.", variant: "success" });
     } catch (error) {
       setMessage({
         text: error instanceof Error ? error.message : "Unable to send final email.",
+        variant: "danger",
+      });
+    } finally {
+      setIsBusy(false);
+    }
+  }
+
+  async function checkEmailConnection() {
+    setIsBusy(true);
+    setMessage(null);
+
+    try {
+      const data = await postJson<{ message: string }>("/api/admin/emails/connection-test", {});
+      setMessage({ text: data.message, variant: "success" });
+    } catch (error) {
+      setMessage({
+        text: error instanceof Error ? error.message : "Email connection could not be verified.",
         variant: "danger",
       });
     } finally {
@@ -479,6 +499,16 @@ export function EmailComposer({ initialTemplateId, options }: EmailComposerProps
             >
               <Eye aria-hidden="true" />
               Preview email
+            </Button>
+            <Button
+              className="w-full"
+              disabled={isBusy}
+              onClick={checkEmailConnection}
+              type="button"
+              variant="outline"
+            >
+              <ServerCog aria-hidden="true" />
+              Check email connection
             </Button>
             <Field>
               <Label htmlFor="testRecipientEmail">Test recipient</Label>
