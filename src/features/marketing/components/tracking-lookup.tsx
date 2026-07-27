@@ -5,19 +5,15 @@ import type { Route as NextRoute } from "next";
 import { useEffect, useState, type FormEvent } from "react";
 import {
   Boxes,
-  CalendarClock,
   CheckCircle2,
   ChevronRight,
   CirclePause,
   FileText,
-  LocateFixed,
   MapPinned,
   PackageSearch,
   PawPrint,
   Radio,
   Route,
-  Scale,
-  ShieldCheck,
   Truck,
   UserRound,
 } from "lucide-react";
@@ -29,7 +25,11 @@ import { Label } from "@/components/ui/label";
 import { Notification } from "@/components/ui/notification";
 import { ShipmentLiveMap } from "@/features/shipments/components/shipment-live-map";
 import { formatShipmentStatus, formatTrackingEventType } from "@/features/shipments/status-labels";
-import type { ShipmentAddressView, ShipmentTrackingSnapshot } from "@/features/shipments/types";
+import type {
+  PublicTrackingParty,
+  ShipmentAddressView,
+  ShipmentTrackingSnapshot,
+} from "@/features/shipments/types";
 
 type LookupStatus = "idle" | "loading" | "ready" | "error";
 
@@ -116,11 +116,10 @@ function getStatusMessage(status: ShipmentTrackingSnapshot["status"]) {
     BOOKED: "The shipment is registered and Apex is preparing the next operational step.",
     CANCELLED:
       "Movement has stopped. Contact Apex support with this tracking number for assistance.",
-    DELAYED:
-      "The delivery schedule is being adjusted. Review the latest update for the next expected step.",
+    DELAYED: "The delivery schedule is being adjusted. Review the latest update for the next step.",
     DELIVERED: "Delivery is complete. Keep the receipt and signed delivery records for reference.",
     DRAFT: "The shipment record is being prepared and has not entered active movement.",
-    HELD: "Movement is temporarily paused. Review the latest checkpoint note for the reason and next step.",
+    HELD: "Movement is temporarily paused. Review the latest checkpoint for the next step.",
     IN_TRANSIT: "The shipment is moving through the Apex transport network.",
     PENDING_PICKUP: "The shipment is waiting for collection or release from the current facility.",
     PROCESSING: "Apex is preparing handling, routing, or required shipment documentation.",
@@ -146,6 +145,231 @@ function TrackingStatusIcon({ status }: { status: ShipmentTrackingSnapshot["stat
   }
 
   return <Truck aria-hidden="true" className="size-5" />;
+}
+
+function Detail({ label, value }: { label: string; value: string | null | undefined }) {
+  if (!value) {
+    return null;
+  }
+
+  return (
+    <div>
+      <dt className="text-muted-foreground text-xs font-semibold uppercase">{label}</dt>
+      <dd className="mt-1 font-medium break-words">{value}</dd>
+    </div>
+  );
+}
+
+function PartyCard({
+  addressLabel,
+  party,
+  title,
+}: {
+  addressLabel: string;
+  party: PublicTrackingParty;
+  title: string;
+}) {
+  return (
+    <article className="border-border rounded-md border p-4">
+      <p className="text-muted-foreground text-xs font-semibold uppercase">{title}</p>
+      <dl className="mt-4 grid gap-4 text-sm">
+        <Detail label="Name" value={party.name ?? title} />
+        <Detail label={addressLabel} value={formatAddress(party.address)} />
+        <Detail label="Phone" value={party.phone} />
+        <Detail label="Email" value={party.email} />
+      </dl>
+    </article>
+  );
+}
+
+function ShipmentParties({ snapshot }: { snapshot: ShipmentTrackingSnapshot }) {
+  const details = snapshot.publicDetails;
+
+  if (!details) {
+    return null;
+  }
+
+  const hasTransportDetails = Boolean(
+    details.carrier ||
+    details.courier ||
+    details.carrierReference ||
+    details.productName ||
+    details.quantity,
+  );
+
+  return (
+    <section className="border-border bg-card shadow-panel rounded-lg border p-5 sm:p-6">
+      <div className="border-border flex items-center gap-3 border-b pb-4">
+        <div className="bg-accent/15 text-accent grid size-10 place-items-center rounded-md">
+          <UserRound aria-hidden="true" className="size-5" />
+        </div>
+        <div>
+          <h3 className="text-lg font-semibold">Shipment parties and details</h3>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Shipment information provided by Apex operations.
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-5 grid gap-4 xl:grid-cols-2">
+        {details.sender ? (
+          <PartyCard addressLabel="Pickup address" party={details.sender} title="Sender" />
+        ) : null}
+        {details.recipient ? (
+          <PartyCard addressLabel="Delivery address" party={details.recipient} title="Receiver" />
+        ) : null}
+
+        {details.pet ? (
+          <article className="border-border rounded-md border p-4 xl:col-span-2">
+            <div className="flex items-center gap-2">
+              <PawPrint aria-hidden="true" className="text-accent size-5" />
+              <h4 className="font-semibold">Pet profile</h4>
+            </div>
+            <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-2 xl:grid-cols-4">
+              <Detail label="Pet" value={details.pet.name} />
+              <Detail label="Species" value={formatEnum(details.pet.species)} />
+              <Detail label="Breed" value={details.pet.breed} />
+              <Detail label="Color" value={details.pet.color} />
+              <Detail label="Sex" value={details.pet.sex} />
+              <Detail label="Age" value={formatPetAge(details.pet.ageMonths)} />
+              <Detail
+                label="Weight"
+                value={details.pet.weightLb ? `${details.pet.weightLb} lb` : null}
+              />
+            </dl>
+          </article>
+        ) : null}
+
+        {hasTransportDetails ? (
+          <article className="border-border rounded-md border p-4">
+            <div className="flex items-center gap-2">
+              <Truck aria-hidden="true" className="text-accent size-5" />
+              <h4 className="font-semibold">Transport record</h4>
+            </div>
+            <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-2">
+              <Detail label="Carrier" value={details.carrier} />
+              <Detail label="Courier" value={details.courier} />
+              <Detail label="Carrier reference" value={details.carrierReference} />
+              <Detail label="Shipment item" value={details.productName} />
+              <Detail label="Quantity" value={details.quantity} />
+            </dl>
+          </article>
+        ) : null}
+
+        {details.consignment ? (
+          <article className="border-border rounded-md border p-4">
+            <div className="flex items-center gap-2">
+              <Boxes aria-hidden="true" className="text-accent size-5" />
+              <h4 className="font-semibold">Consignment details</h4>
+            </div>
+            <div className="mt-4 space-y-3">
+              {details.consignment.packages.map((shipmentPackage, index) => (
+                <div
+                  className="border-border bg-secondary/45 rounded-md border p-3 text-sm"
+                  key={`${shipmentPackage.type}-${shipmentPackage.description ?? index}`}
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="font-semibold">Piece {index + 1}</p>
+                    <Badge variant="outline">{formatEnum(shipmentPackage.status)}</Badge>
+                  </div>
+                  <p className="text-muted-foreground mt-2 leading-6">
+                    {shipmentPackage.description ?? formatEnum(shipmentPackage.type)}
+                  </p>
+                  <p className="text-muted-foreground mt-1 text-xs">
+                    {formatEnum(shipmentPackage.type)}
+                    {shipmentPackage.weightLb ? ` | ${shipmentPackage.weightLb} lb` : null}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </article>
+        ) : null}
+
+        {details.freight ? (
+          <article className="border-border rounded-md border p-4 xl:col-span-2">
+            <div className="flex items-center gap-2">
+              <Route aria-hidden="true" className="text-accent size-5" />
+              <h4 className="font-semibold">Freight details</h4>
+            </div>
+            <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-2 xl:grid-cols-4">
+              <Detail label="Freight type" value={formatEnum(details.freight.freightType)} />
+              <Detail label="Route" value={details.freight.routeName} />
+              <Detail label="Container" value={details.freight.containerNumber} />
+              <Detail
+                label="Pallets"
+                value={
+                  details.freight.palletCount === null ? null : String(details.freight.palletCount)
+                }
+              />
+              <Detail label="Origin terminal" value={details.freight.originTerminal} />
+              <Detail label="Destination terminal" value={details.freight.destinationTerminal} />
+              <Detail label="Freight ETA" value={formatDate(details.freight.etaAt)} />
+              <Detail label="Commodity" value={details.freight.commodityDescription} />
+            </dl>
+          </article>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+function ShipmentTimeline({ snapshot }: { snapshot: ShipmentTrackingSnapshot }) {
+  return (
+    <section className="border-border bg-card shadow-panel rounded-lg border p-5 sm:p-6">
+      <div className="border-border border-b pb-4">
+        <h3 className="text-lg font-semibold">Shipment updates</h3>
+        <p className="text-muted-foreground mt-1 text-sm">
+          Published checkpoint history, newest first.
+        </p>
+      </div>
+      <div className="mt-5 space-y-1">
+        {snapshot.timeline.length ? (
+          snapshot.timeline.map((trackingEvent, index) => (
+            <div className="flex gap-4" key={trackingEvent.id}>
+              <div className="flex flex-col items-center">
+                <span className="bg-accent mt-1 size-3 rounded-full" />
+                {index < snapshot.timeline.length - 1 ? (
+                  <span className="bg-border mt-2 h-full min-h-14 w-px" />
+                ) : null}
+              </div>
+              <div className="min-w-0 flex-1 pb-5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-semibold">
+                    {trackingEvent.shipmentStatus
+                      ? formatShipmentStatus(trackingEvent.shipmentStatus)
+                      : formatTrackingEventType(trackingEvent.eventType)}
+                  </p>
+                  {trackingEvent.shipmentStatus ? (
+                    <Badge variant="outline">
+                      {formatShipmentStatus(trackingEvent.shipmentStatus)}
+                    </Badge>
+                  ) : null}
+                </div>
+                <p className="text-muted-foreground mt-1 text-xs">
+                  {formatDate(trackingEvent.occurredAt)}
+                </p>
+                {trackingEvent.currentLocation ? (
+                  <p className="mt-2 flex items-start gap-2 text-sm font-medium">
+                    <MapPinned aria-hidden="true" className="text-accent mt-0.5 size-4 shrink-0" />
+                    {trackingEvent.currentLocation}
+                  </p>
+                ) : null}
+                {trackingEvent.message ? (
+                  <p className="text-muted-foreground mt-2 text-sm leading-6">
+                    {trackingEvent.message}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          ))
+        ) : (
+          <p className="text-muted-foreground text-sm">
+            No shipment milestones have been published yet.
+          </p>
+        )}
+      </div>
+    </section>
+  );
 }
 
 export function TrackingLookup() {
@@ -198,25 +422,18 @@ export function TrackingLookup() {
 
     const source = new EventSource(`/api/tracking/${encodeURIComponent(trackedReference)}/stream`);
 
-    source.addEventListener("open", () => {
-      setConnectionState("live");
-    });
+    source.addEventListener("open", () => setConnectionState("live"));
     source.addEventListener("snapshot", (event) => {
       const nextSnapshot = JSON.parse((event as MessageEvent).data) as ShipmentTrackingSnapshot;
       setSnapshot(nextSnapshot);
       setConnectionState("live");
     });
-    source.addEventListener("error", () => {
-      setConnectionState("reconnecting");
-    });
+    source.addEventListener("error", () => setConnectionState("reconnecting"));
 
-    return () => {
-      source.close();
-    };
+    return () => source.close();
   }, [trackedReference]);
 
   const latestEvent = snapshot?.timeline[0] ?? null;
-  const carrierName = snapshot?.publicDetails?.carrier ?? "Apex Global Logistics";
 
   return (
     <section className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:py-10">
@@ -233,22 +450,10 @@ export function TrackingLookup() {
                   Track your shipment
                 </h1>
                 <p className="text-muted-foreground mt-2 max-w-2xl text-sm leading-6">
-                  Enter the tracking number from an Apex notice, invoice, receipt, or dispatch email
-                  to see the latest shipment record. An account is not required.
+                  Enter the tracking number from an Apex notice, invoice, receipt, or dispatch
+                  email.
                 </p>
               </div>
-            </div>
-            <div className="text-muted-foreground mt-5 grid gap-2 text-sm sm:grid-cols-3">
-              {[
-                "Live operational status",
-                "Delivery estimate and route",
-                "Verified checkpoints and consignment details",
-              ].map((item) => (
-                <p className="flex items-start gap-2" key={item}>
-                  <ShieldCheck aria-hidden="true" className="text-accent mt-0.5 size-4 shrink-0" />
-                  {item}
-                </p>
-              ))}
             </div>
           </div>
           <div>
@@ -287,172 +492,100 @@ export function TrackingLookup() {
       <div aria-live="polite" className="mt-6 min-w-0">
         {snapshot ? (
           <div className="flex flex-col gap-6">
-            <div className="grid gap-6 xl:grid-cols-[minmax(0,.95fr)_minmax(0,1.05fr)] xl:items-start">
-              <section className="border-border bg-card shadow-panel rounded-lg border p-5 sm:p-6">
-                <div className="border-border flex flex-col gap-4 border-b pb-5 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="min-w-0">
-                    <p className="text-muted-foreground text-xs font-semibold uppercase">
-                      Tracking number
-                    </p>
-                    <h2 className="mt-2 text-2xl font-semibold tracking-normal break-all sm:text-3xl">
-                      {snapshot.shipmentNumber}
-                    </h2>
-                    <p className="text-muted-foreground mt-2 text-sm">
-                      Last synchronized {formatDate(snapshot.updatedAt)}
-                    </p>
-                    <p className="text-muted-foreground mt-1 text-sm">
-                      Registered {formatDate(snapshot.createdAt)}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant={statusVariant(snapshot.status)}>
-                      {formatShipmentStatus(snapshot.status)}
-                    </Badge>
-                    <Badge variant={connectionState === "live" ? "success" : "outline"}>
-                      {connectionState === "live" ? (
-                        <Radio aria-hidden="true" className="size-3.5" />
-                      ) : null}
-                      {connectionState === "live"
-                        ? "Live updates"
-                        : connectionState === "reconnecting"
-                          ? "Reconnecting"
-                          : "Connecting"}
-                    </Badge>
-                    <Button asChild size="sm" variant="outline">
-                      <Link
-                        href={
-                          `/tracking/${encodeURIComponent(snapshot.shipmentNumber)}/receipt` as NextRoute
-                        }
-                      >
-                        <FileText aria-hidden="true" />
-                        Print receipt
-                      </Link>
-                    </Button>
-                  </div>
+            <section className="border-border bg-card shadow-panel rounded-lg border p-5 sm:p-6">
+              <div className="border-border flex flex-col gap-4 border-b pb-5 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <p className="text-muted-foreground text-xs font-semibold uppercase">
+                    Tracking number
+                  </p>
+                  <h2 className="mt-2 text-2xl font-semibold tracking-normal break-all sm:text-3xl">
+                    {snapshot.shipmentNumber}
+                  </h2>
+                  <p className="text-muted-foreground mt-2 text-sm">
+                    Last updated {formatDate(snapshot.updatedAt)}
+                  </p>
                 </div>
-
-                <div className="bg-secondary text-secondary-foreground mt-5 flex items-start gap-3 rounded-md p-4">
-                  <TrackingStatusIcon status={snapshot.status} />
-                  <div>
-                    <p className="font-semibold">{formatShipmentStatus(snapshot.status)}</p>
-                    <p className="mt-1 text-sm leading-6">{getStatusMessage(snapshot.status)}</p>
-                  </div>
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant={statusVariant(snapshot.status)}>
+                    {formatShipmentStatus(snapshot.status)}
+                  </Badge>
+                  <Badge variant={connectionState === "live" ? "success" : "outline"}>
+                    {connectionState === "live" ? (
+                      <Radio aria-hidden="true" className="size-3.5" />
+                    ) : null}
+                    {connectionState === "live"
+                      ? "Updates connected"
+                      : connectionState === "reconnecting"
+                        ? "Reconnecting"
+                        : "Connecting"}
+                  </Badge>
+                  <Button asChild size="sm" variant="outline">
+                    <Link
+                      href={
+                        `/tracking/${encodeURIComponent(snapshot.shipmentNumber)}/receipt` as NextRoute
+                      }
+                    >
+                      <FileText aria-hidden="true" />
+                      View receipt
+                    </Link>
+                  </Button>
                 </div>
+              </div>
 
-                <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                  <div className="border-border rounded-md border p-4">
-                    <p className="text-muted-foreground text-xs font-semibold uppercase">
-                      Estimated delivery
-                    </p>
-                    <p className="mt-2 text-lg font-semibold">{formatDeliveryWindow(snapshot)}</p>
-                    <p className="text-muted-foreground mt-1 text-sm">
-                      Delivery window from Apex operations
-                    </p>
-                  </div>
-                  <div className="border-border rounded-md border p-4">
-                    <p className="text-muted-foreground text-xs font-semibold uppercase">
-                      Current location
-                    </p>
-                    <p className="mt-2 text-lg font-semibold">
-                      {latestEvent?.currentLocation ?? "Awaiting the next checkpoint"}
-                    </p>
-                    <p className="text-muted-foreground mt-1 text-sm">
-                      {latestEvent
-                        ? formatDate(latestEvent.occurredAt)
-                        : "No operational checkpoint published yet"}
-                    </p>
-                  </div>
+              <div className="bg-secondary text-secondary-foreground mt-5 flex items-start gap-3 rounded-md p-4">
+                <TrackingStatusIcon status={snapshot.status} />
+                <div>
+                  <p className="font-semibold">{formatShipmentStatus(snapshot.status)}</p>
+                  <p className="mt-1 text-sm leading-6">{getStatusMessage(snapshot.status)}</p>
                 </div>
+              </div>
 
-                <div className="mt-5">
-                  <div className="border-border rounded-md border p-4">
-                    <div className="flex items-start gap-3">
-                      <MapPinned
-                        aria-hidden="true"
-                        className="text-accent mt-0.5 size-5 shrink-0"
-                      />
-                      <div className="min-w-0">
-                        <p className="text-xs font-semibold uppercase">Latest operational update</p>
-                        <p className="mt-2 font-semibold">
-                          {latestEvent
-                            ? formatTrackingEventType(latestEvent.eventType)
-                            : "Shipment record created"}
-                        </p>
-                        <p className="text-muted-foreground mt-1 text-sm leading-6">
-                          {latestEvent?.message ?? getStatusMessage(snapshot.status)}
-                        </p>
-                        <p className="text-muted-foreground mt-3 text-xs">
-                          {latestEvent?.currentLocation ?? "Location update pending"}
-                          {latestEvent ? ` · ${formatDate(latestEvent.occurredAt)}` : null}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+              <div className="mt-5 grid gap-4 lg:grid-cols-3">
+                <div className="border-border rounded-md border p-4">
+                  <p className="text-muted-foreground text-xs font-semibold uppercase">
+                    Estimated delivery
+                  </p>
+                  <p className="mt-2 text-lg font-semibold">{formatDeliveryWindow(snapshot)}</p>
                 </div>
+                <div className="border-border rounded-md border p-4">
+                  <p className="text-muted-foreground text-xs font-semibold uppercase">
+                    Current location
+                  </p>
+                  <p className="mt-2 text-lg font-semibold">
+                    {latestEvent?.currentLocation ?? "Awaiting the next checkpoint"}
+                  </p>
+                  <p className="text-muted-foreground mt-1 text-sm">
+                    {latestEvent
+                      ? formatDate(latestEvent.occurredAt)
+                      : "No checkpoint published yet"}
+                  </p>
+                </div>
+                <div className="border-border rounded-md border p-4">
+                  <p className="text-muted-foreground text-xs font-semibold uppercase">
+                    Latest update
+                  </p>
+                  <p className="mt-2 font-semibold">
+                    {latestEvent
+                      ? formatTrackingEventType(latestEvent.eventType)
+                      : "Shipment record created"}
+                  </p>
+                  <p className="text-muted-foreground mt-1 text-sm leading-6">
+                    {latestEvent?.message ?? getStatusMessage(snapshot.status)}
+                  </p>
+                </div>
+              </div>
+            </section>
 
-                <dl className="border-border bg-border mt-5 grid gap-px overflow-hidden rounded-md border sm:grid-cols-2 xl:grid-cols-3">
-                  {[
-                    {
-                      icon: Route,
-                      label: "Route",
-                      value: `${snapshot.originCity}, ${snapshot.originCountryCode} to ${snapshot.destinationCity}, ${snapshot.destinationCountryCode}`,
-                    },
-                    {
-                      icon: LocateFixed,
-                      label: "Current location",
-                      value: latestEvent?.currentLocation ?? "Awaiting the next checkpoint",
-                    },
-                    {
-                      icon: CalendarClock,
-                      label: "Estimated delivery",
-                      value: formatDeliveryWindow(snapshot),
-                    },
-                    {
-                      icon: Truck,
-                      label: "Carrier",
-                      value: carrierName,
-                    },
-                    {
-                      icon: ShieldCheck,
-                      label: "Service",
-                      value: snapshot.serviceLevel ?? "Standard managed service",
-                    },
-                    {
-                      icon: Truck,
-                      label: "Transport mode",
-                      value: formatEnum(snapshot.mode),
-                    },
-                    {
-                      icon: Boxes,
-                      label: "Pieces recorded",
-                      value: snapshot.packageCount
-                        ? `${snapshot.packageCount} piece${snapshot.packageCount === 1 ? "" : "s"}`
-                        : "Not recorded",
-                    },
-                    {
-                      icon: Scale,
-                      label: "Recorded weight",
-                      value: snapshot.totalWeightLb
-                        ? `${snapshot.totalWeightLb} lb`
-                        : "Not recorded",
-                    },
-                  ].map((item) => (
-                    <div className="bg-background p-4" key={item.label}>
-                      <item.icon aria-hidden="true" className="text-accent size-5" />
-                      <dt className="mt-3 text-xs font-semibold uppercase">{item.label}</dt>
-                      <dd className="text-muted-foreground mt-1 text-sm leading-6">{item.value}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </section>
-            </div>
+            <ShipmentParties snapshot={snapshot} />
+
+            <ShipmentLiveMap connectionState={connectionState} snapshot={snapshot} />
 
             <section className="border-border bg-card shadow-panel rounded-lg border p-5 sm:p-6">
               <div className="border-border flex flex-wrap items-end justify-between gap-3 border-b pb-4">
                 <div>
-                  <h3 className="text-lg font-semibold">Route summary</h3>
-                  <p className="text-muted-foreground mt-1 text-sm leading-6">
-                    Origin, current recorded location, and final delivery destination.
+                  <h3 className="text-lg font-semibold">Route and shipment record</h3>
+                  <p className="text-muted-foreground mt-1 text-sm">
+                    Origin, latest checkpoint, and final destination.
                   </p>
                 </div>
                 <p className="text-muted-foreground text-sm">
@@ -466,7 +599,6 @@ export function TrackingLookup() {
                   <p className="mt-2 font-semibold">
                     {snapshot.originCity}, {snapshot.originCountryCode}
                   </p>
-                  <p className="text-muted-foreground mt-1 text-sm">Shipment origin</p>
                 </div>
                 <ChevronRight
                   aria-hidden="true"
@@ -494,429 +626,34 @@ export function TrackingLookup() {
                   <p className="mt-2 font-semibold">
                     {snapshot.destinationCity}, {snapshot.destinationCountryCode}
                   </p>
-                  <p className="text-muted-foreground mt-1 text-sm">Final delivery location</p>
                 </div>
               </div>
+              <dl className="border-border bg-border mt-5 grid gap-px overflow-hidden rounded-md border sm:grid-cols-2 xl:grid-cols-4">
+                {[
+                  { label: "Service", value: snapshot.serviceLevel ?? "Standard managed service" },
+                  { label: "Transport mode", value: formatEnum(snapshot.mode) },
+                  {
+                    label: "Pieces",
+                    value: snapshot.packageCount
+                      ? `${snapshot.packageCount} piece${snapshot.packageCount === 1 ? "" : "s"}`
+                      : "Not recorded",
+                  },
+                  {
+                    label: "Recorded weight",
+                    value: snapshot.totalWeightLb ? `${snapshot.totalWeightLb} lb` : "Not recorded",
+                  },
+                ].map((item) => (
+                  <div className="bg-background p-4" key={item.label}>
+                    <dt className="text-muted-foreground text-xs font-semibold uppercase">
+                      {item.label}
+                    </dt>
+                    <dd className="mt-2 text-sm font-semibold">{item.value}</dd>
+                  </div>
+                ))}
+              </dl>
             </section>
 
-            {snapshot.publicDetails ? (
-              <section className="border-border bg-card shadow-panel order-first rounded-lg border p-5 sm:p-6">
-                <div className="border-border border-b pb-4">
-                  <h3 className="text-lg font-semibold">Shipment parties and details</h3>
-                  <p className="text-muted-foreground mt-1 text-sm leading-6">
-                    Sender and receiver details appear first, followed by the pet profile and
-                    shipment record when provided.
-                  </p>
-                </div>
-                <div className="mt-5 grid gap-4 xl:grid-cols-2">
-                  {snapshot.publicDetails.carrier ||
-                  snapshot.publicDetails.courier ||
-                  snapshot.publicDetails.carrierReference ||
-                  snapshot.publicDetails.productName ||
-                  snapshot.publicDetails.quantity ? (
-                    <article className="border-border order-3 rounded-md border p-4">
-                      <div className="flex items-center gap-2">
-                        <Truck aria-hidden="true" className="text-accent size-5" />
-                        <h4 className="font-semibold">Transport record</h4>
-                      </div>
-                      <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
-                        {snapshot.publicDetails.carrier ? (
-                          <div>
-                            <dt className="text-muted-foreground text-xs font-semibold uppercase">
-                              Carrier
-                            </dt>
-                            <dd className="mt-1 font-medium">{snapshot.publicDetails.carrier}</dd>
-                          </div>
-                        ) : null}
-                        {snapshot.publicDetails.courier ? (
-                          <div>
-                            <dt className="text-muted-foreground text-xs font-semibold uppercase">
-                              Courier
-                            </dt>
-                            <dd className="mt-1 font-medium">{snapshot.publicDetails.courier}</dd>
-                          </div>
-                        ) : null}
-                        {snapshot.publicDetails.carrierReference ? (
-                          <div>
-                            <dt className="text-muted-foreground text-xs font-semibold uppercase">
-                              Carrier reference
-                            </dt>
-                            <dd className="mt-1 font-medium break-all">
-                              {snapshot.publicDetails.carrierReference}
-                            </dd>
-                          </div>
-                        ) : null}
-                        {snapshot.publicDetails.productName ? (
-                          <div>
-                            <dt className="text-muted-foreground text-xs font-semibold uppercase">
-                              Shipment item
-                            </dt>
-                            <dd className="mt-1 font-medium">
-                              {snapshot.publicDetails.productName}
-                            </dd>
-                          </div>
-                        ) : null}
-                        {snapshot.publicDetails.quantity ? (
-                          <div>
-                            <dt className="text-muted-foreground text-xs font-semibold uppercase">
-                              Quantity
-                            </dt>
-                            <dd className="mt-1 font-medium">{snapshot.publicDetails.quantity}</dd>
-                          </div>
-                        ) : null}
-                      </dl>
-                    </article>
-                  ) : null}
-
-                  {snapshot.publicDetails.sender || snapshot.publicDetails.recipient ? (
-                    <article className="border-border order-1 rounded-md border p-4">
-                      <div className="flex items-center gap-2">
-                        <UserRound aria-hidden="true" className="text-accent size-5" />
-                        <h4 className="font-semibold">Sender and receiver</h4>
-                      </div>
-                      <div className="mt-4 grid gap-5 sm:grid-cols-2">
-                        {snapshot.publicDetails.sender ? (
-                          <dl className="min-w-0 space-y-3 text-sm">
-                            <div>
-                              <dt className="text-muted-foreground text-xs font-semibold uppercase">
-                                Sender
-                              </dt>
-                              <dd className="mt-1 font-medium">
-                                {snapshot.publicDetails.sender.name ?? "Sender"}
-                              </dd>
-                            </div>
-                            <div>
-                              <dt className="text-muted-foreground text-xs font-semibold uppercase">
-                                Pickup address
-                              </dt>
-                              <dd className="mt-1 leading-6 font-medium">
-                                {formatAddress(snapshot.publicDetails.sender.address)}
-                              </dd>
-                            </div>
-                            {snapshot.publicDetails.sender.phone ? (
-                              <div>
-                                <dt className="text-muted-foreground text-xs font-semibold uppercase">
-                                  Phone
-                                </dt>
-                                <dd className="mt-1 font-medium">
-                                  {snapshot.publicDetails.sender.phone}
-                                </dd>
-                              </div>
-                            ) : null}
-                            {snapshot.publicDetails.sender.email ? (
-                              <div>
-                                <dt className="text-muted-foreground text-xs font-semibold uppercase">
-                                  Email
-                                </dt>
-                                <dd className="mt-1 font-medium break-all">
-                                  {snapshot.publicDetails.sender.email}
-                                </dd>
-                              </div>
-                            ) : null}
-                          </dl>
-                        ) : null}
-                        {snapshot.publicDetails.recipient ? (
-                          <dl className="min-w-0 space-y-3 text-sm">
-                            <div>
-                              <dt className="text-muted-foreground text-xs font-semibold uppercase">
-                                Receiver
-                              </dt>
-                              <dd className="mt-1 font-medium">
-                                {snapshot.publicDetails.recipient.name ?? "Recipient"}
-                              </dd>
-                            </div>
-                            <div>
-                              <dt className="text-muted-foreground text-xs font-semibold uppercase">
-                                Delivery address
-                              </dt>
-                              <dd className="mt-1 leading-6 font-medium">
-                                {formatAddress(snapshot.publicDetails.recipient.address)}
-                              </dd>
-                            </div>
-                            {snapshot.publicDetails.recipient.phone ? (
-                              <div>
-                                <dt className="text-muted-foreground text-xs font-semibold uppercase">
-                                  Phone
-                                </dt>
-                                <dd className="mt-1 font-medium">
-                                  {snapshot.publicDetails.recipient.phone}
-                                </dd>
-                              </div>
-                            ) : null}
-                            {snapshot.publicDetails.recipient.email ? (
-                              <div>
-                                <dt className="text-muted-foreground text-xs font-semibold uppercase">
-                                  Email
-                                </dt>
-                                <dd className="mt-1 font-medium break-all">
-                                  {snapshot.publicDetails.recipient.email}
-                                </dd>
-                              </div>
-                            ) : null}
-                          </dl>
-                        ) : null}
-                      </div>
-                    </article>
-                  ) : null}
-
-                  {snapshot.publicDetails.consignment ? (
-                    <article className="border-border order-4 rounded-md border p-4">
-                      <div className="flex items-center gap-2">
-                        <Boxes aria-hidden="true" className="text-accent size-5" />
-                        <h4 className="font-semibold">Consignment details</h4>
-                      </div>
-                      <div className="mt-4 space-y-3">
-                        {snapshot.publicDetails.consignment.packages.map(
-                          (shipmentPackage, index) => (
-                            <div
-                              className="border-border bg-secondary/45 rounded-md border p-3 text-sm"
-                              key={`${shipmentPackage.type}-${shipmentPackage.description ?? index}`}
-                            >
-                              <div className="flex flex-wrap items-center justify-between gap-2">
-                                <p className="font-semibold">Piece {index + 1}</p>
-                                <Badge variant="outline">
-                                  {formatEnum(shipmentPackage.status)}
-                                </Badge>
-                              </div>
-                              <p className="text-muted-foreground mt-2 leading-6">
-                                {shipmentPackage.description ?? formatEnum(shipmentPackage.type)}
-                              </p>
-                              <p className="text-muted-foreground mt-1 text-xs">
-                                {formatEnum(shipmentPackage.type)}
-                                {shipmentPackage.weightLb
-                                  ? ` · ${shipmentPackage.weightLb} lb`
-                                  : null}
-                              </p>
-                            </div>
-                          ),
-                        )}
-                      </div>
-                    </article>
-                  ) : null}
-
-                  {snapshot.publicDetails.pet ? (
-                    <article className="border-border order-2 rounded-md border p-4">
-                      <div className="flex items-center gap-2">
-                        <PawPrint aria-hidden="true" className="text-accent size-5" />
-                        <h4 className="font-semibold">Pet profile</h4>
-                      </div>
-                      <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
-                        <div>
-                          <dt className="text-muted-foreground text-xs font-semibold uppercase">
-                            Pet
-                          </dt>
-                          <dd className="mt-1 font-medium">{snapshot.publicDetails.pet.name}</dd>
-                        </div>
-                        <div>
-                          <dt className="text-muted-foreground text-xs font-semibold uppercase">
-                            Species
-                          </dt>
-                          <dd className="mt-1 font-medium">
-                            {formatEnum(snapshot.publicDetails.pet.species)}
-                          </dd>
-                        </div>
-                        {snapshot.publicDetails.pet.breed ? (
-                          <div>
-                            <dt className="text-muted-foreground text-xs font-semibold uppercase">
-                              Breed
-                            </dt>
-                            <dd className="mt-1 font-medium">{snapshot.publicDetails.pet.breed}</dd>
-                          </div>
-                        ) : null}
-                        {snapshot.publicDetails.pet.color ? (
-                          <div>
-                            <dt className="text-muted-foreground text-xs font-semibold uppercase">
-                              Color
-                            </dt>
-                            <dd className="mt-1 font-medium">{snapshot.publicDetails.pet.color}</dd>
-                          </div>
-                        ) : null}
-                        {snapshot.publicDetails.pet.sex ? (
-                          <div>
-                            <dt className="text-muted-foreground text-xs font-semibold uppercase">
-                              Sex
-                            </dt>
-                            <dd className="mt-1 font-medium">{snapshot.publicDetails.pet.sex}</dd>
-                          </div>
-                        ) : null}
-                        {formatPetAge(snapshot.publicDetails.pet.ageMonths) ? (
-                          <div>
-                            <dt className="text-muted-foreground text-xs font-semibold uppercase">
-                              Age
-                            </dt>
-                            <dd className="mt-1 font-medium">
-                              {formatPetAge(snapshot.publicDetails.pet.ageMonths)}
-                            </dd>
-                          </div>
-                        ) : null}
-                        {snapshot.publicDetails.pet.weightLb ? (
-                          <div>
-                            <dt className="text-muted-foreground text-xs font-semibold uppercase">
-                              Weight
-                            </dt>
-                            <dd className="mt-1 font-medium">
-                              {snapshot.publicDetails.pet.weightLb} lb
-                            </dd>
-                          </div>
-                        ) : null}
-                      </dl>
-                    </article>
-                  ) : null}
-
-                  {snapshot.publicDetails.freight ? (
-                    <article className="border-border order-5 rounded-md border p-4">
-                      <div className="flex items-center gap-2">
-                        <Route aria-hidden="true" className="text-accent size-5" />
-                        <h4 className="font-semibold">Freight details</h4>
-                      </div>
-                      <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
-                        <div>
-                          <dt className="text-muted-foreground text-xs font-semibold uppercase">
-                            Freight type
-                          </dt>
-                          <dd className="mt-1 font-medium">
-                            {formatEnum(snapshot.publicDetails.freight.freightType)}
-                          </dd>
-                        </div>
-                        {snapshot.publicDetails.freight.routeName ? (
-                          <div>
-                            <dt className="text-muted-foreground text-xs font-semibold uppercase">
-                              Route
-                            </dt>
-                            <dd className="mt-1 font-medium">
-                              {snapshot.publicDetails.freight.routeName}
-                            </dd>
-                          </div>
-                        ) : null}
-                        {snapshot.publicDetails.freight.containerNumber ? (
-                          <div>
-                            <dt className="text-muted-foreground text-xs font-semibold uppercase">
-                              Container
-                            </dt>
-                            <dd className="mt-1 font-medium break-all">
-                              {snapshot.publicDetails.freight.containerNumber}
-                            </dd>
-                          </div>
-                        ) : null}
-                        {snapshot.publicDetails.freight.palletCount !== null ? (
-                          <div>
-                            <dt className="text-muted-foreground text-xs font-semibold uppercase">
-                              Pallets
-                            </dt>
-                            <dd className="mt-1 font-medium">
-                              {snapshot.publicDetails.freight.palletCount}
-                            </dd>
-                          </div>
-                        ) : null}
-                        {snapshot.publicDetails.freight.originTerminal ? (
-                          <div>
-                            <dt className="text-muted-foreground text-xs font-semibold uppercase">
-                              Origin terminal
-                            </dt>
-                            <dd className="mt-1 font-medium">
-                              {snapshot.publicDetails.freight.originTerminal}
-                            </dd>
-                          </div>
-                        ) : null}
-                        {snapshot.publicDetails.freight.destinationTerminal ? (
-                          <div>
-                            <dt className="text-muted-foreground text-xs font-semibold uppercase">
-                              Destination terminal
-                            </dt>
-                            <dd className="mt-1 font-medium">
-                              {snapshot.publicDetails.freight.destinationTerminal}
-                            </dd>
-                          </div>
-                        ) : null}
-                        {snapshot.publicDetails.freight.etaAt ? (
-                          <div>
-                            <dt className="text-muted-foreground text-xs font-semibold uppercase">
-                              Freight ETA
-                            </dt>
-                            <dd className="mt-1 font-medium">
-                              {formatDate(snapshot.publicDetails.freight.etaAt)}
-                            </dd>
-                          </div>
-                        ) : null}
-                        {snapshot.publicDetails.freight.commodityDescription ? (
-                          <div className="sm:col-span-2">
-                            <dt className="text-muted-foreground text-xs font-semibold uppercase">
-                              Commodity
-                            </dt>
-                            <dd className="mt-1 font-medium">
-                              {snapshot.publicDetails.freight.commodityDescription}
-                            </dd>
-                          </div>
-                        ) : null}
-                      </dl>
-                    </article>
-                  ) : null}
-                </div>
-                <p className="text-muted-foreground mt-5 text-xs leading-5">
-                  Public tracking is available without an account. Shipment contact and delivery
-                  details are published only when enabled by Apex operations; payment details,
-                  health records, and shipment documents remain private.
-                </p>
-              </section>
-            ) : null}
-
-            <ShipmentLiveMap connectionState={connectionState} snapshot={snapshot} />
-
-            <section className="border-border bg-card shadow-panel rounded-lg border p-5 sm:p-6">
-              <div className="border-border border-b pb-4">
-                <h3 className="text-lg font-semibold">Shipment updates</h3>
-                <p className="text-muted-foreground mt-1 text-sm">
-                  Published operational updates, newest first.
-                </p>
-              </div>
-              <div className="mt-5 space-y-1">
-                {snapshot.timeline.length ? (
-                  snapshot.timeline.map((trackingEvent, index) => (
-                    <div className="flex gap-4" key={trackingEvent.id}>
-                      <div className="flex flex-col items-center">
-                        <span className="bg-accent mt-1 size-3 rounded-full" />
-                        {index < snapshot.timeline.length - 1 ? (
-                          <span className="bg-border mt-2 h-full min-h-14 w-px" />
-                        ) : null}
-                      </div>
-                      <div className="min-w-0 flex-1 pb-5">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="font-semibold">
-                            {trackingEvent.shipmentStatus
-                              ? formatShipmentStatus(trackingEvent.shipmentStatus)
-                              : formatTrackingEventType(trackingEvent.eventType)}
-                          </p>
-                          {trackingEvent.shipmentStatus ? (
-                            <Badge variant="outline">
-                              {formatShipmentStatus(trackingEvent.shipmentStatus)}
-                            </Badge>
-                          ) : null}
-                        </div>
-                        <p className="text-muted-foreground mt-1 text-xs">
-                          {formatDate(trackingEvent.occurredAt)}
-                        </p>
-                        {trackingEvent.currentLocation ? (
-                          <p className="mt-2 flex items-start gap-2 text-sm font-medium">
-                            <MapPinned
-                              aria-hidden="true"
-                              className="text-accent mt-0.5 size-4 shrink-0"
-                            />
-                            {trackingEvent.currentLocation}
-                          </p>
-                        ) : null}
-                        {trackingEvent.message ? (
-                          <p className="text-muted-foreground mt-2 text-sm leading-6">
-                            {trackingEvent.message}
-                          </p>
-                        ) : null}
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-muted-foreground text-sm">No shipment milestones yet.</p>
-                )}
-              </div>
-            </section>
+            <ShipmentTimeline snapshot={snapshot} />
           </div>
         ) : (
           <section className="border-border bg-card shadow-panel grid min-h-[420px] place-items-center rounded-lg border p-6 text-center">
@@ -929,7 +666,7 @@ export function TrackingLookup() {
               </h2>
               <p className="text-muted-foreground mt-3 text-sm leading-6">
                 Use the tracking number printed on the Apex shipment notice, invoice, receipt, or
-                email. An account is not required for public tracking.
+                email.
               </p>
             </div>
           </section>
