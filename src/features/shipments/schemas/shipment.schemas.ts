@@ -4,6 +4,8 @@ import {
   ShipmentMode,
   ShipmentPriority,
   ShipmentStatus,
+  ShipmentRouteSimulationMode,
+  ShipmentRouteTravelMode,
   TrackingEventType,
 } from "@prisma/client";
 import { z } from "zod";
@@ -195,6 +197,17 @@ export const shipmentStatusUpdateSchema = z
     }
   });
 
+export const shipmentRouteSchema = z.object({
+  destinationQuery: requiredString("Destination", 300),
+  originQuery: requiredString("Origin", 300),
+  simulationMode: z.nativeEnum(ShipmentRouteSimulationMode),
+  travelMode: z.nativeEnum(ShipmentRouteTravelMode),
+});
+
+export const manualShipmentRouteProgressSchema = z.object({
+  progressPercent: z.coerce.number().min(0).max(100),
+});
+
 export const shipmentDocumentSchema = z.object({
   documentType: requiredString("Document type", 80),
   notes: optionalString(1000),
@@ -213,6 +226,8 @@ export const parcelBookingOptionsSchema = z.object({
 
 export type ShipmentFormInput = z.infer<typeof shipmentFormSchema>;
 export type ShipmentStatusUpdateInput = z.infer<typeof shipmentStatusUpdateSchema>;
+export type ShipmentRouteInput = z.infer<typeof shipmentRouteSchema>;
+export type ManualShipmentRouteProgressInput = z.infer<typeof manualShipmentRouteProgressSchema>;
 export type ShipmentDocumentInput = z.infer<typeof shipmentDocumentSchema>;
 export type PackagePhotoInput = z.infer<typeof packagePhotoSchema>;
 export type ParcelBookingOptionsInput = z.infer<typeof parcelBookingOptionsSchema>;

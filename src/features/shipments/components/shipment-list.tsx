@@ -19,11 +19,14 @@ import type { ShipmentListItem } from "@/features/shipments/types";
 const statusVariant = {
   BOOKED: "info",
   CANCELLED: "danger",
+  DELAYED: "warning",
   DELIVERED: "success",
   DRAFT: "neutral",
   HELD: "warning",
   IN_TRANSIT: "accent",
   PENDING_PICKUP: "warning",
+  PROCESSING: "info",
+  READY_FOR_DISPATCH: "info",
   RETURNED: "neutral",
 } as const;
 

@@ -49,12 +49,27 @@ enum AddressType {
 enum ShipmentStatus {
   DRAFT
   BOOKED
+  PROCESSING
+  READY_FOR_DISPATCH
   PENDING_PICKUP
   IN_TRANSIT
   HELD
+  DELAYED
   DELIVERED
   CANCELLED
   RETURNED
+}
+
+enum ShipmentRouteTravelMode {
+  DRIVING
+  CYCLING
+  WALKING
+}
+
+enum ShipmentRouteSimulationMode {
+  REALTIME
+  ACCELERATED
+  MANUAL
 }
 
 enum ShipmentPriority {
@@ -826,6 +841,7 @@ model Shipment {
   packages             ShipmentPackage[]
   documents            ShipmentDocument[]
   petTransport         PetTransport?
+  routeTracking        ShipmentRoute?
   supportTickets       SupportTicket[]
   trackingEvents       TrackingEvent[]
 
@@ -837,6 +853,44 @@ model Shipment {
   @@index([destinationWarehouseId, status], map: "idx_shipments_destination_warehouse_status")
   @@index([deliveryWindowStart], map: "idx_shipments_delivery_window_start")
   @@index([deletedAt], map: "idx_shipments_deleted_at")
+}
+
+model ShipmentRoute {
+  id                     String                      @id @default(uuid()) @db.Uuid
+  shipmentId             String                      @unique @db.Uuid
+  provider               String                      @default("osrm") @db.VarChar(40)
+  travelMode             ShipmentRouteTravelMode     @default(DRIVING)
+  simulationMode         ShipmentRouteSimulationMode @default(REALTIME)
+  simulationSpeed        Decimal                     @default(1) @db.Decimal(10, 3)
+  originLabel            String                      @db.VarChar(500)
+  destinationLabel       String                      @db.VarChar(500)
+  originLatitude         Decimal                     @db.Decimal(9, 6)
+  originLongitude        Decimal                     @db.Decimal(9, 6)
+  destinationLatitude    Decimal                     @db.Decimal(9, 6)
+  destinationLongitude   Decimal                     @db.Decimal(9, 6)
+  geometry               Json
+  totalDistanceMeters    Int
+  totalDurationSeconds   Int
+  progressPercent        Decimal                     @default(0) @db.Decimal(6, 3)
+  traveledDistanceMeters Int                         @default(0)
+  routePositionIndex     Int                         @default(0)
+  currentLatitude        Decimal                     @db.Decimal(9, 6)
+  currentLongitude       Decimal                     @db.Decimal(9, 6)
+  transitStartedAt       DateTime?                   @db.Timestamptz(6)
+  lastResumedAt          DateTime?                   @db.Timestamptz(6)
+  lastPausedAt           DateTime?                   @db.Timestamptz(6)
+  activeTransitSeconds   Int                         @default(0)
+  totalPausedSeconds     Int                         @default(0)
+  lastProgressUpdatedAt  DateTime?                   @db.Timestamptz(6)
+  estimatedArrivalAt     DateTime?                   @db.Timestamptz(6)
+  deliveredAt            DateTime?                   @db.Timestamptz(6)
+  createdAt              DateTime                    @default(now()) @db.Timestamptz(6)
+  updatedAt              DateTime                    @updatedAt @db.Timestamptz(6)
+
+  shipment Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+
+  @@index([simulationMode, updatedAt], map: "idx_shipment_routes_simulation_updated_at")
+  @@index([lastResumedAt], map: "idx_shipment_routes_last_resumed_at")
 }
 
 model ShipmentPackage {

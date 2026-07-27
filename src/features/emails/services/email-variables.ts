@@ -20,6 +20,9 @@ export type ShipmentEmailContext = {
 
 export type EmailBranding = {
   companyName: string;
+  emailDisclaimer?: string;
+  emailSupportMessage?: string;
+  emailTagline?: string;
   supportEmail: string;
   supportPhone: string;
   website: string;
@@ -127,6 +130,9 @@ export async function getEmailBranding(): Promise<EmailBranding> {
 
   return {
     companyName: profile.legalName || "Apex Global Logistics",
+    emailDisclaimer: profile.emailDisclaimer,
+    emailSupportMessage: profile.emailSupportMessage,
+    emailTagline: profile.emailTagline,
     supportEmail: profile.email || env.SUPPORT_EMAIL,
     supportPhone: profile.phone || env.SUPPORT_PHONE,
     website: profile.website || env.NEXT_PUBLIC_APP_URL,

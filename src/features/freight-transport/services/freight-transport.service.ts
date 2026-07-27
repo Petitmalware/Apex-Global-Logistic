@@ -24,6 +24,7 @@ import type {
 import { createShipment } from "@/features/shipments/services/shipment.service";
 import type { ShipmentFormInput } from "@/features/shipments/schemas/shipment.schemas";
 import { publishShipmentTrackingUpdate } from "@/features/shipments/services/shipment-realtime.service";
+import { synchronizeShipmentRouteStatus } from "@/features/shipments/services/shipment-route-tracking.service";
 import { AUTH_ROLES } from "@/lib/auth/constants";
 import { AuthError } from "@/lib/auth/errors";
 import { PERMISSIONS, hasPermission } from "@/lib/auth/rbac";
@@ -322,6 +323,15 @@ async function createLinkedTrackingEvent({
   });
 
   if (status) {
+    const previousShipment = await transaction.shipment.findUnique({
+      select: {
+        status: true,
+      },
+      where: {
+        id: shipmentId,
+      },
+    });
+
     await transaction.shipment.update({
       data: {
         ...mapShipmentTimestamps(shipmentStatus!),
@@ -331,6 +341,15 @@ async function createLinkedTrackingEvent({
         id: shipmentId,
       },
     });
+
+    if (previousShipment) {
+      await synchronizeShipmentRouteStatus({
+        nextStatus: shipmentStatus!,
+        previousStatus: previousShipment.status,
+        shipmentId,
+        transaction,
+      });
+    }
 
     await transaction.freightTransport.update({
       data: {
@@ -533,6 +552,13 @@ export async function updateFreightDispatch({
       where: {
         id: freightTransport.shipment.id,
       },
+    });
+
+    await synchronizeShipmentRouteStatus({
+      nextStatus: shipmentStatus,
+      previousStatus: freightTransport.shipment.status,
+      shipmentId: freightTransport.shipment.id,
+      transaction,
     });
 
     await transaction.freightTransport.update({

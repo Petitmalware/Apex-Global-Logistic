@@ -7,8 +7,10 @@ import type { Route } from "next";
 import {
   packagePhotoSchema,
   parcelBookingOptionsSchema,
+  manualShipmentRouteProgressSchema,
   shipmentDocumentSchema,
   shipmentFormSchema,
+  shipmentRouteSchema,
   shipmentStatusUpdateSchema,
 } from "@/features/shipments/schemas/shipment.schemas";
 import {
@@ -19,6 +21,11 @@ import {
   uploadPackagePhoto,
   uploadShipmentDocument,
 } from "@/features/shipments/services/shipment.service";
+import {
+  clearShipmentRoute,
+  configureShipmentRoute,
+  setManualShipmentRouteProgress,
+} from "@/features/shipments/services/shipment-route-tracking.service";
 import { geocodeShipmentLocation } from "@/features/shipments/services/maptiler-geocoding.service";
 import type { ShipmentActionState } from "@/features/shipments/types";
 import { AUTH_ROLES } from "@/lib/auth/constants";
@@ -297,11 +304,11 @@ export async function updateShipmentStatusAction(
       mappingMessage = " Map coordinates were added from the location provided.";
     } else if (geocode.reason === "not_configured") {
       mappingMessage =
-        " The location was saved without a map pin because MapTiler is not configured.";
+        " The location was saved without a map pin because geocoding is not configured.";
     } else if (geocode.reason === "not_found") {
-      mappingMessage = " The location was saved, but MapTiler could not find a map pin for it.";
+      mappingMessage = " The location was saved, but the map service could not locate it.";
     } else {
-      mappingMessage = " The location was saved, but MapTiler was temporarily unavailable.";
+      mappingMessage = " The location was saved, but the map service was temporarily unavailable.";
     }
   }
 
@@ -347,6 +354,106 @@ export async function updateShipmentStatusAction(
 
   return {
     message: `Shipment status updated.${mappingMessage}`,
+    status: "success",
+  };
+}
+
+export async function configureShipmentRouteAction(
+  shipmentId: string,
+  _previousState: ShipmentActionState,
+  formData: FormData,
+): Promise<ShipmentActionState> {
+  const user = await requireAuthenticatedUser();
+  const parsed = shipmentRouteSchema.safeParse({
+    destinationQuery: getString(formData, "destinationQuery"),
+    originQuery: getString(formData, "originQuery"),
+    simulationMode: getString(formData, "simulationMode"),
+    travelMode: getString(formData, "travelMode"),
+  });
+
+  if (!parsed.success) {
+    return {
+      fieldErrors: parsed.error.flatten().fieldErrors,
+      message: "Add a valid origin, destination, travel mode, and tracking mode.",
+      status: "error",
+    };
+  }
+
+  try {
+    await configureShipmentRoute({
+      ...parsed.data,
+      shipmentId,
+      user,
+    });
+  } catch (error) {
+    return errorState(error);
+  }
+
+  revalidatePath(`/shipments/${shipmentId}`);
+  revalidatePath(`/tracking/[reference]`, "page");
+
+  return {
+    message: "Road route calculated and saved. Status updates now control route progress.",
+    status: "success",
+  };
+}
+
+export async function clearShipmentRouteAction(
+  shipmentId: string,
+  _previousState: ShipmentActionState,
+  _formData: FormData,
+): Promise<ShipmentActionState> {
+  void _previousState;
+  void _formData;
+
+  const user = await requireAuthenticatedUser();
+
+  try {
+    await clearShipmentRoute(shipmentId, user);
+  } catch (error) {
+    return errorState(error);
+  }
+
+  revalidatePath(`/shipments/${shipmentId}`);
+
+  return {
+    message: "The saved road route was cleared.",
+    status: "success",
+  };
+}
+
+export async function setManualShipmentRouteProgressAction(
+  shipmentId: string,
+  _previousState: ShipmentActionState,
+  formData: FormData,
+): Promise<ShipmentActionState> {
+  const user = await requireAuthenticatedUser();
+  const parsed = manualShipmentRouteProgressSchema.safeParse({
+    progressPercent: getString(formData, "progressPercent"),
+  });
+
+  if (!parsed.success) {
+    return {
+      fieldErrors: parsed.error.flatten().fieldErrors,
+      message: "Enter a route progress value from 0 to 100.",
+      status: "error",
+    };
+  }
+
+  try {
+    await setManualShipmentRouteProgress({
+      ...parsed.data,
+      shipmentId,
+      user,
+    });
+  } catch (error) {
+    return errorState(error);
+  }
+
+  revalidatePath(`/shipments/${shipmentId}`);
+
+  return {
+    message: "Route progress updated.",
     status: "success",
   };
 }

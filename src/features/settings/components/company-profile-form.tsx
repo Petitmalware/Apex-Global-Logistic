@@ -164,6 +164,59 @@ export function CompanyProfileForm({ action, profile }: CompanyProfileFormProps)
       </Card>
       <Card>
         <CardHeader>
+          <CardTitle>Email identity</CardTitle>
+          <FieldHint>
+            These optional fields appear in the branded wrapper used for manual emails, account
+            emails, invoices, and shipment updates. Leave any field blank to hide it.
+          </FieldHint>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <Field>
+            <Label htmlFor="emailTagline">Header tagline</Label>
+            <Input
+              defaultValue={profile.emailTagline ?? ""}
+              id="emailTagline"
+              name="emailTagline"
+              placeholder="Reliable delivery communication from Apex Global Logistics"
+            />
+            {state.fieldErrors?.emailTagline?.[0] ? (
+              <FieldError>{state.fieldErrors.emailTagline[0]}</FieldError>
+            ) : null}
+          </Field>
+          <Field>
+            <Label htmlFor="emailSupportMessage">Support note</Label>
+            <Textarea
+              defaultValue={profile.emailSupportMessage ?? ""}
+              id="emailSupportMessage"
+              name="emailSupportMessage"
+              placeholder="For delivery or billing assistance, contact our support team using the details above."
+            />
+            {state.fieldErrors?.emailSupportMessage?.[0] ? (
+              <FieldError>{state.fieldErrors.emailSupportMessage[0]}</FieldError>
+            ) : null}
+          </Field>
+          <Field>
+            <Label htmlFor="emailDisclaimer">Footer notice</Label>
+            <Textarea
+              defaultValue={profile.emailDisclaimer ?? ""}
+              id="emailDisclaimer"
+              name="emailDisclaimer"
+              placeholder="Add only approved legal, privacy, or confidentiality wording."
+            />
+            {state.fieldErrors?.emailDisclaimer?.[0] ? (
+              <FieldError>{state.fieldErrors.emailDisclaimer[0]}</FieldError>
+            ) : null}
+          </Field>
+          <div className="flex justify-end">
+            <Button disabled={isPending} type="submit" variant="accent">
+              <Save aria-hidden="true" />
+              {isPending ? "Saving..." : "Save email identity"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
           <CardTitle>Business identity and verification</CardTitle>
           <FieldHint>
             Enter only genuine details that customers can verify with the named authority. Empty

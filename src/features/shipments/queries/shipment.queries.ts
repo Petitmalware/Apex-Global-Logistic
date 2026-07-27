@@ -14,6 +14,7 @@ import type {
   PublicShipmentTrackingDetails,
   ShipmentTrackingSnapshot,
 } from "@/features/shipments/types";
+import { getShipmentRouteTrackingView } from "@/features/shipments/services/shipment-route-tracking.service";
 import { AUTH_ROLES } from "@/lib/auth/constants";
 import { PERMISSIONS, hasPermission } from "@/lib/auth/rbac";
 import { prisma } from "@/lib/db";
@@ -417,6 +418,32 @@ function mapTrackingSnapshot(shipment: {
   pickupWindowStart: Date | null;
   priority: ShipmentTrackingSnapshot["priority"];
   referenceNumber: string | null;
+  routeTracking?: {
+    activeTransitSeconds: number;
+    currentLatitude: Prisma.Decimal;
+    currentLongitude: Prisma.Decimal;
+    deliveredAt: Date | null;
+    destinationLabel: string;
+    destinationLatitude: Prisma.Decimal;
+    destinationLongitude: Prisma.Decimal;
+    estimatedArrivalAt: Date | null;
+    geometry: Prisma.JsonValue;
+    lastPausedAt: Date | null;
+    lastProgressUpdatedAt: Date | null;
+    lastResumedAt: Date | null;
+    originLabel: string;
+    originLatitude: Prisma.Decimal;
+    originLongitude: Prisma.Decimal;
+    progressPercent: Prisma.Decimal;
+    provider: string;
+    routePositionIndex: number;
+    simulationMode: import("@prisma/client").ShipmentRouteSimulationMode;
+    simulationSpeed: Prisma.Decimal;
+    totalDistanceMeters: number;
+    totalDurationSeconds: number;
+    totalPausedSeconds: number;
+    travelMode: import("@prisma/client").ShipmentRouteTravelMode;
+  } | null;
   serviceLevel: string | null;
   shipmentNumber: string;
   status: ShipmentTrackingSnapshot["status"];
@@ -443,6 +470,7 @@ function mapTrackingSnapshot(shipment: {
     priority: shipment.priority,
     publicDetails: getPublicTrackingDetails(shipment),
     referenceNumber: shipment.referenceNumber,
+    route: getShipmentRouteTrackingView(shipment.routeTracking, shipment.status),
     serviceLevel: shipment.serviceLevel,
     shipmentNumber: shipment.shipmentNumber,
     status: shipment.status,
@@ -498,6 +526,7 @@ export async function getShipmentsForUser(user: AuthSessionUser): Promise<Shipme
           select: {
             email: true,
             name: true,
+            phone: true,
           },
         },
         destinationAddress: {
@@ -611,6 +640,7 @@ export async function getShipmentForUser(
           select: {
             email: true,
             name: true,
+            phone: true,
           },
         },
         destinationAddress: true,
@@ -646,6 +676,19 @@ export async function getShipmentForUser(
             createdAt: "asc",
           },
         },
+        petTransport: {
+          select: {
+            ageMonths: true,
+            breed: true,
+            color: true,
+            ownerName: true,
+            petName: true,
+            sex: true,
+            species: true,
+            weightKg: true,
+          },
+        },
+        routeTracking: true,
         invoices: {
           include: {
             lineItems: {
@@ -780,9 +823,11 @@ export async function getShipmentForUser(
       pickupWindowEnd: formatDate(shipment.pickupWindowEnd),
       pickupWindowStart: formatDate(shipment.pickupWindowStart),
       priority: shipment.priority,
+      publicDetails: getPublicTrackingDetails(shipment),
       recipientEmail: shipment.customer?.email ?? manualRecipient?.email ?? null,
       recipientName: shipment.customer?.name ?? manualRecipient?.name ?? null,
       referenceNumber: shipment.referenceNumber,
+      route: getShipmentRouteTrackingView(shipment.routeTracking, shipment.status),
       serviceLevel: shipment.serviceLevel,
       shipmentNumber: shipment.shipmentNumber,
       status: shipment.status,
@@ -871,6 +916,7 @@ export async function getShipmentTrackingSnapshotForUser(
             routeName: true,
           },
         },
+        routeTracking: true,
         trackingEvents: {
           include: {
             package: {
@@ -976,6 +1022,7 @@ export async function getPublicShipmentTrackingSnapshot(
             routeName: true,
           },
         },
+        routeTracking: true,
         trackingEvents: {
           include: {
             package: {

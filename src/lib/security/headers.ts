@@ -18,8 +18,29 @@ function getAppOrigin(request: NextRequest) {
   }
 }
 
+function getConfiguredMapOrigins() {
+  const candidates = [
+    process.env.NEXT_PUBLIC_MAP_AERIAL_STYLE_URL,
+    process.env.NEXT_PUBLIC_MAP_DARK_STYLE_URL,
+    process.env.NEXT_PUBLIC_MAP_TERRAIN_STYLE_URL,
+  ];
+
+  return candidates.flatMap((candidate) => {
+    if (!candidate) {
+      return [];
+    }
+
+    try {
+      return [new URL(candidate).origin];
+    } catch {
+      return [];
+    }
+  });
+}
+
 function buildContentSecurityPolicy(request: NextRequest) {
   const appOrigin = getAppOrigin(request);
+  const mapOrigins = getConfiguredMapOrigins();
   const scriptSources = ["'self'", "'unsafe-inline'"];
 
   if (!isProduction()) {
@@ -36,9 +57,8 @@ function buildContentSecurityPolicy(request: NextRequest) {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
-    // MapTiler loads its style, tiles, glyphs, and sprites through its API origin.
-    // Keep this allow-list narrow so the map can work without weakening the rest of the CSP.
-    `connect-src 'self' ${appOrigin} https://api.maptiler.com https://*.maptiler.com ws: wss:`,
+    // MapLibre loads configured map styles and tiles from these explicit providers.
+    `connect-src 'self' ${appOrigin} https://api.maptiler.com https://*.maptiler.com https://tile.openstreetmap.org https://fonts.openmaptiles.org ${mapOrigins.join(" ")} ws: wss:`,
     "frame-src 'self'",
     "media-src 'self' blob:",
     "worker-src 'self' blob:",

@@ -37,6 +37,9 @@ export async function updateCompanyProfileAction(
     city: getString(formData, "city"),
     country: getString(formData, "country"),
     email: getString(formData, "email"),
+    emailDisclaimer: getString(formData, "emailDisclaimer"),
+    emailSupportMessage: getString(formData, "emailSupportMessage"),
+    emailTagline: getString(formData, "emailTagline"),
     legalName: getString(formData, "legalName"),
     phone: getString(formData, "phone"),
     postalCode: getString(formData, "postalCode"),
@@ -102,11 +105,13 @@ export async function updateCompanyProfileAction(
   revalidatePath("/contact");
   revalidatePath("/about");
   revalidatePath("/admin/settings");
+  revalidatePath("/admin/emails");
+  revalidatePath("/admin/emails/compose");
   revalidatePath("/invoices");
   revalidatePath("/", "layout");
 
   return {
-    message: "Company contact and invoice branding details updated.",
+    message: "Company details and email identity updated.",
     status: "success",
   };
 }

@@ -19,6 +19,15 @@ const serverEnvSchema = z.object({
   GEMINI_API_KEY: z.string().optional(),
   GEMINI_MODEL: z.string().default("gemini-1.5-flash"),
   MAPTILER_API_KEY: z.string().optional(),
+  MAP_GEOCODING_PROVIDER: z.enum(["maptiler", "nominatim"]).default("nominatim"),
+  MAP_GEOCODING_USER_AGENT: z
+    .string()
+    .min(3)
+    .default("ApexGlobalLogistics/1.0 (support@apexgloballogistics.net)"),
+  MAP_NOMINATIM_BASE_URL: z.string().url().default("https://nominatim.openstreetmap.org"),
+  MAP_OSRM_BASE_URL: z.string().url().default("https://router.project-osrm.org"),
+  MAP_REQUEST_TIMEOUT_MS: z.coerce.number().int().min(1000).max(30000).default(10000),
+  MAP_ROUTE_SIMULATION_SPEED: z.coerce.number().positive().max(1000).default(1),
   GROQ_API_KEY: z.string().optional(),
   GROQ_BASE_URL: z.string().url().default("https://api.groq.com/openai/v1"),
   GROQ_MODEL: z.string().default("llama-3.1-8b-instant"),

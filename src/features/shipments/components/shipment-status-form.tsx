@@ -24,9 +24,12 @@ import { initialShipmentActionState } from "@/features/shipments/types";
 
 const statusOptions = [
   "BOOKED",
+  "PROCESSING",
+  "READY_FOR_DISPATCH",
   "PENDING_PICKUP",
   "IN_TRANSIT",
   "HELD",
+  "DELAYED",
   "DELIVERED",
   "CANCELLED",
   "RETURNED",
@@ -37,6 +40,7 @@ type TrackingEventOption =
   | "CREATED"
   | "PICKED_UP"
   | "CHECKED_IN"
+  | "DELAYED"
   | "IN_TRANSIT"
   | "EXCEPTION"
   | "OUT_FOR_DELIVERY"
@@ -45,9 +49,12 @@ type TrackingEventOption =
 
 const statusGuidance: Record<ShipmentStatusOption, string> = {
   BOOKED: "Shipment is registered and ready for its first operations step.",
+  PROCESSING: "Apex is preparing documents, handling, or routing before dispatch.",
+  READY_FOR_DISPATCH: "The shipment is cleared and queued for its departure handoff.",
   PENDING_PICKUP: "Shipment is waiting for collection or release from the current facility.",
   IN_TRANSIT: "Shipment is actively moving between checkpoints.",
   HELD: "Movement is temporarily paused while Apex operations reviews the next step.",
+  DELAYED: "Movement is paused while the delivery schedule is being adjusted.",
   DELIVERED: "Use only after the recipient handoff is complete.",
   CANCELLED: "Movement is stopped and the customer should contact support for assistance.",
   RETURNED: "Shipment is returning to the sender.",
@@ -56,10 +63,13 @@ const statusGuidance: Record<ShipmentStatusOption, string> = {
 const defaultEventByStatus: Record<ShipmentStatusOption, TrackingEventOption> = {
   BOOKED: "CREATED",
   CANCELLED: "CANCELLED",
+  DELAYED: "DELAYED",
   DELIVERED: "DELIVERED",
   HELD: "EXCEPTION",
   IN_TRANSIT: "IN_TRANSIT",
   PENDING_PICKUP: "CHECKED_IN",
+  PROCESSING: "CHECKED_IN",
+  READY_FOR_DISPATCH: "CHECKED_IN",
   RETURNED: "EXCEPTION",
 };
 
@@ -87,6 +97,12 @@ const commonUpdates = [
     icon: CirclePause,
     label: "Place on hold",
     status: "HELD",
+  },
+  {
+    eventType: "DELAYED",
+    icon: CirclePause,
+    label: "Mark delayed",
+    status: "DELAYED",
   },
   {
     eventType: "OUT_FOR_DELIVERY",
@@ -262,8 +278,9 @@ export function ShipmentStatusForm({
             />
           </Field>
           <p className="text-muted-foreground text-xs leading-5 sm:col-span-2">
-            Leave both coordinates blank to let MapTiler resolve the location field automatically.
-            Enter both only when operations has a verified GPS point to override the result.
+            Leave both coordinates blank to let the configured map service resolve the location
+            field automatically. Enter both only when operations has a verified GPS point to
+            override the result.
           </p>
         </div>
       </details>

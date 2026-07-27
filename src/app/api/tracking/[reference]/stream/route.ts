@@ -61,6 +61,9 @@ export async function GET(request: Request, { params }: PublicTrackingStreamCont
           controller.enqueue(
             encodeSseMessage({ data: { now: new Date().toISOString() }, event: "heartbeat" }),
           );
+          // Route progress is derived from stored timestamps, so this refreshes the marker without
+          // calling geocoding or routing providers again.
+          void sendSnapshot();
         }
       }, 25000);
 

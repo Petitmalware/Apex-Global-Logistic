@@ -15,6 +15,8 @@ import {
   ReceiptText,
   Scale,
   Truck,
+  PawPrint,
+  UserRound,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -25,9 +27,13 @@ import { ShipmentDocumentForm } from "@/features/shipments/components/shipment-d
 import { ShipmentStatusBadge } from "@/features/shipments/components/shipment-list";
 import { RealtimeShipmentTimeline } from "@/features/shipments/components/realtime-shipment-timeline";
 import { ShipmentLiveMap } from "@/features/shipments/components/shipment-live-map";
+import { ShipmentRoutePlanner } from "@/features/shipments/components/shipment-route-planner";
 import { ShipmentStatusForm } from "@/features/shipments/components/shipment-status-form";
 import {
   updateShipmentStatusAction,
+  clearShipmentRouteAction,
+  configureShipmentRouteAction,
+  setManualShipmentRouteProgressAction,
   uploadPackagePhotoAction,
   uploadShipmentDocumentAction,
 } from "@/features/shipments/actions/shipment.actions";
@@ -58,8 +64,9 @@ function getTrackingSnapshotFromDetail(shipment: ShipmentDetail): ShipmentTracki
     pickupWindowEnd: shipment.pickupWindowEnd,
     pickupWindowStart: shipment.pickupWindowStart,
     priority: shipment.priority,
-    publicDetails: null,
+    publicDetails: shipment.publicDetails,
     referenceNumber: shipment.referenceNumber,
+    route: shipment.route,
     serviceLevel: shipment.serviceLevel,
     shipmentNumber: shipment.shipmentNumber,
     status: shipment.status,
@@ -123,6 +130,115 @@ function AddressCard({ address, title }: { address: ShipmentDetail["origin"]; ti
         </p>
       </CardContent>
     </Card>
+  );
+}
+
+function getAddressLine(address: ShipmentDetail["origin"]) {
+  return [
+    address.line1,
+    address.line2,
+    address.city,
+    address.state,
+    address.postalCode,
+    address.countryCode,
+  ]
+    .filter(Boolean)
+    .join(", ");
+}
+
+function formatPetAge(ageMonths: number | null) {
+  if (!ageMonths && ageMonths !== 0) {
+    return null;
+  }
+
+  const years = Math.floor(ageMonths / 12);
+  const months = ageMonths % 12;
+
+  return years ? `${years}y${months ? ` ${months}m` : ""}` : `${months} months`;
+}
+
+function ShipmentParties({ shipment }: { shipment: ShipmentDetail }) {
+  const details = shipment.publicDetails;
+
+  if (!details) {
+    return null;
+  }
+
+  const parties = [
+    { label: "Sender", party: details.sender },
+    { label: "Recipient", party: details.recipient },
+  ].filter((item) => item.party);
+
+  if (!parties.length && !details.pet) {
+    return null;
+  }
+
+  return (
+    <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+      <Card>
+        <CardHeader className="flex flex-row items-start gap-3">
+          <div className="bg-info/10 text-info grid size-10 place-items-center rounded-md">
+            <UserRound aria-hidden="true" className="size-5" />
+          </div>
+          <div>
+            <CardTitle>Shipment parties</CardTitle>
+            <p className="text-muted-foreground mt-1 text-sm">
+              Sender and recipient details shown on public tracking when the shipment is published.
+            </p>
+          </div>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-2">
+          {parties.map(({ label, party }) => (
+            <div className="border-border bg-surface rounded-lg border p-4" key={label}>
+              <p className="text-muted-foreground text-xs font-semibold uppercase">{label}</p>
+              <p className="mt-2 font-semibold">{party?.name ?? "Not provided"}</p>
+              <p className="text-muted-foreground mt-2 text-sm leading-6">
+                {getAddressLine(party!.address)}
+              </p>
+              {party?.phone ? <p className="mt-3 text-sm">{party.phone}</p> : null}
+              {party?.email ? <p className="mt-1 text-sm">{party.email}</p> : null}
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+      {details.pet ? (
+        <Card>
+          <CardHeader className="flex flex-row items-start gap-3">
+            <div className="bg-accent/15 text-accent-foreground grid size-10 place-items-center rounded-md">
+              <PawPrint aria-hidden="true" className="size-5" />
+            </div>
+            <div>
+              <CardTitle>Pet profile</CardTitle>
+              <p className="text-muted-foreground mt-1 text-sm">
+                Travel profile for this live-animal shipment.
+              </p>
+            </div>
+          </CardHeader>
+          <CardContent className="grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-1">
+            {[
+              { label: "Pet", value: details.pet.name },
+              { label: "Species", value: details.pet.species },
+              { label: "Breed", value: details.pet.breed },
+              { label: "Age", value: formatPetAge(details.pet.ageMonths) },
+              {
+                label: "Weight",
+                value: details.pet.weightLb ? `${details.pet.weightLb} lb` : null,
+              },
+              { label: "Color", value: details.pet.color },
+            ]
+              .filter((item) => item.value)
+              .map((item) => (
+                <div className="border-border bg-surface rounded-md border p-3" key={item.label}>
+                  <p className="text-muted-foreground text-xs font-semibold uppercase">
+                    {item.label}
+                  </p>
+                  <p className="mt-1 font-medium">{item.value}</p>
+                </div>
+              ))}
+          </CardContent>
+        </Card>
+      ) : null}
+    </section>
   );
 }
 
@@ -618,6 +734,7 @@ export function ShipmentDetailView({
   return (
     <div className="space-y-6">
       <ShipmentOverview canManage={canManage} shipment={shipment} />
+      <ShipmentParties shipment={shipment} />
       <div className="grid gap-6 lg:grid-cols-2">
         <AddressCard address={shipment.origin} title="Origin" />
         <AddressCard address={shipment.destination} title="Destination" />
@@ -664,6 +781,30 @@ export function ShipmentDetailView({
       <PackageCards shipment={shipment} />
       <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
         <div className="space-y-6">
+          {canManage ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Route planning and progress</CardTitle>
+                <p className="text-muted-foreground mt-1 text-sm leading-6">
+                  Calculate a real road route once, then use the clear status update form to start,
+                  pause, resume, delay, or deliver the shipment.
+                </p>
+              </CardHeader>
+              <CardContent>
+                <ShipmentRoutePlanner
+                  action={configureShipmentRouteAction.bind(null, shipment.id)}
+                  clearAction={clearShipmentRouteAction.bind(null, shipment.id)}
+                  destination={getAddressLine(shipment.destination)}
+                  manualProgressAction={setManualShipmentRouteProgressAction.bind(
+                    null,
+                    shipment.id,
+                  )}
+                  origin={getAddressLine(shipment.origin)}
+                  route={shipment.route}
+                />
+              </CardContent>
+            </Card>
+          ) : null}
           <ShipmentLiveMap snapshot={getTrackingSnapshotFromDetail(shipment)} />
           <Timeline shipment={shipment} />
           <HistoryPanel shipment={shipment} />

@@ -3,11 +3,14 @@ import type { PetTransportStatus, ShipmentStatus, TrackingEventType } from "@pri
 export const shipmentStatusLabels = {
   BOOKED: "Order received",
   CANCELLED: "Cancelled",
+  DELAYED: "Delayed",
   DELIVERED: "Delivered",
   DRAFT: "Draft",
   HELD: "On hold",
   IN_TRANSIT: "In transit",
   PENDING_PICKUP: "Pending pickup",
+  PROCESSING: "Processing",
+  READY_FOR_DISPATCH: "Ready for dispatch",
   RETURNED: "Returned to sender",
 } satisfies Record<ShipmentStatus, string>;
 

@@ -78,6 +78,11 @@ export function renderBrandedEmail(input: RenderBrandedEmailInput) {
   const supportEmail = escapeHtml(branding.supportEmail);
   const supportPhone = escapeHtml(branding.supportPhone);
   const supportContact = supportPhone ? `${supportEmail} or ${supportPhone}` : supportEmail;
+  const emailTagline = branding.emailTagline ? escapeHtml(branding.emailTagline) : null;
+  const emailSupportMessage = branding.emailSupportMessage
+    ? escapeHtml(branding.emailSupportMessage)
+    : null;
+  const emailDisclaimer = branding.emailDisclaimer ? escapeHtml(branding.emailDisclaimer) : null;
   const trackingUrl = getTrackingUrl(input.trackingNumber);
 
   return `<!doctype html>
@@ -97,7 +102,7 @@ export function renderBrandedEmail(input: RenderBrandedEmailInput) {
               <td style="background:#10243f;padding:28px 32px;">
                 <p style="color:#ffffff;font-size:14px;font-weight:700;letter-spacing:0;margin:0;">AG</p>
                 <h1 style="color:#ffffff;font-size:24px;line-height:32px;margin:10px 0 0;">${companyName}</h1>
-                <p style="color:#cbd5e1;font-size:14px;line-height:22px;margin:8px 0 0;">Premium logistics updates for parcel, pet, freight, and support operations.</p>
+                ${emailTagline ? `<p style="color:#cbd5e1;font-size:14px;line-height:22px;margin:8px 0 0;">${emailTagline}</p>` : ""}
               </td>
             </tr>
             <tr>
@@ -111,12 +116,13 @@ export function renderBrandedEmail(input: RenderBrandedEmailInput) {
             <tr>
               <td style="border-top:1px solid #dce3ee;padding:22px 32px;">
                 <p style="color:#111827;font-size:14px;font-weight:700;margin:0 0 8px;">Need help?</p>
-                <p style="color:#64748b;font-size:13px;line-height:21px;margin:0;">Contact ${companyName} support at ${supportContact}. Our team is available for shipment, billing, freight, and pet transportation questions.</p>
+                ${emailSupportMessage ? `<p style="color:#64748b;font-size:13px;line-height:21px;margin:0 0 8px;">${emailSupportMessage}</p>` : ""}
+                <p style="color:#64748b;font-size:13px;line-height:21px;margin:0;">${supportContact}</p>
               </td>
             </tr>
             <tr>
               <td style="background:#f8fafc;padding:18px 32px 24px;">
-                <p style="color:#64748b;font-size:12px;line-height:19px;margin:0;">This message may contain confidential logistics, shipment, customer, or billing information. If you received it in error, please delete it and contact ${companyName} support.</p>
+                ${emailDisclaimer ? `<p style="color:#64748b;font-size:12px;line-height:19px;margin:0;">${emailDisclaimer}</p>` : ""}
                 <p style="color:#64748b;font-size:12px;line-height:19px;margin:12px 0 0;">&copy; ${new Date().getFullYear()} ${companyName}. All rights reserved.</p>
               </td>
             </tr>

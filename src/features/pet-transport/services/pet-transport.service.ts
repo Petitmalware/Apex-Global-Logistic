@@ -24,6 +24,7 @@ import type {
 import type { ShipmentFormInput } from "@/features/shipments/schemas/shipment.schemas";
 import { notifyShipmentStatusChanged } from "@/features/notifications/services/notification.service";
 import { publishShipmentTrackingUpdate } from "@/features/shipments/services/shipment-realtime.service";
+import { synchronizeShipmentRouteStatus } from "@/features/shipments/services/shipment-route-tracking.service";
 import { createShipment } from "@/features/shipments/services/shipment.service";
 import { AUTH_ROLES } from "@/lib/auth/constants";
 import { AuthError } from "@/lib/auth/errors";
@@ -380,6 +381,13 @@ export async function updatePetTransportProfile(
         },
       });
 
+      await synchronizeShipmentRouteStatus({
+        nextStatus: shipmentStatus,
+        previousStatus: petTransport.shipment.status,
+        shipmentId: petTransport.shipment.id,
+        transaction,
+      });
+
       await transaction.trackingEvent.create({
         data: {
           eventType: getTrackingEventForPetStatus(input.status),
@@ -617,6 +625,13 @@ export async function addPetVeterinarianCheck({
         where: {
           id: petTransport.shipment.id,
         },
+      });
+
+      await synchronizeShipmentRouteStatus({
+        nextStatus: ShipmentStatus.PENDING_PICKUP,
+        previousStatus: petTransport.shipment.status,
+        shipmentId: petTransport.shipment.id,
+        transaction,
       });
 
       await transaction.trackingEvent.create({

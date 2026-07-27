@@ -4,6 +4,8 @@ import type {
   PackageType,
   ShipmentMode,
   ShipmentPriority,
+  ShipmentRouteSimulationMode,
+  ShipmentRouteTravelMode,
   ShipmentStatus,
   TrackingEventType,
 } from "@prisma/client";
@@ -210,6 +212,8 @@ export type ShipmentDetail = ShipmentListItem & {
   packages: ShipmentPackageView[];
   pickupWindowEnd: string | null;
   pickupWindowStart: string | null;
+  publicDetails: PublicShipmentTrackingDetails | null;
+  route: ShipmentRouteTrackingView | null;
   serviceLevel: string | null;
   weightSummary: {
     actualWeightKg: string;
@@ -232,6 +236,40 @@ export type ShipmentDetail = ShipmentListItem & {
 
 export type ShipmentTrackingTimelineEvent = ShipmentDetail["timeline"][number];
 
+export type ShipmentRouteTrackingView = {
+  currentPosition: {
+    latitude: number;
+    longitude: number;
+  };
+  deliveredAt: string | null;
+  destination: {
+    label: string;
+    latitude: number;
+    longitude: number;
+  };
+  estimatedArrivalAt: string | null;
+  geometry: Array<[number, number]>;
+  lastPausedAt: string | null;
+  lastProgressUpdatedAt: string | null;
+  origin: {
+    label: string;
+    latitude: number;
+    longitude: number;
+  };
+  progressPercent: number;
+  provider: string;
+  remainingDistanceMeters: number;
+  remainingDurationSeconds: number | null;
+  routePositionIndex: number;
+  simulationMode: ShipmentRouteSimulationMode;
+  simulationSpeed: number;
+  state: "DELIVERED" | "MOVING" | "NOT_STARTED" | "PAUSED";
+  totalDistanceMeters: number;
+  totalDurationSeconds: number;
+  travelMode: ShipmentRouteTravelMode;
+  traveledDistanceMeters: number;
+};
+
 export type ShipmentTrackingSnapshot = {
   createdAt: string;
   deliveryWindowEnd: string | null;
@@ -250,6 +288,7 @@ export type ShipmentTrackingSnapshot = {
   priority: ShipmentPriority;
   publicDetails: PublicShipmentTrackingDetails | null;
   referenceNumber: string | null;
+  route: ShipmentRouteTrackingView | null;
   serviceLevel: string | null;
   shipmentNumber: string;
   status: ShipmentStatus;

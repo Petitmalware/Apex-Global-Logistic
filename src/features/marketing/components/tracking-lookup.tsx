@@ -104,7 +104,7 @@ function statusVariant(status: ShipmentTrackingSnapshot["status"]) {
     return "danger";
   }
 
-  if (status === "HELD" || status === "PENDING_PICKUP") {
+  if (status === "HELD" || status === "PENDING_PICKUP" || status === "DELAYED") {
     return "warning";
   }
 
@@ -116,11 +116,15 @@ function getStatusMessage(status: ShipmentTrackingSnapshot["status"]) {
     BOOKED: "The shipment is registered and Apex is preparing the next operational step.",
     CANCELLED:
       "Movement has stopped. Contact Apex support with this tracking number for assistance.",
+    DELAYED:
+      "The delivery schedule is being adjusted. Review the latest update for the next expected step.",
     DELIVERED: "Delivery is complete. Keep the receipt and signed delivery records for reference.",
     DRAFT: "The shipment record is being prepared and has not entered active movement.",
     HELD: "Movement is temporarily paused. Review the latest checkpoint note for the reason and next step.",
     IN_TRANSIT: "The shipment is moving through the Apex transport network.",
     PENDING_PICKUP: "The shipment is waiting for collection or release from the current facility.",
+    PROCESSING: "Apex is preparing handling, routing, or required shipment documentation.",
+    READY_FOR_DISPATCH: "The shipment is cleared and waiting for its departure handoff.",
     RETURNED: "The shipment is being returned to the sender. Contact support for the return plan.",
   } satisfies Record<ShipmentTrackingSnapshot["status"], string>;
 
@@ -132,7 +136,12 @@ function TrackingStatusIcon({ status }: { status: ShipmentTrackingSnapshot["stat
     return <CheckCircle2 aria-hidden="true" className="size-5" />;
   }
 
-  if (status === "HELD" || status === "CANCELLED" || status === "RETURNED") {
+  if (
+    status === "HELD" ||
+    status === "DELAYED" ||
+    status === "CANCELLED" ||
+    status === "RETURNED"
+  ) {
     return <CirclePause aria-hidden="true" className="size-5" />;
   }
 
@@ -436,7 +445,6 @@ export function TrackingLookup() {
                   ))}
                 </dl>
               </section>
-              <ShipmentLiveMap connectionState={connectionState} snapshot={snapshot} />
             </div>
 
             <section className="border-border bg-card shadow-panel rounded-lg border p-5 sm:p-6">
@@ -506,7 +514,7 @@ export function TrackingLookup() {
                   snapshot.publicDetails.carrierReference ||
                   snapshot.publicDetails.productName ||
                   snapshot.publicDetails.quantity ? (
-                    <article className="border-border rounded-md border p-4">
+                    <article className="border-border order-3 rounded-md border p-4">
                       <div className="flex items-center gap-2">
                         <Truck aria-hidden="true" className="text-accent size-5" />
                         <h4 className="font-semibold">Transport record</h4>
@@ -561,7 +569,7 @@ export function TrackingLookup() {
                   ) : null}
 
                   {snapshot.publicDetails.sender || snapshot.publicDetails.recipient ? (
-                    <article className="border-border rounded-md border p-4">
+                    <article className="border-border order-1 rounded-md border p-4">
                       <div className="flex items-center gap-2">
                         <UserRound aria-hidden="true" className="text-accent size-5" />
                         <h4 className="font-semibold">Shipment contacts</h4>
@@ -652,7 +660,7 @@ export function TrackingLookup() {
                   ) : null}
 
                   {snapshot.publicDetails.consignment ? (
-                    <article className="border-border rounded-md border p-4">
+                    <article className="border-border order-4 rounded-md border p-4">
                       <div className="flex items-center gap-2">
                         <Boxes aria-hidden="true" className="text-accent size-5" />
                         <h4 className="font-semibold">Consignment details</h4>
@@ -687,7 +695,7 @@ export function TrackingLookup() {
                   ) : null}
 
                   {snapshot.publicDetails.pet ? (
-                    <article className="border-border rounded-md border p-4">
+                    <article className="border-border order-2 rounded-md border p-4">
                       <div className="flex items-center gap-2">
                         <PawPrint aria-hidden="true" className="text-accent size-5" />
                         <h4 className="font-semibold">Pet profile</h4>
@@ -756,7 +764,7 @@ export function TrackingLookup() {
                   ) : null}
 
                   {snapshot.publicDetails.freight ? (
-                    <article className="border-border rounded-md border p-4">
+                    <article className="border-border order-5 rounded-md border p-4">
                       <div className="flex items-center gap-2">
                         <Route aria-hidden="true" className="text-accent size-5" />
                         <h4 className="font-semibold">Freight details</h4>
@@ -851,6 +859,8 @@ export function TrackingLookup() {
                 </p>
               </section>
             ) : null}
+
+            <ShipmentLiveMap connectionState={connectionState} snapshot={snapshot} />
 
             <section className="border-border bg-card shadow-panel rounded-lg border p-5 sm:p-6">
               <div className="border-border border-b pb-4">

@@ -27,6 +27,7 @@ import {
 } from "@/features/shipments/services/parcel-pricing";
 import { notifyShipmentStatusChanged } from "@/features/notifications/services/notification.service";
 import { publishShipmentTrackingUpdate } from "@/features/shipments/services/shipment-realtime.service";
+import { synchronizeShipmentRouteStatus } from "@/features/shipments/services/shipment-route-tracking.service";
 import { AUTH_ROLES } from "@/lib/auth/constants";
 import { PERMISSIONS, hasPermission } from "@/lib/auth/rbac";
 import { AuthError } from "@/lib/auth/errors";
@@ -336,11 +337,14 @@ function getTrackingEventType(status: ShipmentStatus) {
   const eventMap = {
     [ShipmentStatus.BOOKED]: TrackingEventType.CREATED,
     [ShipmentStatus.CANCELLED]: TrackingEventType.CANCELLED,
+    [ShipmentStatus.DELAYED]: TrackingEventType.DELAYED,
     [ShipmentStatus.DELIVERED]: TrackingEventType.DELIVERED,
     [ShipmentStatus.DRAFT]: TrackingEventType.CREATED,
     [ShipmentStatus.HELD]: TrackingEventType.EXCEPTION,
     [ShipmentStatus.IN_TRANSIT]: TrackingEventType.IN_TRANSIT,
     [ShipmentStatus.PENDING_PICKUP]: TrackingEventType.CREATED,
+    [ShipmentStatus.PROCESSING]: TrackingEventType.CHECKED_IN,
+    [ShipmentStatus.READY_FOR_DISPATCH]: TrackingEventType.CHECKED_IN,
     [ShipmentStatus.RETURNED]: TrackingEventType.EXCEPTION,
   } satisfies Record<ShipmentStatus, TrackingEventType>;
 
@@ -942,6 +946,13 @@ export async function updateShipmentStatus(
         shipmentId,
         shipmentStatus: input.status,
       },
+    });
+
+    await synchronizeShipmentRouteStatus({
+      nextStatus: input.status,
+      previousStatus: shipment.status,
+      shipmentId,
+      transaction,
     });
 
     await transaction.activityLog.create({
