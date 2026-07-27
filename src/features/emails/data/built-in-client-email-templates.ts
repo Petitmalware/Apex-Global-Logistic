@@ -20,6 +20,26 @@ export const builtInClientEmailTemplates: BuiltInClientEmailTemplate[] = [
   {
     bodyHtml: `
       <p>Dear {{recipientName}},</p>
+      <p>Apex Global Logistics has created a shipment record for you.</p>
+      <ul>
+        <li><strong>Tracking number:</strong> {{trackingNumber}}</li>
+        <li><strong>Current status:</strong> {{shipmentStatus}}</li>
+        <li><strong>Estimated delivery:</strong> {{estimatedDeliveryDate}}</li>
+      </ul>
+      <p>Please review the delivery details and contact our team if any correction is needed before dispatch.</p>
+      <p>You can follow the shipment at {{website}}/tracking using the tracking number above.</p>
+    `,
+    category: EmailTemplateCategory.SHIPMENT,
+    id: "shipment-created-notice",
+    isActive: true,
+    name: "Shipment Created Notice",
+    slug: "shipment-created-notice",
+    subject: "Your Apex shipment {{trackingNumber}} has been created",
+    variables: standardVariables,
+  },
+  {
+    bodyHtml: `
+      <p>Dear {{recipientName}},</p>
       <p>This message confirms that a live animal shipment has been registered with {{companyName}} for delivery to the address currently on file.</p>
       <p>The pet profile, health documentation, and transport registration have been reviewed by the operations team. Climate-conscious handling and route monitoring are assigned through the Apex tracking portal.</p>
       <p>Please review the delivery details below and reply with any correction or special delivery instruction before dispatch proceeds.</p>

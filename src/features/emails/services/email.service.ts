@@ -80,8 +80,37 @@ type SendSystemTemplateEmailInput = {
   variables?: Record<string, string | undefined>;
 };
 
+type ShipmentCreatedEmailDraftInput = {
+  createdById: string;
+  organizationId: string;
+  shipmentId: string;
+};
+
 function toJsonValue(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+}
+
+function getManualRecipientFromMetadata(metadata: Prisma.JsonValue | null) {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    return null;
+  }
+
+  const manualRecipient = "manualRecipient" in metadata ? metadata.manualRecipient : null;
+
+  if (!manualRecipient || typeof manualRecipient !== "object" || Array.isArray(manualRecipient)) {
+    return null;
+  }
+
+  const email =
+    "email" in manualRecipient && typeof manualRecipient.email === "string"
+      ? manualRecipient.email.trim().toLowerCase()
+      : null;
+  const name =
+    "name" in manualRecipient && typeof manualRecipient.name === "string"
+      ? manualRecipient.name.trim()
+      : null;
+
+  return email ? { email, name: name || null } : null;
 }
 
 function canAccessOrganization(user: AuthSessionUser, organizationId: string | null) {
@@ -455,6 +484,135 @@ export async function sendAdminTestEmail(rawInput: AdminEmailTestInput, actor: A
     isTest: true,
     prepared,
   });
+}
+
+export async function createShipmentCreatedEmailDraft({
+  createdById,
+  organizationId,
+  shipmentId,
+}: ShipmentCreatedEmailDraftInput) {
+  const shipment = await prisma.shipment.findUnique({
+    select: {
+      customer: {
+        select: {
+          email: true,
+          id: true,
+          name: true,
+        },
+      },
+      deletedAt: true,
+      id: true,
+      metadata: true,
+      shipmentNumber: true,
+    },
+    where: { id: shipmentId },
+  });
+
+  if (!shipment || shipment.deletedAt) {
+    return null;
+  }
+
+  const manualRecipient = getManualRecipientFromMetadata(shipment.metadata);
+  const recipientEmail = shipment.customer?.email ?? manualRecipient?.email ?? null;
+  const recipientName = shipment.customer?.name ?? manualRecipient?.name ?? null;
+
+  if (!recipientEmail) {
+    return null;
+  }
+
+  const existingDraft = await prisma.emailLog.findFirst({
+    where: {
+      shipmentId,
+      status: EmailLogStatus.DRAFT,
+    },
+  });
+
+  if (existingDraft) {
+    return existingDraft;
+  }
+
+  const [shipmentContext, branding] = await Promise.all([
+    getShipmentEmailContext(shipmentId),
+    getEmailBranding(),
+  ]);
+  const variables = buildEmailVariables(
+    {
+      recipientEmail,
+      recipientName,
+      shipment: shipmentContext,
+    },
+    branding,
+  );
+  const subject = replaceEmailVariables(
+    "Your Apex shipment {{trackingNumber}} has been created",
+    variables,
+  );
+  const bodyHtml = sanitizeEmailHtml(
+    replaceEmailVariables(
+      `
+        <p>Dear {{recipientName}},</p>
+        <p>Apex Global Logistics has created a shipment record for you.</p>
+        <ul>
+          <li><strong>Tracking number:</strong> {{trackingNumber}}</li>
+          <li><strong>Current status:</strong> {{shipmentStatus}}</li>
+          <li><strong>Estimated delivery:</strong> {{estimatedDeliveryDate}}</li>
+        </ul>
+        <p>Please review the delivery details and contact our team if any correction is needed before dispatch.</p>
+        <p>You can follow the shipment at {{website}}/tracking using the tracking number above.</p>
+      `,
+      variables,
+    ),
+  );
+  const renderedHtml = renderBrandedEmail({
+    branding,
+    contentHtml: bodyHtml,
+    shipment: shipmentContext
+      ? {
+          destinationCity: shipmentContext.destinationCity,
+          estimatedDeliveryDate: shipmentContext.estimatedDeliveryDate,
+          originCity: shipmentContext.originCity,
+          shipmentNumber: shipmentContext.shipmentNumber,
+          shipmentStatus: shipmentContext.shipmentStatus,
+        }
+      : null,
+    subject,
+    trackingNumber: shipmentContext?.trackingNumber ?? shipment.shipmentNumber,
+  });
+  const emailLog = await prisma.emailLog.create({
+    data: {
+      bodyHtml: renderedHtml,
+      bodyText: htmlToPlainText(bodyHtml),
+      category: EmailTemplateCategory.SHIPMENT,
+      metadata: toJsonValue({
+        source: "shipment-created-draft",
+      }),
+      organizationId,
+      provider: EmailProvider.CONSOLE,
+      recipientEmail,
+      recipientName,
+      relatedUserId: shipment.customer?.id ?? null,
+      sentById: createdById,
+      shipmentId,
+      status: EmailLogStatus.DRAFT,
+      subject,
+      trackingNumber: shipmentContext?.trackingNumber ?? shipment.shipmentNumber,
+    },
+  });
+
+  await createEmailAudit({
+    action: AuditAction.CREATE,
+    actorId: createdById,
+    after: {
+      recipientEmail,
+      source: "shipment-created-draft",
+      status: EmailLogStatus.DRAFT,
+      subject,
+    },
+    entityId: emailLog.id,
+    organizationId,
+  });
+
+  return emailLog;
 }
 
 export async function queueBrandedEmail(input: QueueBrandedEmailInput) {

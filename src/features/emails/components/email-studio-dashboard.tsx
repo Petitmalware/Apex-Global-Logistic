@@ -9,6 +9,7 @@ import type { EmailLogListItem } from "@/features/emails/types";
 
 type EmailStudioDashboardProps = {
   overview: {
+    draftCount: number;
     failedCount: number;
     queuedCount: number;
     recentLogs: EmailLogListItem[];
@@ -20,6 +21,7 @@ type EmailStudioDashboardProps = {
 export function EmailStudioDashboard({ overview }: EmailStudioDashboardProps) {
   const metrics = [
     { icon: FileText, label: "Templates", value: overview.templateCount },
+    { icon: MailPlus, label: "Prepared drafts", value: overview.draftCount },
     { icon: Send, label: "Sent emails", value: overview.sentCount },
     { icon: MailPlus, label: "Queued", value: overview.queuedCount },
     { icon: TriangleAlert, label: "Failed", value: overview.failedCount },
@@ -27,7 +29,7 @@ export function EmailStudioDashboard({ overview }: EmailStudioDashboardProps) {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         {metrics.map((metric) => (
           <Card key={metric.label}>
             <CardHeader className="flex-row items-center justify-between space-y-0">

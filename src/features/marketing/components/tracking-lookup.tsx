@@ -286,7 +286,7 @@ export function TrackingLookup() {
 
       <div aria-live="polite" className="mt-6 min-w-0">
         {snapshot ? (
-          <div className="space-y-6">
+          <div className="flex flex-col gap-6">
             <div className="grid gap-6 xl:grid-cols-[minmax(0,.95fr)_minmax(0,1.05fr)] xl:items-start">
               <section className="border-border bg-card shadow-panel rounded-lg border p-5 sm:p-6">
                 <div className="border-border flex flex-col gap-4 border-b pb-5 sm:flex-row sm:items-start sm:justify-between">
@@ -500,12 +500,12 @@ export function TrackingLookup() {
             </section>
 
             {snapshot.publicDetails ? (
-              <section className="border-border bg-card shadow-panel rounded-lg border p-5 sm:p-6">
+              <section className="border-border bg-card shadow-panel order-first rounded-lg border p-5 sm:p-6">
                 <div className="border-border border-b pb-4">
-                  <h3 className="text-lg font-semibold">Shipment details</h3>
+                  <h3 className="text-lg font-semibold">Shipment parties and details</h3>
                   <p className="text-muted-foreground mt-1 text-sm leading-6">
-                    A valid tracking reference opens this operational record without a customer
-                    account.
+                    Sender and receiver details appear first, followed by the pet profile and
+                    shipment record when provided.
                   </p>
                 </div>
                 <div className="mt-5 grid gap-4 xl:grid-cols-2">
@@ -572,14 +572,14 @@ export function TrackingLookup() {
                     <article className="border-border order-1 rounded-md border p-4">
                       <div className="flex items-center gap-2">
                         <UserRound aria-hidden="true" className="text-accent size-5" />
-                        <h4 className="font-semibold">Shipment contacts</h4>
+                        <h4 className="font-semibold">Sender and receiver</h4>
                       </div>
                       <div className="mt-4 grid gap-5 sm:grid-cols-2">
                         {snapshot.publicDetails.sender ? (
                           <dl className="min-w-0 space-y-3 text-sm">
                             <div>
                               <dt className="text-muted-foreground text-xs font-semibold uppercase">
-                                Sender information
+                                Sender
                               </dt>
                               <dd className="mt-1 font-medium">
                                 {snapshot.publicDetails.sender.name ?? "Sender"}
@@ -619,7 +619,7 @@ export function TrackingLookup() {
                           <dl className="min-w-0 space-y-3 text-sm">
                             <div>
                               <dt className="text-muted-foreground text-xs font-semibold uppercase">
-                                Recipient information
+                                Receiver
                               </dt>
                               <dd className="mt-1 font-medium">
                                 {snapshot.publicDetails.recipient.name ?? "Recipient"}

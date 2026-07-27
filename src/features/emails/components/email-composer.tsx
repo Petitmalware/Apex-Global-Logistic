@@ -22,6 +22,7 @@ import type { EmailComposerOptions, EmailPreview } from "@/features/emails/types
 import { secureFetch } from "@/lib/security/client-fetch";
 
 type EmailComposerProps = {
+  initialShipmentId?: string;
   initialTemplateId?: string;
   options: EmailComposerOptions;
 };
@@ -45,28 +46,39 @@ function getInitialTemplate(options: EmailComposerOptions, initialTemplateId?: s
   );
 }
 
-export function EmailComposer({ initialTemplateId, options }: EmailComposerProps) {
+export function EmailComposer({
+  initialShipmentId,
+  initialTemplateId,
+  options,
+}: EmailComposerProps) {
   const initialTemplate = getInitialTemplate(options, initialTemplateId);
+  const initialShipment = options.shipments.find((shipment) => shipment.id === initialShipmentId);
   const [bodyHtml, setBodyHtml] = useState(initialTemplate?.bodyHtml ?? getInitialBody(options));
   const [category, setCategory] = useState<EmailCategoryValue>(
     initialTemplate?.category ?? "MANUAL",
   );
   const [message, setMessage] = useState<ComposerMessage | null>(null);
   const [preview, setPreview] = useState<EmailPreview | null>(null);
-  const [recipientEmail, setRecipientEmail] = useState("");
-  const [recipientName, setRecipientName] = useState("");
+  const [recipientEmail, setRecipientEmail] = useState(initialShipment?.customerEmail ?? "");
+  const [recipientName, setRecipientName] = useState(initialShipment?.customerName ?? "");
   const [recipientUserId, setRecipientUserId] = useState("");
   const [selectedTemplateId, setSelectedTemplateId] = useState(initialTemplate?.id ?? "");
-  const [shipmentId, setShipmentId] = useState("");
+  const [shipmentId, setShipmentId] = useState(initialShipment?.id ?? "");
   const [subject, setSubject] = useState(initialTemplate?.subject ?? "");
   const [templateId, setTemplateId] = useState(
     initialTemplate?.source === "email" ? (initialTemplate.templateId ?? initialTemplate.id) : "",
   );
   const [testRecipientEmail, setTestRecipientEmail] = useState("");
-  const [trackingNumber, setTrackingNumber] = useState("");
-  const [variables, setVariables] = useState<Record<string, string>>(
-    initialTemplate?.defaultVariables ?? {},
-  );
+  const [trackingNumber, setTrackingNumber] = useState(initialShipment?.shipmentNumber ?? "");
+  const [variables, setVariables] = useState<Record<string, string>>({
+    ...(initialTemplate?.defaultVariables ?? {}),
+    ...(initialShipment
+      ? {
+          customerName: initialShipment.customerName ?? "",
+          recipientName: initialShipment.customerName ?? "",
+        }
+      : {}),
+  });
   const [isBusy, setIsBusy] = useState(false);
 
   const selectedTemplate = useMemo(

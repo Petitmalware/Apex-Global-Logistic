@@ -126,35 +126,43 @@ function builtInClientEmailToTemplateListItem(
 export async function getEmailStudioOverview(user: AuthSessionUser) {
   const where = getOrganizationFilter(user);
   const builtInTemplateCount = getBuiltInClientEmailTemplates().length;
-  const [templateCount, queuedCount, sentCount, failedCount, recentLogs] = await Promise.all([
-    prisma.emailTemplate.count({
-      where: {
-        ...where,
-        deletedAt: null,
-      },
-    }),
-    prisma.emailLog.count({
-      where: {
-        ...where,
-        status: EmailLogStatus.QUEUED,
-      },
-    }),
-    prisma.emailLog.count({
-      where: {
-        ...where,
-        status: EmailLogStatus.SENT,
-      },
-    }),
-    prisma.emailLog.count({
-      where: {
-        ...where,
-        status: EmailLogStatus.FAILED,
-      },
-    }),
-    getEmailLogsForAdmin(user, 6),
-  ]);
+  const [templateCount, draftCount, queuedCount, sentCount, failedCount, recentLogs] =
+    await Promise.all([
+      prisma.emailTemplate.count({
+        where: {
+          ...where,
+          deletedAt: null,
+        },
+      }),
+      prisma.emailLog.count({
+        where: {
+          ...where,
+          status: EmailLogStatus.DRAFT,
+        },
+      }),
+      prisma.emailLog.count({
+        where: {
+          ...where,
+          status: EmailLogStatus.QUEUED,
+        },
+      }),
+      prisma.emailLog.count({
+        where: {
+          ...where,
+          status: EmailLogStatus.SENT,
+        },
+      }),
+      prisma.emailLog.count({
+        where: {
+          ...where,
+          status: EmailLogStatus.FAILED,
+        },
+      }),
+      getEmailLogsForAdmin(user, 6),
+    ]);
 
   return {
+    draftCount,
     failedCount,
     queuedCount,
     recentLogs,
@@ -394,6 +402,7 @@ export async function getEmailLogsForAdmin(
           shipmentNumber: true,
         },
       },
+      shipmentId: true,
       template: {
         select: {
           name: true,
@@ -420,6 +429,7 @@ export async function getEmailLogsForAdmin(
     recipientName: log.recipientName,
     sentAt: log.sentAt?.toISOString() ?? null,
     sentBy: log.sentBy?.name ?? null,
+    shipmentId: log.shipmentId,
     shipmentNumber: log.shipment?.shipmentNumber ?? null,
     status: log.status,
     subject: log.subject,

@@ -8,6 +8,7 @@ import {
   Clock3,
   FileText,
   History,
+  MailPlus,
   MapPin,
   Package,
   Pencil,
@@ -365,6 +366,22 @@ function ShipmentOverview({
               <Link href={`/shipments/${shipment.id}/edit` as Route}>
                 <Pencil aria-hidden="true" />
                 Edit shipment
+              </Link>
+            </Button>
+          ) : null}
+          {canManage && shipment.recipientEmail ? (
+            <Button
+              asChild
+              className="border-primary-foreground/20 bg-primary-foreground/10 text-primary-foreground hover:bg-primary-foreground/15"
+              variant="outline"
+            >
+              <Link
+                href={
+                  `/admin/emails/compose?shipment=${encodeURIComponent(shipment.id)}&template=built-in:shipment-created-notice` as Route
+                }
+              >
+                <MailPlus aria-hidden="true" />
+                Review prepared email
               </Link>
             </Button>
           ) : null}

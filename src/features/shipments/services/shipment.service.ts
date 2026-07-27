@@ -14,6 +14,7 @@ import {
 } from "@prisma/client";
 
 import type { AuthSessionUser } from "@/features/auth/services/auth.service";
+import { createShipmentCreatedEmailDraft } from "@/features/emails/services/email.service";
 import type {
   PackagePhotoInput,
   ParcelBookingOptionsInput,
@@ -513,6 +514,12 @@ export async function createShipment(
     shipmentId: shipment.id,
     shipmentNumber: shipment.shipmentNumber,
     status,
+  }).catch(() => null);
+
+  await createShipmentCreatedEmailDraft({
+    createdById: user.id,
+    organizationId: shipment.organizationId,
+    shipmentId: shipment.id,
   }).catch(() => null);
 
   return shipment;

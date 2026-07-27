@@ -82,6 +82,7 @@ export type EmailLogListItem = {
   recipientName: string | null;
   sentAt: string | null;
   sentBy: string | null;
+  shipmentId: string | null;
   shipmentNumber: string | null;
   status: EmailLogStatus;
   subject: string;

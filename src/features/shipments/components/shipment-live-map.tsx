@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
-import { MapPinned, Route, Signal } from "lucide-react";
+import { MapPinned, Route } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import type {
@@ -227,13 +227,6 @@ export function ShipmentLiveMap({
                 <p className="mt-1 text-sm font-semibold">{item.value}</p>
               </div>
             ))}
-          </div>
-          <div className="bg-surface flex items-start gap-3 px-4 py-3 sm:px-5">
-            <Signal aria-hidden="true" className="text-accent mt-0.5 size-4 shrink-0" />
-            <p className="text-muted-foreground text-xs leading-5">
-              Route progress is calculated from the saved road route and current shipment status. It
-              is an operational schedule estimate, not a live GPS device feed.
-            </p>
           </div>
         </>
       ) : (

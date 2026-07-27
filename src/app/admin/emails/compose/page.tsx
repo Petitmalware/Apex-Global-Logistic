@@ -12,6 +12,7 @@ export const metadata: Metadata = {
 
 type ComposeEmailPageProps = {
   searchParams?: Promise<{
+    shipment?: string;
     template?: string;
   }>;
 };
@@ -33,7 +34,11 @@ export default async function ComposeEmailPage({ searchParams }: ComposeEmailPag
       title="Compose Email"
       user={user}
     >
-      <EmailComposer initialTemplateId={params?.template} options={options} />
+      <EmailComposer
+        initialShipmentId={params?.shipment}
+        initialTemplateId={params?.template}
+        options={options}
+      />
     </ProtectedShell>
   );
 }

@@ -1,4 +1,8 @@
+import Link from "next/link";
+import type { Route } from "next";
+
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -64,6 +68,17 @@ export function EmailLogList({ logs }: { logs: EmailLogListItem[] }) {
               <p className="text-sm">{log.shipmentNumber ?? log.templateName ?? "Manual"}</p>
               {log.trackingNumber ? (
                 <p className="text-muted-foreground mt-1 text-xs">{log.trackingNumber}</p>
+              ) : null}
+              {log.status === "DRAFT" && log.shipmentId ? (
+                <Button asChild className="mt-2" size="sm" variant="outline">
+                  <Link
+                    href={
+                      `/admin/emails/compose?shipment=${encodeURIComponent(log.shipmentId)}&template=built-in:shipment-created-notice` as Route
+                    }
+                  >
+                    Review draft
+                  </Link>
+                </Button>
               ) : null}
             </TableCell>
             <TableCell>
