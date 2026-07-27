@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { Route } from "next";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { Eye, EyeOff } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -104,6 +105,7 @@ export function AuthForm({ mode }: AuthFormProps) {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [token, setToken] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState("");
@@ -294,26 +296,39 @@ export function AuthForm({ mode }: AuthFormProps) {
       {requiresPassword ? (
         <div className="space-y-2">
           <Label htmlFor="password">Password</Label>
-          <Input
-            aria-describedby={
-              [
-                showsPasswordRequirements ? "password-requirements" : null,
-                fieldErrors.password?.length ? "password-error" : null,
-              ]
-                .filter(Boolean)
-                .join(" ") || undefined
-            }
-            aria-invalid={fieldErrors.password?.length ? true : undefined}
-            autoComplete={mode === "login" ? "current-password" : "new-password"}
-            id="password"
-            maxLength={mode === "login" ? undefined : 128}
-            minLength={mode === "login" ? undefined : 12}
-            name="password"
-            onChange={(event) => setPassword(event.target.value)}
-            required
-            type="password"
-            value={password}
-          />
+          <div className="relative">
+            <Input
+              aria-describedby={
+                [
+                  showsPasswordRequirements ? "password-requirements" : null,
+                  fieldErrors.password?.length ? "password-error" : null,
+                ]
+                  .filter(Boolean)
+                  .join(" ") || undefined
+              }
+              aria-invalid={fieldErrors.password?.length ? true : undefined}
+              autoComplete={mode === "login" ? "current-password" : "new-password"}
+              className="pr-12"
+              id="password"
+              maxLength={mode === "login" ? undefined : 128}
+              minLength={mode === "login" ? undefined : 8}
+              name="password"
+              onChange={(event) => setPassword(event.target.value)}
+              required
+              type={isPasswordVisible ? "text" : "password"}
+              value={password}
+            />
+            <Button
+              aria-label={isPasswordVisible ? "Hide password" : "Show password"}
+              className="absolute top-0 right-0"
+              onClick={() => setIsPasswordVisible((visible) => !visible)}
+              size="icon"
+              type="button"
+              variant="ghost"
+            >
+              {isPasswordVisible ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+            </Button>
+          </div>
           {showsPasswordRequirements ? (
             <p className="text-muted-foreground text-xs" id="password-requirements">
               Password requirements: {PASSWORD_REQUIREMENTS.join(", ")}.

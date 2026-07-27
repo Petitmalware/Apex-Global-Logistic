@@ -4,6 +4,7 @@ import { access, mkdir } from "node:fs/promises";
 import { NextResponse } from "next/server";
 
 import { env } from "@/config/env.server";
+import { getConfiguredEmailProviderHealth } from "@/features/emails/services/email-provider.service";
 import { prisma } from "@/lib/db";
 import { getLocalStorageRoot } from "@/lib/storage/local-storage";
 
@@ -14,6 +15,7 @@ export async function GET() {
   const startedAt = Date.now();
   let database = "ok";
   let storage = env.STORAGE_DRIVER === "local" ? "writable" : "configured";
+  const emailHealth = await getConfiguredEmailProviderHealth();
 
   try {
     await prisma.$queryRaw`SELECT 1`;
@@ -42,12 +44,9 @@ export async function GET() {
     {
       checks: {
         database,
-        email:
-          env.EMAIL_PROVIDER === "smtp"
-            ? env.SMTP_HOST && env.SMTP_USERNAME && env.SMTP_PASSWORD
-              ? "smtp_configured"
-              : "smtp_incomplete"
-            : env.EMAIL_PROVIDER,
+        email: emailHealth.status,
+        emailCheckedAt: emailHealth.checkedAt,
+        emailProvider: emailHealth.provider,
         redis: env.REDIS_URL ? "configured" : "not_configured",
         storage,
       },

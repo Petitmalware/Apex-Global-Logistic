@@ -808,6 +808,8 @@ model Shipment {
   mode                   ShipmentMode     @default(ROAD)
   serviceLevel           String?          @db.VarChar(80)
   referenceNumber        String?          @db.VarChar(120)
+  publicTrackingPinHash  String?          @db.VarChar(255)
+  publicTrackingPinRequired Boolean       @default(false)
   pickupWindowStart      DateTime?        @db.Timestamptz(6)
   pickupWindowEnd        DateTime?        @db.Timestamptz(6)
   deliveryWindowStart    DateTime?        @db.Timestamptz(6)

@@ -14,6 +14,7 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { CustomerSelectCard } from "@/features/customers/components/customer-select-card";
 import { ShipmentWorkflowGuide } from "@/features/shipments/components/shipment-workflow-guide";
+import { PublicTrackingPinField } from "@/features/shipments/components/public-tracking-pin-field";
 import type { PetTransportActionState, PetTransportDetail } from "@/features/pet-transport/types";
 import { formatPetTransportStatus } from "@/features/shipments/status-labels";
 import type { CustomerOption } from "@/features/shipments/types";
@@ -432,6 +433,7 @@ export function PetTransportForm({
           />
         </div>
       ) : null}
+      {!isEdit ? <PublicTrackingPinField errors={state.fieldErrors?.recipientTrackingPin} /> : null}
       <Card>
         <CardHeader className="flex flex-row items-start gap-3">
           <div className="bg-accent/15 text-accent-foreground grid size-10 place-items-center rounded-md">

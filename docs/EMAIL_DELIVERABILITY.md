@@ -24,6 +24,24 @@ v=DMARC1; p=none; rua=mailto:support@apexgloballogistics.net; adkim=s; aspf=s; p
 After SPF and DKIM pass consistently and DMARC reports show only approved senders, change the DMARC
 policy to `p=quarantine`, then later to `p=reject`.
 
+SpaceMail's DKIM value is unique to the domain. In Spaceship, open the domain's **Advanced DNS**,
+find the inactive SpaceMail DKIM record, and copy the complete value beginning with `v=DKIM1; k=rsa;`
+to the `spacemail._domainkey` TXT record. Do not substitute a DKIM value from another domain.
+
+## Application monitoring
+
+The health endpoint now performs a cached SMTP TLS and authentication probe. It reports the provider
+and the most recent check time without exposing mailbox credentials:
+
+```text
+https://apexgloballogistics.net/api/health
+```
+
+Email Studio also shows this connection status alongside sent and failed email logs. A successful
+SMTP probe proves the application can authenticate to SpaceMail; it cannot prove a recipient inbox
+accepted a message. Use the Email Studio failure reason and a delivered Gmail message's **Show
+original** view to verify recipient-level SPF, DKIM, and DMARC results.
+
 ## Operational checks
 
 - Use `info@apexgloballogistics.net` consistently as the From address.

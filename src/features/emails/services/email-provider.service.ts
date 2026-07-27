@@ -22,6 +22,16 @@ type SendEmailResult = {
   response: Record<string, unknown>;
 };
 
+export type EmailProviderHealth = {
+  checkedAt: string;
+  message: string;
+  provider: EmailProvider;
+  status: "configured" | "ready" | "unavailable";
+};
+
+let cachedEmailProviderHealth: EmailProviderHealth | null = null;
+let emailProviderHealthExpiresAt = 0;
+
 type SmtpError = {
   code?: string;
   command?: string;
@@ -298,4 +308,67 @@ export async function verifyConfiguredEmailProvider() {
     message: `${provider} is configured. Send a test email to verify delivery.`,
     provider,
   };
+}
+
+export async function getConfiguredEmailProviderHealth(): Promise<EmailProviderHealth> {
+  const now = Date.now();
+
+  if (cachedEmailProviderHealth && now < emailProviderHealthExpiresAt) {
+    return cachedEmailProviderHealth;
+  }
+
+  const provider = getConfiguredProvider();
+  let health: EmailProviderHealth;
+
+  if (provider === EmailProvider.CONSOLE) {
+    health = {
+      checkedAt: new Date(now).toISOString(),
+      message: "Email console mode is active; no external mailbox is being used.",
+      provider,
+      status: "configured",
+    };
+  } else if (provider !== EmailProvider.SMTP) {
+    health = {
+      checkedAt: new Date(now).toISOString(),
+      message: `${provider} credentials are configured. Provider delivery is audited in Email Studio logs.`,
+      provider,
+      status: "configured",
+    };
+  } else if (!env.SMTP_HOST || !env.SMTP_USERNAME || !env.SMTP_PASSWORD) {
+    health = {
+      checkedAt: new Date(now).toISOString(),
+      message: "SMTP credentials are incomplete.",
+      provider,
+      status: "unavailable",
+    };
+  } else {
+    try {
+      await createSmtpTransporter(getSenderAddress()).verify();
+      health = {
+        checkedAt: new Date(now).toISOString(),
+        message: "SMTP authentication and TLS connection are available.",
+        provider,
+        status: "ready",
+      };
+    } catch (error) {
+      health = {
+        checkedAt: new Date(now).toISOString(),
+        message: getSmtpFailureMessage(error),
+        provider,
+        status: "unavailable",
+      };
+      const smtpError = error as SmtpError;
+
+      console.error("SMTP monitoring probe failed", {
+        code: smtpError.code ?? null,
+        command: smtpError.command ?? null,
+        responseCode: smtpError.responseCode ?? null,
+      });
+    }
+  }
+
+  cachedEmailProviderHealth = health;
+  emailProviderHealthExpiresAt = now + env.SMTP_MONITORING_INTERVAL_SECONDS * 1000;
+
+  return health;
 }

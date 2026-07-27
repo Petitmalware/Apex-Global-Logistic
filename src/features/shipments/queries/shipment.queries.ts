@@ -417,6 +417,7 @@ function mapTrackingSnapshot(shipment: {
   pickupWindowEnd: Date | null;
   pickupWindowStart: Date | null;
   priority: ShipmentTrackingSnapshot["priority"];
+  publicTrackingPinRequired: boolean;
   referenceNumber: string | null;
   routeTracking?: {
     activeTransitSeconds: number;
@@ -469,11 +470,13 @@ function mapTrackingSnapshot(shipment: {
     pickupWindowStart: formatDate(shipment.pickupWindowStart),
     priority: shipment.priority,
     publicDetails: getPublicTrackingDetails(shipment),
+    publicTrackingPinRequired: shipment.publicTrackingPinRequired,
     referenceNumber: shipment.referenceNumber,
     route: getShipmentRouteTrackingView(shipment.routeTracking, shipment.status),
     serviceLevel: shipment.serviceLevel,
     shipmentNumber: shipment.shipmentNumber,
     status: shipment.status,
+    sensitiveDetailsLocked: false,
     timeline: shipment.trackingEvents.map(mapTimelineEvent),
     totalWeightLb: consignmentSummary.totalWeightLb,
     updatedAt: shipment.updatedAt.toISOString(),
@@ -824,6 +827,7 @@ export async function getShipmentForUser(
       pickupWindowStart: formatDate(shipment.pickupWindowStart),
       priority: shipment.priority,
       publicDetails: getPublicTrackingDetails(shipment),
+      publicTrackingPinRequired: shipment.publicTrackingPinRequired,
       recipientEmail: shipment.customer?.email ?? manualRecipient?.email ?? null,
       recipientName: shipment.customer?.name ?? manualRecipient?.name ?? null,
       referenceNumber: shipment.referenceNumber,
@@ -949,8 +953,60 @@ export async function getShipmentTrackingSnapshotForUser(
   }
 }
 
+export type PublicShipmentTrackingAccess = {
+  publicTrackingPinHash: string | null;
+  publicTrackingPinRequired: boolean;
+  shipmentId: string;
+};
+
+export async function getPublicShipmentTrackingAccess(
+  reference: string,
+): Promise<PublicShipmentTrackingAccess | null> {
+  const normalizedReference = reference.trim();
+
+  if (!normalizedReference) {
+    return null;
+  }
+
+  try {
+    return await prisma.shipment
+      .findFirst({
+        select: {
+          id: true,
+          publicTrackingPinHash: true,
+          publicTrackingPinRequired: true,
+        },
+        where: {
+          deletedAt: null,
+          OR: [
+            {
+              shipmentNumber: normalizedReference,
+            },
+            {
+              referenceNumber: normalizedReference,
+            },
+          ],
+        },
+      })
+      .then((shipment) =>
+        shipment
+          ? {
+              publicTrackingPinHash: shipment.publicTrackingPinHash,
+              publicTrackingPinRequired: shipment.publicTrackingPinRequired,
+              shipmentId: shipment.id,
+            }
+          : null,
+      );
+  } catch (error) {
+    logShipmentQueryFallback(error, "public shipment tracking access");
+
+    return null;
+  }
+}
+
 export async function getPublicShipmentTrackingSnapshot(
   reference: string,
+  options: { includeSensitiveDetails?: boolean } = {},
 ): Promise<ShipmentTrackingSnapshot | null> {
   const normalizedReference = reference.trim();
 
@@ -1056,13 +1112,23 @@ export async function getPublicShipmentTrackingSnapshot(
       return null;
     }
 
-    return mapTrackingSnapshot({
+    const snapshot = mapTrackingSnapshot({
       ...shipment,
       trackingEvents: shipment.trackingEvents.map((event) => ({
         ...event,
         recordedBy: null,
       })),
     });
+
+    if (shipment.publicTrackingPinRequired && !options.includeSensitiveDetails) {
+      return {
+        ...snapshot,
+        publicDetails: null,
+        sensitiveDetailsLocked: true,
+      };
+    }
+
+    return snapshot;
   } catch (error) {
     logShipmentQueryFallback(error, "public shipment tracking snapshot");
 

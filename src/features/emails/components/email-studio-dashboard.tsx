@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Route } from "next";
-import { FileText, MailPlus, Send, TriangleAlert } from "lucide-react";
+import { FileText, MailPlus, Send, ServerCog, TriangleAlert } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import type { EmailLogListItem } from "@/features/emails/types";
 
 type EmailStudioDashboardProps = {
+  emailHealth: {
+    checkedAt: string;
+    message: string;
+    provider: string;
+    status: "configured" | "ready" | "unavailable";
+  };
   overview: {
     draftCount: number;
     failedCount: number;
@@ -18,7 +24,7 @@ type EmailStudioDashboardProps = {
   };
 };
 
-export function EmailStudioDashboard({ overview }: EmailStudioDashboardProps) {
+export function EmailStudioDashboard({ emailHealth, overview }: EmailStudioDashboardProps) {
   const metrics = [
     { icon: FileText, label: "Templates", value: overview.templateCount },
     { icon: MailPlus, label: "Prepared drafts", value: overview.draftCount },
@@ -44,6 +50,32 @@ export function EmailStudioDashboard({ overview }: EmailStudioDashboardProps) {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex-row items-start justify-between gap-3 space-y-0">
+            <div>
+              <CardTitle>Email delivery</CardTitle>
+              <CardDescription className="mt-1">SMTP transport monitoring</CardDescription>
+            </div>
+            <ServerCog aria-hidden="true" className="text-accent size-4" />
+          </CardHeader>
+          <CardContent>
+            <Badge
+              variant={
+                emailHealth.status === "ready"
+                  ? "success"
+                  : emailHealth.status === "unavailable"
+                    ? "danger"
+                    : "outline"
+              }
+            >
+              {emailHealth.status}
+            </Badge>
+            <p className="text-muted-foreground mt-3 text-xs leading-5">{emailHealth.message}</p>
+            <p className="text-muted-foreground mt-2 text-xs">
+              Checked {new Date(emailHealth.checkedAt).toLocaleString()} via {emailHealth.provider}
+            </p>
+          </CardContent>
+        </Card>
         <Card>
           <CardHeader>
             <CardTitle>Compose</CardTitle>

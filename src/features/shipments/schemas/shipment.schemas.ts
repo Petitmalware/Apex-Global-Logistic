@@ -44,6 +44,15 @@ const optionalLongitude = z.preprocess(
   z.coerce.number().min(-180, "Longitude must be at least -180.").max(180).optional(),
 );
 
+const optionalRecipientTrackingPin = z.preprocess(
+  emptyToUndefined,
+  z
+    .string()
+    .trim()
+    .regex(/^\d{4,12}$/, "Recipient PIN must be 4 to 12 digits.")
+    .optional(),
+);
+
 export const shipmentAddressSchema = z.object({
   city: requiredString("City", 120),
   countryCode: z
@@ -130,6 +139,8 @@ export const shipmentFormSchema = z
     pickupWindowEnd: optionalDate,
     pickupWindowStart: optionalDate,
     priority: z.nativeEnum(ShipmentPriority).default(ShipmentPriority.STANDARD),
+    publicTrackingPinEnabled: z.coerce.boolean().default(false),
+    recipientTrackingPin: optionalRecipientTrackingPin,
     referenceNumber: optionalString(120),
     recipientRequired: z.boolean().default(true),
     serviceLevel: optionalString(80),

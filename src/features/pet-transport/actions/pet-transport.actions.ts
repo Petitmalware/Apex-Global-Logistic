@@ -170,7 +170,9 @@ function parsePetShipmentFormData(
     pickupWindowEnd: "",
     pickupWindowStart: "",
     priority: getString(formData, "priority") || "STANDARD",
+    publicTrackingPinEnabled: getBoolean(formData, "publicTrackingPinEnabled"),
     referenceNumber: getString(formData, "referenceNumber"),
+    recipientTrackingPin: getString(formData, "recipientTrackingPin"),
     serviceLevel: getString(formData, "serviceLevel") || "Pet Shipment Care",
     status: options.customerBooking ? "DRAFT" : "BOOKED",
   });

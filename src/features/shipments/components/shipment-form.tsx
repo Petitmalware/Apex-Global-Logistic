@@ -23,6 +23,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { formatShipmentStatus } from "@/features/shipments/status-labels";
+import { PublicTrackingPinField } from "@/features/shipments/components/public-tracking-pin-field";
 import type {
   CustomerOption,
   ShipmentActionState,
@@ -451,6 +452,12 @@ export function ShipmentForm({
                   value={initialShipment?.destination.name ?? ""}
                 />
               ) : null}
+              <PublicTrackingPinField
+                className="sm:col-span-2"
+                errors={state.fieldErrors?.recipientTrackingPin}
+                hasExistingPin={initialShipment?.publicTrackingPinRequired}
+                initiallyEnabled={initialShipment?.publicTrackingPinRequired}
+              />
             </div>
           </section>
         </CardContent>

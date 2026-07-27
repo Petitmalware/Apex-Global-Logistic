@@ -134,6 +134,8 @@ function parseShipmentFormData(
     pickupWindowEnd: getString(formData, "pickupWindowEnd"),
     pickupWindowStart: getString(formData, "pickupWindowStart"),
     priority: getString(formData, "priority") || "STANDARD",
+    publicTrackingPinEnabled: getBoolean(formData, "publicTrackingPinEnabled"),
+    recipientTrackingPin: getString(formData, "recipientTrackingPin"),
     referenceNumber: getString(formData, "referenceNumber"),
     recipientRequired,
     serviceLevel: getString(formData, "serviceLevel"),

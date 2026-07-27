@@ -1,6 +1,13 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 
-import { getPublicShipmentTrackingSnapshot } from "@/features/shipments/queries/shipment.queries";
+import {
+  getPublicShipmentTrackingAccess,
+  getPublicShipmentTrackingSnapshot,
+} from "@/features/shipments/queries/shipment.queries";
+import {
+  PUBLIC_TRACKING_ACCESS_COOKIE_NAME,
+  hasPublicTrackingAccess,
+} from "@/features/shipments/services/public-tracking-access.service";
 import { subscribeShipmentTrackingUpdates } from "@/features/shipments/services/shipment-realtime.service";
 import { getDatabaseUnavailableMessage, isDatabaseUnavailableError } from "@/lib/db-errors";
 import { createSseResponse, encodeSseMessage } from "@/lib/realtime/sse";
@@ -14,13 +21,28 @@ type PublicTrackingStreamContext = {
   }>;
 };
 
-export async function GET(request: Request, { params }: PublicTrackingStreamContext) {
+export async function GET(request: NextRequest, { params }: PublicTrackingStreamContext) {
   const { reference } = await params;
   const decodedReference = decodeURIComponent(reference);
+  let includeSensitiveDetails = false;
   let initialSnapshot;
 
   try {
-    initialSnapshot = await getPublicShipmentTrackingSnapshot(decodedReference);
+    const access = await getPublicShipmentTrackingAccess(decodedReference);
+
+    if (!access) {
+      return NextResponse.json({ message: "Shipment not found." }, { status: 404 });
+    }
+
+    includeSensitiveDetails =
+      !access.publicTrackingPinRequired ||
+      hasPublicTrackingAccess(
+        request.cookies.get(PUBLIC_TRACKING_ACCESS_COOKIE_NAME)?.value,
+        access.shipmentId,
+      );
+    initialSnapshot = await getPublicShipmentTrackingSnapshot(decodedReference, {
+      includeSensitiveDetails,
+    });
   } catch (error) {
     if (isDatabaseUnavailableError(error)) {
       return NextResponse.json({ message: getDatabaseUnavailableMessage() }, { status: 503 });
@@ -48,9 +70,9 @@ export async function GET(request: Request, { params }: PublicTrackingStreamCont
         controller.close();
       };
       const sendSnapshot = async () => {
-        const snapshot = await getPublicShipmentTrackingSnapshot(decodedReference).catch(
-          () => null,
-        );
+        const snapshot = await getPublicShipmentTrackingSnapshot(decodedReference, {
+          includeSensitiveDetails,
+        }).catch(() => null);
 
         if (!closed && snapshot) {
           controller.enqueue(encodeSseMessage({ data: snapshot, event: "snapshot" }));

@@ -1,10 +1,10 @@
 import { z } from "zod";
 
-const PASSWORD_MIN_LENGTH = 12;
+const PASSWORD_MIN_LENGTH = 8;
 const PASSWORD_MAX_LENGTH = 128;
 
 export const PASSWORD_REQUIREMENTS = [
-  "12 to 128 characters",
+  "8 to 128 characters",
   "At least one uppercase letter",
   "At least one lowercase letter",
   "At least one number",
@@ -32,7 +32,7 @@ export const passwordSchema = z
     if (password.length < PASSWORD_MIN_LENGTH) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Password must be at least 12 characters.",
+        message: "Password must be at least 8 characters.",
       });
     }
 

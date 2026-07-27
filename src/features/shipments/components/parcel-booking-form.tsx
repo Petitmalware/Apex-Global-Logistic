@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { CustomerSelectCard } from "@/features/customers/components/customer-select-card";
+import { PublicTrackingPinField } from "@/features/shipments/components/public-tracking-pin-field";
 import { ShipmentWorkflowGuide } from "@/features/shipments/components/shipment-workflow-guide";
 import { calculateParcelQuote } from "@/features/shipments/services/parcel-pricing";
 import type { CustomerOption, ShipmentActionState } from "@/features/shipments/types";
@@ -170,7 +171,9 @@ export function ParcelBookingForm({
         pickupWindowEnd: undefined,
         pickupWindowStart: undefined,
         priority: priority as "EXPEDITED" | "STANDARD" | "URGENT",
+        publicTrackingPinEnabled: false,
         referenceNumber: undefined,
+        recipientTrackingPin: undefined,
         recipientRequired: false,
         serviceLevel: "Parcel Standard",
         status: "BOOKED",
@@ -254,6 +257,7 @@ export function ParcelBookingForm({
           title="Parcel recipient"
         />
       ) : null}
+      <PublicTrackingPinField errors={state.fieldErrors?.recipientTrackingPin} />
       {state.message ? (
         <p className="border-border bg-secondary text-secondary-foreground rounded-md border px-3 py-2 text-sm">
           {state.message}

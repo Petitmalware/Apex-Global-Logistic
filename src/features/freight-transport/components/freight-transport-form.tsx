@@ -14,6 +14,7 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { CustomerSelectCard } from "@/features/customers/components/customer-select-card";
 import { ShipmentWorkflowGuide } from "@/features/shipments/components/shipment-workflow-guide";
+import { PublicTrackingPinField } from "@/features/shipments/components/public-tracking-pin-field";
 import type {
   FreightTransportActionState,
   FreightTransportDetail,
@@ -213,6 +214,7 @@ export function FreightTransportForm({
           title="Freight recipient"
         />
       ) : null}
+      {!isEdit ? <PublicTrackingPinField errors={state.fieldErrors?.recipientTrackingPin} /> : null}
 
       <Card>
         <CardHeader className="flex flex-row items-start gap-3">

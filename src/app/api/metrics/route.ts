@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { getConfiguredEmailProviderHealth } from "@/features/emails/services/email-provider.service";
 import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -17,6 +18,7 @@ function metricLine(name: string, value: number, labels?: Record<string, string>
 
 export async function GET() {
   let databaseUp = 1;
+  const emailHealth = await getConfiguredEmailProviderHealth();
 
   try {
     await prisma.$queryRaw`SELECT 1`;
@@ -30,6 +32,9 @@ export async function GET() {
     "# TYPE apex_health_up gauge",
     metricLine("apex_health_up", 1, { check: "app" }),
     metricLine("apex_health_up", databaseUp, { check: "database" }),
+    metricLine("apex_health_up", emailHealth.status === "unavailable" ? 0 : 1, {
+      check: "email",
+    }),
     "# HELP apex_process_uptime_seconds Node.js process uptime in seconds.",
     "# TYPE apex_process_uptime_seconds gauge",
     metricLine("apex_process_uptime_seconds", Math.round(process.uptime())),

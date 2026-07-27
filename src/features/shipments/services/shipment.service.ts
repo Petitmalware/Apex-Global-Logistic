@@ -32,6 +32,7 @@ import { synchronizeShipmentRouteStatus } from "@/features/shipments/services/sh
 import { AUTH_ROLES } from "@/lib/auth/constants";
 import { PERMISSIONS, hasPermission } from "@/lib/auth/rbac";
 import { AuthError } from "@/lib/auth/errors";
+import { hashPassword } from "@/lib/auth/password";
 import { prisma } from "@/lib/db";
 import { kilogramsToPounds } from "@/lib/measurements";
 import {
@@ -390,6 +391,14 @@ export async function createShipment(
   user: AuthSessionUser,
   options: { customerBooking?: boolean } = {},
 ) {
+  if (input.publicTrackingPinEnabled && !input.recipientTrackingPin) {
+    throw new AuthError(
+      "Set a 4 to 12 digit recipient PIN before protecting public tracking details.",
+      422,
+      "TRACKING_PIN_REQUIRED",
+    );
+  }
+
   const organizationId = options.customerBooking
     ? await getCustomerBookingOrganizationId(user)
     : await ensureShipmentOrganization(user);
@@ -405,6 +414,9 @@ export async function createShipment(
   const shipmentNumber = await generateShipmentNumber(organizationId);
   const status = input.status;
   const officeDetails = getOfficeDetailsMetadata(input.officeDetails);
+  const publicTrackingPinHash = input.recipientTrackingPin
+    ? hashPassword(input.recipientTrackingPin)
+    : null;
 
   const shipment = await prisma.$transaction(async (transaction) => {
     const [originAddress, destinationAddress] = await Promise.all([
@@ -451,6 +463,8 @@ export async function createShipment(
         pickupWindowEnd: input.pickupWindowEnd,
         pickupWindowStart: input.pickupWindowStart,
         priority: input.priority,
+        publicTrackingPinHash,
+        publicTrackingPinRequired: input.publicTrackingPinEnabled,
         referenceNumber: input.referenceNumber,
         serviceLevel: input.serviceLevel,
         shipmentNumber,
@@ -754,6 +768,20 @@ export async function updateShipment(
     throw new AuthError("Shipment not found.", 404, "SHIPMENT_NOT_FOUND");
   }
 
+  const publicTrackingPinHash = input.publicTrackingPinEnabled
+    ? input.recipientTrackingPin
+      ? hashPassword(input.recipientTrackingPin)
+      : existingShipment.publicTrackingPinHash
+    : null;
+
+  if (input.publicTrackingPinEnabled && !publicTrackingPinHash) {
+    throw new AuthError(
+      "Set a 4 to 12 digit recipient PIN before protecting public tracking details.",
+      422,
+      "TRACKING_PIN_REQUIRED",
+    );
+  }
+
   const isOwner =
     existingShipment.customerId === user.id || existingShipment.createdById === user.id;
   const canEditOwnedDraft =
@@ -801,6 +829,8 @@ export async function updateShipment(
         pickupWindowEnd: input.pickupWindowEnd,
         pickupWindowStart: input.pickupWindowStart,
         priority: input.priority,
+        publicTrackingPinHash,
+        publicTrackingPinRequired: input.publicTrackingPinEnabled,
         referenceNumber: input.referenceNumber,
         serviceLevel: input.serviceLevel,
       },

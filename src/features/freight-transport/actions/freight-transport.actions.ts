@@ -138,7 +138,9 @@ function parseFreightShipmentFormData(
     pickupWindowEnd: getString(formData, "pickupWindowEnd"),
     pickupWindowStart: getString(formData, "pickupWindowStart"),
     priority: getString(formData, "priority") || "STANDARD",
+    publicTrackingPinEnabled: getBoolean(formData, "publicTrackingPinEnabled"),
     referenceNumber: getString(formData, "referenceNumber"),
+    recipientTrackingPin: getString(formData, "recipientTrackingPin"),
     serviceLevel: getString(formData, "serviceLevel") || "Long-haul Freight",
     status: options.customerBooking ? "DRAFT" : "BOOKED",
   });

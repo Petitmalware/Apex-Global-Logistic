@@ -213,6 +213,7 @@ export type ShipmentDetail = ShipmentListItem & {
   pickupWindowEnd: string | null;
   pickupWindowStart: string | null;
   publicDetails: PublicShipmentTrackingDetails | null;
+  publicTrackingPinRequired: boolean;
   route: ShipmentRouteTrackingView | null;
   serviceLevel: string | null;
   weightSummary: {
@@ -287,11 +288,13 @@ export type ShipmentTrackingSnapshot = {
   pickupWindowStart: string | null;
   priority: ShipmentPriority;
   publicDetails: PublicShipmentTrackingDetails | null;
+  publicTrackingPinRequired: boolean;
   referenceNumber: string | null;
   route: ShipmentRouteTrackingView | null;
   serviceLevel: string | null;
   shipmentNumber: string;
   status: ShipmentStatus;
+  sensitiveDetailsLocked: boolean;
   timeline: ShipmentTrackingTimelineEvent[];
   totalWeightLb: string | null;
   updatedAt: string;

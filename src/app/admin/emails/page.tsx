@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { ProtectedShell } from "@/components/layout/protected-shell";
 import { EmailStudioDashboard } from "@/features/emails/components/email-studio-dashboard";
 import { getEmailStudioOverview } from "@/features/emails/queries/email.queries";
+import { getConfiguredEmailProviderHealth } from "@/features/emails/services/email-provider.service";
 import { PERMISSIONS } from "@/lib/auth/rbac";
 import { requirePermission } from "@/lib/auth/session";
 
@@ -12,7 +13,10 @@ export const metadata: Metadata = {
 
 export default async function AdminEmailsPage() {
   const user = await requirePermission(PERMISSIONS.EMAILS_READ);
-  const overview = await getEmailStudioOverview(user);
+  const [overview, emailHealth] = await Promise.all([
+    getEmailStudioOverview(user),
+    getConfiguredEmailProviderHealth(),
+  ]);
 
   return (
     <ProtectedShell
@@ -26,7 +30,7 @@ export default async function AdminEmailsPage() {
       title="Admin Email Studio"
       user={user}
     >
-      <EmailStudioDashboard overview={overview} />
+      <EmailStudioDashboard emailHealth={emailHealth} overview={overview} />
     </ProtectedShell>
   );
 }

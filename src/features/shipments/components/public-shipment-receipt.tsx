@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Route } from "next";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, LockKeyhole } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { siteConfig } from "@/config/site";
@@ -89,6 +89,35 @@ function Party({ party, title }: { party: PublicTrackingParty; title: string }) 
 export function PublicShipmentReceipt({ snapshot }: { snapshot: ShipmentTrackingSnapshot }) {
   const details = snapshot.publicDetails;
   const latestEvent = snapshot.timeline[0] ?? null;
+
+  if (snapshot.sensitiveDetailsLocked) {
+    return (
+      <main className="grid min-h-svh place-items-center bg-slate-100 px-4 py-8 text-slate-950">
+        <section className="w-full max-w-lg rounded-md bg-white p-6 shadow-sm sm:p-8">
+          <div className="flex items-start gap-4">
+            <div className="grid size-11 shrink-0 place-items-center rounded-md bg-slate-950 text-white">
+              <LockKeyhole aria-hidden="true" className="size-5" />
+            </div>
+            <div>
+              <p className="text-xs font-bold tracking-[0.14em] text-slate-500 uppercase">
+                Protected shipment
+              </p>
+              <h1 className="mt-2 text-xl font-black">Recipient PIN required</h1>
+              <p className="mt-3 text-sm leading-6 text-slate-600">
+                Enter the recipient PIN on the tracking page before opening this shipment receipt.
+              </p>
+              <Button asChild className="mt-5" variant="outline">
+                <Link href={"/tracking" as Route}>
+                  <ArrowLeft aria-hidden="true" />
+                  Back to tracking
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-svh bg-slate-100 px-4 py-6 text-slate-950 print:bg-white print:p-0">

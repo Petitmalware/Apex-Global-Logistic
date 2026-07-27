@@ -9,6 +9,7 @@ import {
   ChevronRight,
   CirclePause,
   FileText,
+  LockKeyhole,
   MapPinned,
   PackageSearch,
   PawPrint,
@@ -184,6 +185,25 @@ function PartyCard({
 
 function ShipmentParties({ snapshot }: { snapshot: ShipmentTrackingSnapshot }) {
   const details = snapshot.publicDetails;
+
+  if (snapshot.sensitiveDetailsLocked) {
+    return (
+      <section className="border-border bg-card shadow-panel rounded-lg border p-5 sm:p-6">
+        <div className="flex items-start gap-3">
+          <div className="bg-accent/15 text-accent grid size-10 shrink-0 place-items-center rounded-md">
+            <LockKeyhole aria-hidden="true" className="size-5" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold">Recipient details protected</h3>
+            <p className="text-muted-foreground mt-1 text-sm leading-6">
+              Enter the recipient PIN in the tracking form to view contact details, shipment
+              contents, pet information, and the printable receipt.
+            </p>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   if (!details) {
     return null;
@@ -376,6 +396,7 @@ export function TrackingLookup() {
   const [connectionState, setConnectionState] = useState<"live" | "reconnecting" | "idle">("idle");
   const [error, setError] = useState<string | null>(null);
   const [reference, setReference] = useState("");
+  const [recipientPin, setRecipientPin] = useState("");
   const [snapshot, setSnapshot] = useState<ShipmentTrackingSnapshot | null>(null);
   const [status, setStatus] = useState<LookupStatus>("idle");
   const [trackedReference, setTrackedReference] = useState("");
@@ -395,9 +416,13 @@ export function TrackingLookup() {
     setError(null);
     setConnectionState("idle");
 
-    const response = await fetch(`/api/tracking/${encodeURIComponent(normalizedReference)}`, {
-      cache: "no-store",
-    });
+    const query = recipientPin.trim() ? `?pin=${encodeURIComponent(recipientPin.trim())}` : "";
+    const response = await fetch(
+      `/api/tracking/${encodeURIComponent(normalizedReference)}${query}`,
+      {
+        cache: "no-store",
+      },
+    );
 
     if (!response.ok) {
       const payload = (await response.json().catch(() => null)) as { message?: string } | null;
@@ -409,10 +434,18 @@ export function TrackingLookup() {
       return;
     }
 
-    const payload = (await response.json()) as { snapshot: ShipmentTrackingSnapshot };
+    const payload = (await response.json()) as {
+      pinError?: string | null;
+      snapshot: ShipmentTrackingSnapshot;
+    };
     setSnapshot(payload.snapshot);
     setTrackedReference(normalizedReference);
     setStatus("ready");
+    setError(payload.pinError ?? null);
+
+    if (!payload.pinError) {
+      setRecipientPin("");
+    }
   }
 
   useEffect(() => {
@@ -457,7 +490,10 @@ export function TrackingLookup() {
             </div>
           </div>
           <div>
-            <form className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]" onSubmit={handleSubmit}>
+            <form
+              className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(180px,.55fr)_auto]"
+              onSubmit={handleSubmit}
+            >
               <div className="space-y-2">
                 <Label htmlFor="tracking-reference">Tracking reference</Label>
                 <Input
@@ -468,6 +504,20 @@ export function TrackingLookup() {
                   placeholder="AGL-202607-ABC12345"
                   spellCheck={false}
                   value={reference}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="tracking-pin">Recipient PIN (if provided)</Label>
+                <Input
+                  autoComplete="off"
+                  id="tracking-pin"
+                  inputMode="numeric"
+                  maxLength={12}
+                  onChange={(event) => setRecipientPin(event.target.value)}
+                  pattern="[0-9]{4,12}"
+                  placeholder="Optional PIN"
+                  type="password"
+                  value={recipientPin}
                 />
               </div>
               <Button
@@ -519,16 +569,23 @@ export function TrackingLookup() {
                         ? "Reconnecting"
                         : "Connecting"}
                   </Badge>
-                  <Button asChild size="sm" variant="outline">
-                    <Link
-                      href={
-                        `/tracking/${encodeURIComponent(snapshot.shipmentNumber)}/receipt` as NextRoute
-                      }
-                    >
-                      <FileText aria-hidden="true" />
-                      View receipt
-                    </Link>
-                  </Button>
+                  {snapshot.sensitiveDetailsLocked ? (
+                    <Badge variant="outline">
+                      <LockKeyhole aria-hidden="true" className="size-3.5" />
+                      PIN required for receipt
+                    </Badge>
+                  ) : (
+                    <Button asChild size="sm" variant="outline">
+                      <Link
+                        href={
+                          `/tracking/${encodeURIComponent(snapshot.shipmentNumber)}/receipt` as NextRoute
+                        }
+                      >
+                        <FileText aria-hidden="true" />
+                        View receipt
+                      </Link>
+                    </Button>
+                  )}
                 </div>
               </div>
 
