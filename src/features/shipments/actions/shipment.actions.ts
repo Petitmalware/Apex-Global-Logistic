@@ -33,6 +33,7 @@ import { AuthError } from "@/lib/auth/errors";
 import { requireAuthenticatedUser, requireRole } from "@/lib/auth/session";
 import { getDatabaseUnavailableMessage, isDatabaseUnavailableError } from "@/lib/db-errors";
 import { poundsToKilogramsString } from "@/lib/measurements";
+import { zonedDateTimeToUtc } from "@/lib/time-zone";
 
 function getString(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -60,6 +61,18 @@ function hasOptionalPackageData(formData: FormData, index: number) {
   return keys.some((key) => getString(formData, `packages.${index}.${key}`).trim().length > 0);
 }
 
+function parseScheduleDateTime(value: string, timeZone: string) {
+  if (!value) {
+    return value;
+  }
+
+  try {
+    return zonedDateTimeToUtc(value, timeZone);
+  } catch {
+    return new Date(Number.NaN);
+  }
+}
+
 function parseShipmentFormData(
   formData: FormData,
   {
@@ -68,6 +81,7 @@ function parseShipmentFormData(
     status,
   }: { customerId?: string; recipientRequired?: boolean; status?: string } = {},
 ) {
+  const scheduleTimeZone = getString(formData, "officeDetails.timeZone") || "UTC";
   const packages = [0, 1, 2, 3, 4, 5]
     .filter((index) => index === 0 || hasOptionalPackageData(formData, index))
     .map((index) => ({
@@ -89,8 +103,14 @@ function parseShipmentFormData(
 
   return shipmentFormSchema.safeParse({
     customerId: customerId ?? getString(formData, "customerId"),
-    deliveryWindowEnd: getString(formData, "deliveryWindowEnd"),
-    deliveryWindowStart: getString(formData, "deliveryWindowStart"),
+    deliveryWindowEnd: parseScheduleDateTime(
+      getString(formData, "deliveryWindowEnd"),
+      scheduleTimeZone,
+    ),
+    deliveryWindowStart: parseScheduleDateTime(
+      getString(formData, "deliveryWindowStart"),
+      scheduleTimeZone,
+    ),
     destination: {
       city: getString(formData, "destination.city"),
       countryCode: getString(formData, "destination.countryCode"),
@@ -119,6 +139,7 @@ function parseShipmentFormData(
       quantity: getString(formData, "officeDetails.quantity"),
       shipperEmail: getString(formData, "officeDetails.shipperEmail"),
       shipperPhone: getString(formData, "officeDetails.shipperPhone"),
+      timeZone: scheduleTimeZone,
       totalFreight: getString(formData, "officeDetails.totalFreight"),
     },
     origin: {
@@ -131,8 +152,14 @@ function parseShipmentFormData(
       state: getString(formData, "origin.state"),
     },
     packages,
-    pickupWindowEnd: getString(formData, "pickupWindowEnd"),
-    pickupWindowStart: getString(formData, "pickupWindowStart"),
+    pickupWindowEnd: parseScheduleDateTime(
+      getString(formData, "pickupWindowEnd"),
+      scheduleTimeZone,
+    ),
+    pickupWindowStart: parseScheduleDateTime(
+      getString(formData, "pickupWindowStart"),
+      scheduleTimeZone,
+    ),
     priority: getString(formData, "priority") || "STANDARD",
     publicTrackingPinEnabled: getBoolean(formData, "publicTrackingPinEnabled"),
     recipientTrackingPin: getString(formData, "recipientTrackingPin"),

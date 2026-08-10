@@ -82,6 +82,7 @@ export type ShipmentOfficeDetails = {
   quantity: string | null;
   shipperEmail: string | null;
   shipperPhone: string | null;
+  timeZone: string | null;
   totalFreight: string | null;
 };
 

@@ -203,6 +203,7 @@ const officeDetailKeys = [
   "quantity",
   "shipperEmail",
   "shipperPhone",
+  "timeZone",
   "totalFreight",
 ] as const;
 

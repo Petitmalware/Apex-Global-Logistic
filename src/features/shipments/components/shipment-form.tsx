@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { Route } from "next";
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import {
   ArrowRight,
   ClipboardList,
@@ -31,6 +31,7 @@ import type {
 } from "@/features/shipments/types";
 import { initialShipmentActionState } from "@/features/shipments/types";
 import { kilogramsToPoundsString } from "@/lib/measurements";
+import { formatDateTimeLocalInput } from "@/lib/time-zone";
 
 const shipmentStatusOptions = [
   "DRAFT",
@@ -96,6 +97,32 @@ const countryOptions = [
   { label: "Other", value: "OT" },
 ];
 
+const fallbackTimeZoneOptions = [
+  "UTC",
+  "Africa/Lagos",
+  "America/Chicago",
+  "America/Denver",
+  "America/Halifax",
+  "America/Los_Angeles",
+  "America/New_York",
+  "America/St_Johns",
+  "America/Toronto",
+  "America/Vancouver",
+  "Australia/Perth",
+  "Australia/Sydney",
+  "Europe/Berlin",
+  "Europe/London",
+  "Europe/Paris",
+];
+const timeZoneOptions = Array.from(
+  new Set([
+    "UTC",
+    ...(typeof Intl.supportedValuesOf === "function"
+      ? Intl.supportedValuesOf("timeZone")
+      : fallbackTimeZoneOptions),
+  ]),
+);
+
 type ShipmentFormProps = {
   action: (state: ShipmentActionState, formData: FormData) => Promise<ShipmentActionState>;
   cancelHref: Route | string;
@@ -104,12 +131,12 @@ type ShipmentFormProps = {
   mode: "create" | "edit";
 };
 
-function getDateOnly(value?: string | null) {
+function getDateTimeLocal(value: string | null | undefined, timeZone: string) {
   if (!value) {
     return "";
   }
 
-  return value.slice(0, 10);
+  return formatDateTimeLocalInput(value, timeZone);
 }
 
 function getPackageRows(initialShipment?: ShipmentDetail) {
@@ -182,12 +209,26 @@ export function ShipmentForm({
   const [state, formAction, isPending] = useActionState(action, initialShipmentActionState);
   const packageRows = getPackageRows(initialShipment);
   const officeDetails = initialShipment?.officeDetails;
+  const initialScheduleTimeZone = officeDetails?.timeZone ?? "UTC";
   const currentStatus = initialShipment?.status ?? "BOOKED";
   const isCreateMode = mode === "create";
+  const [scheduleTimeZone, setScheduleTimeZone] = useState(initialScheduleTimeZone);
   const [recipientName, setRecipientName] = useState(initialShipment?.manualRecipient?.name ?? "");
   const [recipientEmail, setRecipientEmail] = useState(
     initialShipment?.manualRecipient?.email ?? initialShipment?.recipientEmail ?? "",
   );
+
+  useEffect(() => {
+    if (!isCreateMode || officeDetails?.timeZone) {
+      return;
+    }
+
+    const browserTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    if (browserTimeZone) {
+      setScheduleTimeZone(browserTimeZone);
+    }
+  }, [isCreateMode, officeDetails?.timeZone]);
 
   function handleCustomerChange(customerId: string) {
     const customer = customerOptions.find((option) => option.id === customerId);
@@ -710,32 +751,52 @@ export function ShipmentForm({
             value={officeDetails?.carrierReference ?? ""}
           />
           <Field>
-            <Label htmlFor="officeDetails.departureTime">Departure time (optional)</Label>
-            <Input
-              defaultValue={officeDetails?.departureTime ?? ""}
-              id="officeDetails.departureTime"
-              name="officeDetails.departureTime"
-              placeholder="11:30 am"
-            />
+            <Label htmlFor="officeDetails.timeZone">Schedule time zone</Label>
+            <Select
+              id="officeDetails.timeZone"
+              name="officeDetails.timeZone"
+              onChange={(event) => setScheduleTimeZone(event.target.value)}
+              value={scheduleTimeZone}
+            >
+              {timeZoneOptions.map((timeZone) => (
+                <option key={timeZone} value={timeZone}>
+                  {timeZone.replaceAll("_", " ")}
+                </option>
+              ))}
+            </Select>
+            <FieldHint>
+              Departure and delivery are entered in this zone, saved as one UTC instant, and shown
+              in each viewer&apos;s local time.
+            </FieldHint>
+            <ErrorList errors={state.fieldErrors?.officeDetails} />
           </Field>
-          <input
-            name="pickupWindowStart"
-            type="hidden"
-            value={getDateOnly(initialShipment?.pickupWindowStart)}
-          />
-          <input
-            name="officeDetails.pickupTime"
-            type="hidden"
-            value={officeDetails?.pickupTime ?? ""}
-          />
           <Field>
-            <Label htmlFor="deliveryWindowStart">Expected delivery date (optional)</Label>
+            <Label htmlFor="pickupWindowStart">Planned departure (optional)</Label>
             <Input
-              defaultValue={getDateOnly(initialShipment?.deliveryWindowStart)}
+              defaultValue={getDateTimeLocal(
+                initialShipment?.pickupWindowStart,
+                initialScheduleTimeZone,
+              )}
+              id="pickupWindowStart"
+              name="pickupWindowStart"
+              type="datetime-local"
+            />
+            <ErrorList errors={state.fieldErrors?.pickupWindowStart} />
+          </Field>
+          <input name="officeDetails.departureTime" type="hidden" value="" />
+          <input name="officeDetails.pickupTime" type="hidden" value="" />
+          <Field>
+            <Label htmlFor="deliveryWindowStart">Expected delivery (optional)</Label>
+            <Input
+              defaultValue={getDateTimeLocal(
+                initialShipment?.deliveryWindowStart,
+                initialScheduleTimeZone,
+              )}
               id="deliveryWindowStart"
               name="deliveryWindowStart"
-              type="date"
+              type="datetime-local"
             />
+            <ErrorList errors={state.fieldErrors?.deliveryWindowStart} />
           </Field>
           <Field>
             <Label htmlFor="officeDetails.comments">Customer-facing handling note (optional)</Label>

@@ -23,6 +23,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { LocalizedDateTime } from "@/components/ui/localized-date-time";
 import { PackagePhotoForm } from "@/features/shipments/components/package-photo-form";
 import { ShipmentDocumentForm } from "@/features/shipments/components/shipment-document-form";
 import { ShipmentStatusBadge } from "@/features/shipments/components/shipment-list";
@@ -261,6 +262,7 @@ function getVisibleOfficeDetails(shipment: ShipmentDetail) {
     { label: "Quantity", value: details.quantity },
     { label: "Departure time", value: details.departureTime },
     { label: "Pickup time", value: details.pickupTime },
+    { label: "Schedule time zone", value: details.timeZone },
     { label: "Shipper phone", value: details.shipperPhone },
     { label: "Shipper email", value: details.shipperEmail },
   ].filter((item) => item.value);
@@ -762,25 +764,33 @@ export function ShipmentDetailView({
         <Card>
           <CardHeader>
             <CalendarClock aria-hidden="true" className="text-accent size-5" />
-            <CardTitle>Pickup window</CardTitle>
+            <CardTitle>Planned departure</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm">{formatDate(shipment.pickupWindowStart)}</p>
-            <p className="text-muted-foreground mt-1 text-sm">
-              {formatDate(shipment.pickupWindowEnd)}
+            <p className="text-sm">
+              <LocalizedDateTime value={shipment.pickupWindowStart} />
             </p>
+            {shipment.pickupWindowEnd ? (
+              <p className="text-muted-foreground mt-1 text-sm">
+                Until <LocalizedDateTime value={shipment.pickupWindowEnd} />
+              </p>
+            ) : null}
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
             <CalendarClock aria-hidden="true" className="text-accent size-5" />
-            <CardTitle>Delivery window</CardTitle>
+            <CardTitle>Expected delivery</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm">{formatDate(shipment.deliveryWindowStart)}</p>
-            <p className="text-muted-foreground mt-1 text-sm">
-              {formatDate(shipment.deliveryWindowEnd)}
+            <p className="text-sm">
+              <LocalizedDateTime value={shipment.deliveryWindowStart} />
             </p>
+            {shipment.deliveryWindowEnd ? (
+              <p className="text-muted-foreground mt-1 text-sm">
+                Until <LocalizedDateTime value={shipment.deliveryWindowEnd} />
+              </p>
+            ) : null}
           </CardContent>
         </Card>
         <Card className="sm:col-span-2">

@@ -10,6 +10,8 @@ import {
 } from "@prisma/client";
 import { z } from "zod";
 
+import { isValidTimeZone } from "@/lib/time-zone";
+
 const emptyToUndefined = (value: unknown) => (value === "" ? undefined : value);
 
 const optionalString = (max = 255) =>
@@ -27,6 +29,11 @@ const optionalUuid = z.preprocess(
 const optionalEmail = z.preprocess(
   emptyToUndefined,
   z.string().trim().email("Enter a valid recipient email.").max(255).optional(),
+);
+
+const optionalTimeZone = z.preprocess(
+  emptyToUndefined,
+  z.string().trim().refine(isValidTimeZone, "Select a valid time zone.").optional(),
 );
 
 const optionalDecimal = z.preprocess(
@@ -114,6 +121,7 @@ export const shipmentOfficeDetailsSchema = z
     quantity: optionalString(80),
     shipperEmail: optionalEmail,
     shipperPhone: optionalString(80),
+    timeZone: optionalTimeZone,
     totalFreight: optionalString(80),
   })
   .default({});
@@ -168,6 +176,18 @@ export const shipmentFormSchema = z
         code: z.ZodIssueCode.custom,
         message: "Delivery end must be after delivery start.",
         path: ["deliveryWindowEnd"],
+      });
+    }
+
+    if (
+      value.pickupWindowStart &&
+      value.deliveryWindowStart &&
+      value.deliveryWindowStart < value.pickupWindowStart
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Expected delivery must be after the planned departure.",
+        path: ["deliveryWindowStart"],
       });
     }
 

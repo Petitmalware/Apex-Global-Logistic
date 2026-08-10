@@ -3,6 +3,7 @@ import type { Route } from "next";
 import { ArrowLeft, LockKeyhole } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { LocalizedDateTime } from "@/components/ui/localized-date-time";
 import { siteConfig } from "@/config/site";
 import { PrintButton } from "@/features/shipments/components/print-button";
 import { formatShipmentStatus } from "@/features/shipments/status-labels";
@@ -30,20 +31,34 @@ function formatEnum(value: string) {
     .replace(/^./, (character) => character.toUpperCase());
 }
 
-function formatDeliveryWindow(snapshot: ShipmentTrackingSnapshot) {
+function DeliveryWindow({ snapshot }: { snapshot: ShipmentTrackingSnapshot }) {
   if (!snapshot.deliveryWindowStart && !snapshot.deliveryWindowEnd) {
-    return "Awaiting delivery estimate";
+    return <>Awaiting delivery estimate</>;
   }
 
   if (!snapshot.deliveryWindowEnd) {
-    return formatDate(snapshot.deliveryWindowStart);
+    return (
+      <LocalizedDateTime
+        fallback="Awaiting delivery estimate"
+        value={snapshot.deliveryWindowStart}
+      />
+    );
   }
 
   if (!snapshot.deliveryWindowStart) {
-    return `By ${formatDate(snapshot.deliveryWindowEnd)}`;
+    return (
+      <>
+        By <LocalizedDateTime value={snapshot.deliveryWindowEnd} />
+      </>
+    );
   }
 
-  return `${formatDate(snapshot.deliveryWindowStart)} - ${formatDate(snapshot.deliveryWindowEnd)}`;
+  return (
+    <>
+      <LocalizedDateTime value={snapshot.deliveryWindowStart} /> –{" "}
+      <LocalizedDateTime value={snapshot.deliveryWindowEnd} />
+    </>
+  );
 }
 
 function formatAddress(address: ShipmentAddressView) {
@@ -168,7 +183,7 @@ export function PublicShipmentReceipt({ snapshot }: { snapshot: ShipmentTracking
             {[
               { label: "Current status", value: formatShipmentStatus(snapshot.status) },
               { label: "Latest location", value: latestEvent?.currentLocation ?? "Not recorded" },
-              { label: "Expected delivery", value: formatDeliveryWindow(snapshot) },
+              { label: "Expected delivery", value: <DeliveryWindow snapshot={snapshot} /> },
               { label: "Service", value: snapshot.serviceLevel ?? formatEnum(snapshot.mode) },
             ].map((item) => (
               <div className="rounded-md border border-slate-300 p-3" key={item.label}>
