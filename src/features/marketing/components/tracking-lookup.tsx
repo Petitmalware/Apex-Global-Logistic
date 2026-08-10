@@ -25,6 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Notification } from "@/components/ui/notification";
 import { ShipmentLiveMap } from "@/features/shipments/components/shipment-live-map";
+import { ReceiptDownloadButton } from "@/features/shipments/components/receipt-download-button";
 import { formatShipmentStatus, formatTrackingEventType } from "@/features/shipments/status-labels";
 import type {
   PublicTrackingParty,
@@ -575,16 +576,23 @@ export function TrackingLookup() {
                       PIN required for receipt
                     </Badge>
                   ) : (
-                    <Button asChild size="sm" variant="outline">
-                      <Link
-                        href={
-                          `/tracking/${encodeURIComponent(snapshot.shipmentNumber)}/receipt` as NextRoute
-                        }
-                      >
-                        <FileText aria-hidden="true" />
-                        View receipt
-                      </Link>
-                    </Button>
+                    <>
+                      <Button asChild size="sm" variant="outline">
+                        <Link
+                          href={
+                            `/tracking/${encodeURIComponent(snapshot.shipmentNumber)}/receipt` as NextRoute
+                          }
+                        >
+                          <FileText aria-hidden="true" />
+                          View receipt
+                        </Link>
+                      </Button>
+                      <ReceiptDownloadButton
+                        reference={snapshot.shipmentNumber}
+                        size="sm"
+                        variant="outline"
+                      />
+                    </>
                   )}
                 </div>
               </div>

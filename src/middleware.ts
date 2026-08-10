@@ -3,11 +3,11 @@ import { NextResponse, type NextRequest } from "next/server";
 import {
   AUTH_COOKIE_NAMES,
   AUTH_PUBLIC_API_PREFIXES,
-  AUTH_PUBLIC_PATHS,
   AUTH_ROLES,
   type AppRole,
 } from "@/lib/auth/constants";
 import { verifyAccessToken, type AccessTokenPayload } from "@/lib/auth/jwt";
+import { isPublicPagePath } from "@/lib/auth/public-paths";
 import { hasPermission, hasRole, PERMISSIONS } from "@/lib/auth/rbac";
 import { ensureCsrfCookie, verifyCsrfProtection } from "@/lib/security/csrf";
 import { applySecurityHeaders } from "@/lib/security/headers";
@@ -79,10 +79,6 @@ const API_PERMISSION_RULES: Array<{
 const AUTH_PAGE_PATHS = new Set(["/login", "/register", "/forgot-password", "/reset-password"]);
 const DEFAULT_MAX_API_BODY_BYTES = 1024 * 1024;
 const CHAT_UPLOAD_MAX_API_BODY_BYTES = 32 * 1024 * 1024;
-
-function isPublicPath(pathname: string) {
-  return AUTH_PUBLIC_PATHS.some((path) => pathname === path);
-}
 
 function isPublicApi(pathname: string) {
   return AUTH_PUBLIC_API_PREFIXES.some((prefix) => pathname.startsWith(prefix));
@@ -345,7 +341,7 @@ export async function middleware(request: NextRequest) {
     return finalizeResponse(csrfResponse(csrfCheck.message), request);
   }
 
-  if (isPublicApi(pathname) || isPublicPath(pathname)) {
+  if (isPublicApi(pathname) || isPublicPagePath(pathname)) {
     const payload = await getAccessPayload(request);
 
     if (payload && AUTH_PAGE_PATHS.has(pathname)) {

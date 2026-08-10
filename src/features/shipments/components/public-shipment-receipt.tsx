@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { LocalizedDateTime } from "@/components/ui/localized-date-time";
 import { siteConfig } from "@/config/site";
 import { PrintButton } from "@/features/shipments/components/print-button";
+import { ReceiptDownloadButton } from "@/features/shipments/components/receipt-download-button";
 import { formatShipmentStatus } from "@/features/shipments/status-labels";
 import type {
   PublicTrackingParty,
@@ -152,7 +153,10 @@ export function PublicShipmentReceipt({ snapshot }: { snapshot: ShipmentTracking
               Back to tracking
             </Link>
           </Button>
-          <PrintButton label="Print / save receipt" />
+          <div className="flex flex-wrap gap-2">
+            <PrintButton />
+            <ReceiptDownloadButton reference={snapshot.shipmentNumber} />
+          </div>
         </div>
 
         <article className="public-receipt-sheet rounded-md bg-white p-6 shadow-sm sm:p-8 print:p-0">
