@@ -15,17 +15,46 @@ fi
 
 mkdir -p "$ROOT_DIR/backups" "$ROOT_DIR/logs" "$ROOT_DIR/storage"
 
+RELEASE_ID="$(git rev-parse HEAD)"
+
+compose() {
+  APP_RELEASE="$RELEASE_ID" docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "$@"
+}
+
+check_health() {
+  local health_url="$1"
+  local label="$2"
+  local response
+
+  response="$(curl --fail --silent --show-error --max-time 20 "$health_url")"
+
+  HEALTH_RESPONSE="$response" EXPECTED_RELEASE="$RELEASE_ID" node -e '
+    const response = JSON.parse(process.env.HEALTH_RESPONSE ?? "");
+    const expectedRelease = process.env.EXPECTED_RELEASE;
+
+    if (response.status !== "ok" || response.checks?.database !== "ok") {
+      throw new Error(`application health is ${response.status}; database is ${response.checks?.database}`);
+    }
+
+    if (response.release !== expectedRelease) {
+      throw new Error(`expected release ${expectedRelease}, received ${response.release ?? "unknown"}`);
+    }
+  '
+
+  echo "$label health check passed."
+}
+
 echo "Building application and migration images..."
-docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" build app migrate
+compose build app migrate
 
 echo "Starting data services..."
-docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d postgres redis minio
+compose up -d postgres redis minio
 
 echo "Running database migrations..."
-docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" run --rm migrate
+compose run --rm migrate
 
 echo "Starting application and object storage initialization..."
-docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d app minio-init
+compose up -d app minio-init
 
 APP_PORT="$(sed -n 's/^APP_PORT=//p' "$ENV_FILE" | tail -n 1 | tr -d '\r')"
 APP_PORT="${APP_PORT:-3000}"
@@ -33,10 +62,20 @@ HEALTH_URL="http://127.0.0.1:${APP_PORT}/api/health"
 
 echo "Waiting for application health at $HEALTH_URL..."
 for attempt in {1..30}; do
-  if curl --fail --silent --show-error --max-time 10 "$HEALTH_URL" >/dev/null; then
-    echo "Application is healthy."
+  if check_health "$HEALTH_URL" "Local application"; then
+    PUBLIC_APP_URL="$(sed -n 's/^NEXT_PUBLIC_APP_URL=//p' "$ENV_FILE" | tail -n 1 | tr -d '\r')"
+
+    if [[ -z "$PUBLIC_APP_URL" ]]; then
+      echo "NEXT_PUBLIC_APP_URL is required to verify the public reverse proxy." >&2
+      exit 1
+    fi
+
+    PUBLIC_HEALTH_URL="${PUBLIC_APP_URL%/}/api/health"
+    echo "Verifying the public reverse proxy at $PUBLIC_HEALTH_URL..."
+    check_health "$PUBLIC_HEALTH_URL" "Public application"
+
     echo "Deployment complete."
-    docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" ps
+    compose ps
     exit 0
   fi
 
@@ -45,6 +84,6 @@ for attempt in {1..30}; do
 done
 
 echo "Application did not become healthy within 150 seconds." >&2
-docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" ps
-docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" logs --tail=200 app >&2
+compose ps
+compose logs --tail=200 app >&2
 exit 1
