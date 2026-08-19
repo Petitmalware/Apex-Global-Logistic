@@ -57,6 +57,16 @@ deploy/scripts/deploy-docker.sh
 
 Important: commit and deploy Prisma migrations before using `npm run db:migrate:deploy` on production. For the very first empty database in a schema-only prototype, run a controlled bootstrap in staging first, then convert the baseline into a committed migration before real production data is accepted.
 
+Do not run `npm run build` directly on the VPS with `.env.production`. The production
+`DATABASE_URL` intentionally uses the Docker-only hostname `postgres`, which is only resolvable
+from the Compose network. Use `deploy/scripts/deploy-docker.sh`; it builds, migrates, and starts
+the application in the correct network.
+
+Every Docker deployment verifies both `127.0.0.1:3000/api/health` and the public
+`NEXT_PUBLIC_APP_URL/api/health`. The health response must report a working database and the
+new Git release ID. This prevents a deployment from being reported successful if Nginx is still
+proxying to an old port or application process.
+
 ## MapTiler Tracking
 
 Add the following variables to `/opt/apex-global-logistics/.env.production` before deployment:
