@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { unstable_noStore as noStore } from "next/cache";
 import type { Route } from "next";
 import type { ReactNode } from "react";
 import { ArrowRight, Mail, MapPin, Menu, Phone, Truck, type LucideIcon } from "lucide-react";
@@ -155,6 +156,10 @@ function getFooterContactItems(profile: CompanyProfileInput) {
 }
 
 export async function MarketingFooter() {
+  // Company details are database-backed and the database is intentionally private to Compose.
+  // Render this at request time so `next build` never tries to resolve the Docker-only `postgres` host.
+  noStore();
+
   const profile = await getCompanyProfile();
   const contactItems = getFooterContactItems(profile);
 
