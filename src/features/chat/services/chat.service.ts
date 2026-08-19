@@ -202,8 +202,6 @@ async function resumeAuthenticatedChat(
     data: {
       accessKeyHash: hashAccessKey(accessKey),
       customerId: user.id,
-      resumeTokenExpiresAt: null,
-      resumeTokenHash: null,
     },
     where: {
       id: conversation.id,
@@ -225,23 +223,10 @@ async function issueChatResumeEmail(
   recipientEmail: string,
   recipientName: string,
 ) {
-  const resumeToken = createAccessKey();
-  const resumeUrl = new URL(env.NEXT_PUBLIC_APP_URL);
-
-  resumeUrl.searchParams.set("chatResume", resumeToken);
-
-  await prisma.chatConversation.update({
-    data: {
-      resumeTokenExpiresAt: new Date(Date.now() + CHAT_RESUME_TOKEN_TTL_MS),
-      resumeTokenHash: hashAccessKey(resumeToken),
-    },
-    where: {
-      id: conversation.id,
-    },
-  });
+  const resumeUrl = await createChatResumeUrl(conversation.id);
 
   await queueBrandedEmail({
-    bodyHtml: `<p>Hello ${escapeEmailText(recipientName)},</p><p>A live support conversation is already active for this email address.</p><p><a href="${escapeEmailText(resumeUrl.toString())}">Resume your secure live chat</a></p><p>This link expires in 20 minutes. If you did not request it, you can safely ignore this email.</p>`,
+    bodyHtml: `<p>Hello ${escapeEmailText(recipientName)},</p><p>A live support conversation is already active for this email address.</p><p><a href="${escapeEmailText(resumeUrl)}">Resume your secure live chat</a></p><p>This link expires in 20 minutes. If you did not request it, you can safely ignore this email.</p>`,
     category: EmailTemplateCategory.ADMIN,
     organizationId: conversation.organizationId,
     recipientEmail,
@@ -260,6 +245,25 @@ async function issueChatResumeEmail(
   };
 }
 
+async function createChatResumeUrl(conversationId: string) {
+  const resumeToken = createAccessKey();
+  const resumeUrl = new URL("/support", env.NEXT_PUBLIC_APP_URL);
+
+  resumeUrl.searchParams.set("chatResume", resumeToken);
+
+  await prisma.chatConversation.update({
+    data: {
+      resumeTokenExpiresAt: new Date(Date.now() + CHAT_RESUME_TOKEN_TTL_MS),
+      resumeTokenHash: hashAccessKey(resumeToken),
+    },
+    where: {
+      id: conversationId,
+    },
+  });
+
+  return resumeUrl.toString();
+}
+
 async function notifyCustomerOfStaffReply({
   body,
   conversation,
@@ -276,14 +280,15 @@ async function notifyCustomerOfStaffReply({
 }) {
   const recipientEmail = conversation.customer?.email ?? conversation.visitorEmail;
   const recipientName = conversation.customer?.name ?? conversation.visitorName ?? "Customer";
+  const resumeUrl = recipientEmail ? await createChatResumeUrl(conversation.id) : null;
 
   if (conversation.customer) {
     await createUserNotification({
-      actionUrl: "/dashboard",
-      body: "Apex Support replied to your live chat conversation.",
+      actionUrl: "/support",
+      body: "Apex Support replied to your live chat conversation. Open Support Centre to continue securely.",
       channels: ["inApp"],
       organizationId: conversation.organizationId,
-      title: "New live chat reply",
+      title: "Apex Support replied",
       tone: "info",
       topic: "support",
       userId: conversation.customer.id,
@@ -295,7 +300,7 @@ async function notifyCustomerOfStaffReply({
   }
 
   await queueBrandedEmail({
-    bodyHtml: `<p>Hello ${escapeEmailText(recipientName)},</p><p>Apex Support replied to your live chat conversation:</p><div style="border-left:4px solid #f4b41a;padding:12px 16px;margin:18px 0;background:#f8fafc">${escapeEmailText(body)}</div><p>Return to <a href="{{companyWebsite}}">Apex Global Logistics</a> in the same browser to continue the conversation, or reply to this email to contact support.</p>`,
+    bodyHtml: `<p>Hello ${escapeEmailText(recipientName)},</p><p>Apex Support replied to your live chat conversation:</p><div style="border-left:4px solid #f4b41a;padding:12px 16px;margin:18px 0;background:#f8fafc">${escapeEmailText(body)}</div><p><a href="${escapeEmailText(resumeUrl ?? new URL("/support", env.NEXT_PUBLIC_APP_URL).toString())}">Open your secure Support Centre</a> to continue this conversation.</p><p>This secure link expires in 20 minutes. If you did not expect this message, you can safely ignore it.</p>`,
     category: EmailTemplateCategory.ADMIN,
     organizationId: conversation.organizationId,
     recipientEmail,
@@ -305,9 +310,6 @@ async function notifyCustomerOfStaffReply({
     senderAddress: env.SUPPORT_EMAIL,
     senderName: "Apex Support",
     subject: `Apex Support replied: ${conversation.subject}`,
-    variables: {
-      companyWebsite: env.NEXT_PUBLIC_APP_URL,
-    },
   });
 }
 
@@ -642,6 +644,41 @@ export async function resumePublicChatConversation(input: ResumeChatConversation
     accessKey,
     conversationId: conversation.id,
   };
+}
+
+export async function resumeCurrentAuthenticatedChat(user: AuthSessionUser) {
+  const conversation = await prisma.chatConversation.findFirst({
+    orderBy: {
+      lastMessageAt: "desc",
+    },
+    select: {
+      customerId: true,
+      id: true,
+      organizationId: true,
+      status: true,
+      subject: true,
+      visitorEmail: true,
+      visitorName: true,
+    },
+    where: {
+      status: {
+        in: [...ACTIVE_CHAT_STATUSES],
+      },
+      OR: [
+        {
+          customerId: user.id,
+        },
+        {
+          visitorEmail: {
+            equals: user.email,
+            mode: "insensitive",
+          },
+        },
+      ],
+    },
+  });
+
+  return conversation ? resumeAuthenticatedChat(conversation, user) : null;
 }
 
 export async function addPublicChatMessage(
