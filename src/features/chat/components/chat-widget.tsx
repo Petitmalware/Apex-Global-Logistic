@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LifeBuoy, MessageCircle, Paperclip, Send, ShieldCheck, X } from "lucide-react";
 
@@ -599,14 +600,11 @@ export function ChatWidget({ surface = "public", variant = "floating" }: ChatWid
           </div>
         </section>
       ) : (
-        <Button
-          className="shadow-panel"
-          onClick={() => setIsOpen(true)}
-          type="button"
-          variant="accent"
-        >
-          <MessageCircle aria-hidden="true" />
-          Contact support
+        <Button asChild className="shadow-panel" variant="accent">
+          <Link href="/support">
+            <MessageCircle aria-hidden="true" />
+            Contact support
+          </Link>
         </Button>
       )}
     </div>
