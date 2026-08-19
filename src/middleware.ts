@@ -30,10 +30,6 @@ const ROLE_ROUTE_RULES: Array<{
     roles: [AUTH_ROLES.ADMIN, AUTH_ROLES.SUPER_ADMIN],
   },
   {
-    prefix: "/support",
-    roles: [AUTH_ROLES.ADMIN, AUTH_ROLES.SUPER_ADMIN],
-  },
-  {
     prefix: "/agent",
     roles: [AUTH_ROLES.ADMIN, AUTH_ROLES.SUPER_ADMIN],
   },
