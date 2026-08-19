@@ -27,6 +27,7 @@ services:
       - ../.env.production
     environment:
       APP_ENV: production
+      APP_RELEASE: ${APP_RELEASE:-unknown}
       HOSTNAME: 0.0.0.0
       NODE_ENV: production
       PORT: 3000
