@@ -18,6 +18,7 @@ const PENDING_MESSAGE_KEY = "apex-live-chat-pending-message";
 
 type ChatWidgetProps = {
   surface?: "public" | "workspace";
+  variant?: "floating" | "page";
 };
 
 type StoredChat = {
@@ -98,9 +99,10 @@ function formatMessageTime(value: string) {
   }).format(new Date(value));
 }
 
-export function ChatWidget({ surface = "public" }: ChatWidgetProps) {
+export function ChatWidget({ surface = "public", variant = "floating" }: ChatWidgetProps) {
   const pathname = usePathname();
-  const [isOpen, setIsOpen] = useState(false);
+  const isPage = variant === "page";
+  const [isOpen, setIsOpen] = useState(isPage);
   const [conversation, setConversation] = useState<PublicChatConversationView | null>(null);
   const [message, setMessage] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -209,6 +211,40 @@ export function ChatWidget({ surface = "public" }: ChatWidgetProps) {
       cancelled = true;
     };
   }, [conversation, storedChat]);
+
+  useEffect(() => {
+    if (!isPage || resumeToken || storedChat || conversation) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadAuthenticatedConversation() {
+      const response = await secureFetch("/api/chat/public/conversations/current");
+
+      if (!response.ok || cancelled) {
+        return;
+      }
+
+      const payload = (await response.json()) as {
+        conversation?: PublicChatConversationView | null;
+      };
+
+      if (payload.conversation) {
+        writeStoredChat({
+          accessKey: payload.conversation.accessKey,
+          conversationId: payload.conversation.conversationId,
+        });
+        setConversation(payload.conversation);
+      }
+    }
+
+    loadAuthenticatedConversation();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [conversation, isPage, resumeToken, storedChat]);
 
   useEffect(() => {
     if (!conversation || !isOpen) {
@@ -358,42 +394,50 @@ export function ChatWidget({ surface = "public" }: ChatWidgetProps) {
   }
 
   return (
-    <div className="fixed right-4 bottom-4 z-50">
+    <div className={isPage ? "w-full" : "fixed right-4 bottom-4 z-50"}>
       {isOpen ? (
-        <section className="border-border bg-popover text-popover-foreground shadow-panel flex h-[min(640px,calc(100dvh-2rem))] w-[min(420px,calc(100vw-2rem))] flex-col overflow-hidden rounded-lg border">
-          <header className="bg-primary text-primary-foreground flex items-center justify-between gap-3 px-4 py-3.5">
+        <section
+          className={
+            isPage
+              ? "border-border bg-popover text-popover-foreground shadow-panel flex min-h-[680px] w-full flex-col overflow-hidden rounded-xl border"
+              : "border-border bg-popover text-popover-foreground shadow-panel flex h-[min(640px,calc(100dvh-2rem))] w-[min(420px,calc(100vw-2rem))] flex-col overflow-hidden rounded-lg border"
+          }
+        >
+          <header className="bg-primary text-primary-foreground flex items-center justify-between gap-3 px-4 py-4 sm:px-5">
             <div className="flex items-center gap-2">
               <span className="bg-primary-foreground/10 grid size-9 shrink-0 place-items-center rounded-md">
                 <LifeBuoy aria-hidden="true" className="size-5" />
               </span>
               <div>
-                <p className="text-sm font-semibold">Apex Support Desk</p>
-                <p className="text-xs opacity-80">Secure delivery assistance</p>
+                <p className="text-sm font-semibold">Apex Support Centre</p>
+                <p className="text-xs opacity-80">Secure case updates and delivery assistance</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <span className="hidden rounded border border-white/20 px-2 py-1 text-[10px] font-semibold uppercase sm:inline-flex">
                 Support case
               </span>
-              <button
-                className="grid size-8 place-items-center rounded-md hover:bg-white/10"
-                onClick={() => setIsOpen(false)}
-                type="button"
-              >
-                <X aria-hidden="true" className="size-4" />
-                <span className="sr-only">Close chat</span>
-              </button>
+              {!isPage ? (
+                <button
+                  className="grid size-8 place-items-center rounded-md hover:bg-white/10"
+                  onClick={() => setIsOpen(false)}
+                  type="button"
+                >
+                  <X aria-hidden="true" className="size-4" />
+                  <span className="sr-only">Close chat</span>
+                </button>
+              ) : null}
             </div>
           </header>
 
-          <div className="bg-muted/20 flex-1 overflow-y-auto p-4">
+          <div className="bg-muted/20 flex-1 overflow-y-auto p-4 sm:p-5">
             {conversation ? (
               <div aria-live="polite" className="space-y-3" role="log">
                 <div className="border-border bg-background flex items-center gap-2 rounded-md border px-3 py-2 text-xs">
                   <ShieldCheck aria-hidden="true" className="text-success size-4 shrink-0" />
                   <span className="text-muted-foreground">
                     Your messages are saved to this support case. New replies appear here
-                    automatically.
+                    automatically, and we will email you a secure link when support replies.
                   </span>
                 </div>
                 {conversation.messages.map((chatMessage) => {
@@ -500,7 +544,7 @@ export function ChatWidget({ surface = "public" }: ChatWidgetProps) {
                 Message
               </Label>
               <Textarea
-                className="min-h-20"
+                className={isPage ? "min-h-28" : "min-h-20"}
                 id="chat-message"
                 onChange={(event) => setMessage(event.target.value)}
                 placeholder={
