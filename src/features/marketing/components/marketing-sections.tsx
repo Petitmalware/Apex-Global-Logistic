@@ -764,16 +764,19 @@ export function ContactPanel() {
             account-based updates.
           </p>
         </Link>
-        <div className="border-border bg-card shadow-panel rounded-lg border p-5">
+        <Link
+          className="border-border bg-card shadow-panel hover:border-accent/60 rounded-lg border p-5 transition-colors"
+          href={"/support" as Route}
+        >
           <div className="bg-accent/15 text-accent grid size-11 place-items-center rounded-md">
             <MessageCircle aria-hidden="true" className="size-5" />
           </div>
           <h3 className="mt-5 text-lg font-semibold tracking-normal">Live chat</h3>
           <p className="text-muted-foreground mt-2 text-sm leading-6">
-            Use the live chat button for quick questions. Admin replies appear in the same chat
-            thread, with attachments supported where needed.
+            Open the Support Centre for a secure case with message history, attachments, and email
+            links that return you directly to the conversation.
           </p>
-        </div>
+        </Link>
       </div>
     </section>
   );
