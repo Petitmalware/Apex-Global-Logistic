@@ -35,6 +35,7 @@ export const AUTH_PUBLIC_PATHS = [
   "/forgot-password",
   "/reset-password",
   "/services",
+  "/support",
   "/tracking",
   "/verify-email",
   "/unauthorized",
