@@ -6,6 +6,7 @@ const serverEnvSchema = z.object({
   AI_REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(30000),
   AI_SEMANTIC_SEARCH_LIMIT: z.coerce.number().int().positive().max(25).default(8),
   APP_ENV: z.enum(["development", "test", "staging", "production"]).default("development"),
+  APP_RELEASE: z.string().min(1).optional(),
   AUTH_ACCESS_TOKEN_TTL_SECONDS: z.coerce.number().int().positive().default(900),
   AUTH_EMAIL_VERIFICATION_TTL_HOURS: z.coerce.number().int().positive().default(24),
   AUTH_JWT_SECRET: z.string().min(32, "AUTH_JWT_SECRET must be at least 32 characters."),
