@@ -50,6 +50,7 @@ export async function GET() {
         redis: env.REDIS_URL ? "configured" : "not_configured",
         storage,
       },
+      release: env.APP_RELEASE ?? "unknown",
       latencyMs: Date.now() - startedAt,
       status: healthy ? "ok" : "degraded",
       timestamp: new Date().toISOString(),
