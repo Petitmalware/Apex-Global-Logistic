@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 
 import { MarketingShell } from "@/features/marketing/components/marketing-shell";
 import {
+  AiPoweredSection,
   ContactPanel,
   DeliveryProofSection,
   DocumentsAndBillingSection,
   FinalCta,
   HomeHero,
+  PetServicesShowcase,
   PetTransportPartnerSection,
   ProcessSection,
   ServiceGrid,
@@ -19,14 +21,14 @@ export const metadata: Metadata = {
     canonical: "/",
   },
   description:
-    "Apex Global Logistics provides premium parcel delivery, pet transportation, freight coordination, tracking, and support for global logistics operations.",
+    "Apex Global Logistics provides AI-powered premium parcel delivery, pet transportation, freight coordination, tracking, and support for global logistics operations.",
   openGraph: {
     description:
-      "Premium parcel delivery, pet transportation, freight coordination, tracking, and support for global logistics operations.",
+      "AI-powered premium parcel delivery, pet transportation, freight coordination, tracking, and support for global logistics operations.",
     images: ["/images/global-logistics-hero.png"],
     title: "Apex Global Logistics",
   },
-  title: "Apex Global Logistics | Premium Parcel, Pet, and Freight Logistics",
+  title: "Apex Global Logistics | AI-Powered Parcel, Pet & Freight Logistics",
 };
 
 export default function HomePage() {
@@ -41,7 +43,9 @@ export default function HomePage() {
       <HomeHero />
       <TrustBar />
       <ServiceGrid />
+      <AiPoweredSection />
       <PetTransportPartnerSection />
+      <PetServicesShowcase />
       <ProcessSection />
       <DeliveryProofSection />
       <DocumentsAndBillingSection />
