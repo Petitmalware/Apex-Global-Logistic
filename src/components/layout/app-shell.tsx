@@ -14,7 +14,7 @@ export function AppShell({ children }: AppShellProps) {
               AG
             </div>
             <div>
-              <p className="text-foreground text-sm font-semibold leading-none">
+              <p className="text-foreground text-sm leading-none font-semibold">
                 Apex Global Logistics
               </p>
               <p className="text-muted-foreground mt-1 text-xs">Operations platform</p>

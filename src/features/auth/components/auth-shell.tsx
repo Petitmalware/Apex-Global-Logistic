@@ -50,9 +50,9 @@ export function AuthShell({ children, subtitle, title }: AuthShellProps) {
           sizes="50vw"
           src="/images/global-logistics-hero.png"
         />
-        <div className="from-background via-background/15 bg-linear-to-r absolute inset-0 to-transparent" />
-        <div className="shadow-panel absolute bottom-8 left-8 right-8 rounded-lg border border-white/15 bg-black/35 p-5 text-white backdrop-blur">
-          <p className="text-sm font-semibold uppercase tracking-[0.14em] text-white/65">
+        <div className="from-background via-background/15 absolute inset-0 bg-linear-to-r to-transparent" />
+        <div className="shadow-panel absolute right-8 bottom-8 left-8 rounded-lg border border-white/15 bg-black/35 p-5 text-white backdrop-blur">
+          <p className="text-sm font-semibold tracking-[0.14em] text-white/65 uppercase">
             Apex Network
           </p>
           <p className="mt-2 text-2xl font-semibold tracking-normal">

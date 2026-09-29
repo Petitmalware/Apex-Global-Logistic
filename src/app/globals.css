@@ -408,7 +408,7 @@
 
 @layer utilities {
   .skip-link {
-    @apply bg-primary text-primary-foreground focus:ring-ring fixed left-3 top-3 z-[100] -translate-y-20 rounded-md px-4 py-2 text-sm font-semibold shadow-lg transition-transform focus:translate-y-0 focus:outline-none focus:ring-2;
+    @apply bg-primary text-primary-foreground focus:ring-ring fixed top-3 left-3 z-[100] -translate-y-20 rounded-md px-4 py-2 text-sm font-semibold shadow-lg transition-transform focus:translate-y-0 focus:ring-2 focus:outline-none;
   }
 
   .animate-fade-up {

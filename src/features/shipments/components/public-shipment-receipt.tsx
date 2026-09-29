@@ -79,8 +79,8 @@ function Detail({ label, value }: { label: string; value: string | null | undefi
 
   return (
     <div className="border-b border-slate-200 py-2 last:border-b-0">
-      <dt className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">{label}</dt>
-      <dd className="mt-1 break-words font-semibold text-slate-950">{value}</dd>
+      <dt className="text-[10px] font-bold tracking-[0.14em] text-slate-500 uppercase">{label}</dt>
+      <dd className="mt-1 font-semibold break-words text-slate-950">{value}</dd>
     </div>
   );
 }
@@ -88,7 +88,7 @@ function Detail({ label, value }: { label: string; value: string | null | undefi
 function Party({ party, title }: { party: PublicTrackingParty; title: string }) {
   return (
     <section className="rounded-md border border-slate-300 p-4">
-      <h2 className="text-xs font-black uppercase tracking-[0.16em] text-slate-600">{title}</h2>
+      <h2 className="text-xs font-black tracking-[0.16em] text-slate-600 uppercase">{title}</h2>
       <dl className="mt-3 text-sm">
         <Detail label="Name" value={party.name} />
         <Detail
@@ -115,7 +115,7 @@ export function PublicShipmentReceipt({ snapshot }: { snapshot: ShipmentTracking
               <LockKeyhole aria-hidden="true" className="size-5" />
             </div>
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
+              <p className="text-xs font-bold tracking-[0.14em] text-slate-500 uppercase">
                 Protected shipment
               </p>
               <h1 className="mt-2 text-xl font-black">Recipient PIN required</h1>
@@ -167,16 +167,16 @@ export function PublicShipmentReceipt({ snapshot }: { snapshot: ShipmentTracking
               </div>
               <div>
                 <p className="text-lg font-black">{siteConfig.name}</p>
-                <p className="mt-1 text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+                <p className="mt-1 text-xs font-bold tracking-[0.16em] text-slate-500 uppercase">
                   Shipment receipt
                 </p>
               </div>
             </div>
             <div className="text-left text-sm sm:text-right">
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+              <p className="text-xs font-bold tracking-[0.16em] text-slate-500 uppercase">
                 Tracking number
               </p>
-              <p className="mt-2 break-all font-black">{snapshot.shipmentNumber}</p>
+              <p className="mt-2 font-black break-all">{snapshot.shipmentNumber}</p>
               {snapshot.referenceNumber ? (
                 <p className="mt-1 text-slate-600">Reference {snapshot.referenceNumber}</p>
               ) : null}
@@ -191,7 +191,7 @@ export function PublicShipmentReceipt({ snapshot }: { snapshot: ShipmentTracking
               { label: "Service", value: snapshot.serviceLevel ?? formatEnum(snapshot.mode) },
             ].map((item) => (
               <div className="rounded-md border border-slate-300 p-3" key={item.label}>
-                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
+                <p className="text-[10px] font-bold tracking-[0.14em] text-slate-500 uppercase">
                   {item.label}
                 </p>
                 <p className="mt-2 text-sm font-bold">{item.value}</p>
@@ -208,7 +208,7 @@ export function PublicShipmentReceipt({ snapshot }: { snapshot: ShipmentTracking
 
           <section className="grid gap-4 border-b border-slate-300 py-5 md:grid-cols-2">
             <div>
-              <h2 className="text-xs font-black uppercase tracking-[0.16em] text-slate-600">
+              <h2 className="text-xs font-black tracking-[0.16em] text-slate-600 uppercase">
                 Shipment details
               </h2>
               <dl className="mt-3 text-sm">
@@ -231,7 +231,7 @@ export function PublicShipmentReceipt({ snapshot }: { snapshot: ShipmentTracking
 
             {details?.consignment ? (
               <div>
-                <h2 className="text-xs font-black uppercase tracking-[0.16em] text-slate-600">
+                <h2 className="text-xs font-black tracking-[0.16em] text-slate-600 uppercase">
                   Package record
                 </h2>
                 <div className="mt-3 space-y-2 text-sm">
@@ -259,7 +259,7 @@ export function PublicShipmentReceipt({ snapshot }: { snapshot: ShipmentTracking
             <section className="grid gap-4 border-b border-slate-300 py-5 md:grid-cols-2">
               {details.pet ? (
                 <div>
-                  <h2 className="text-xs font-black uppercase tracking-[0.16em] text-slate-600">
+                  <h2 className="text-xs font-black tracking-[0.16em] text-slate-600 uppercase">
                     Pet details
                   </h2>
                   <dl className="mt-3 text-sm">
@@ -275,7 +275,7 @@ export function PublicShipmentReceipt({ snapshot }: { snapshot: ShipmentTracking
               ) : null}
               {details.freight ? (
                 <div>
-                  <h2 className="text-xs font-black uppercase tracking-[0.16em] text-slate-600">
+                  <h2 className="text-xs font-black tracking-[0.16em] text-slate-600 uppercase">
                     Freight details
                   </h2>
                   <dl className="mt-3 text-sm">
@@ -294,10 +294,10 @@ export function PublicShipmentReceipt({ snapshot }: { snapshot: ShipmentTracking
 
           {latestEvent?.message ? (
             <section className="border-b border-slate-300 py-5">
-              <h2 className="text-xs font-black uppercase tracking-[0.16em] text-slate-600">
+              <h2 className="text-xs font-black tracking-[0.16em] text-slate-600 uppercase">
                 Shipment note
               </h2>
-              <p className="mt-3 whitespace-pre-wrap text-sm leading-6">{latestEvent.message}</p>
+              <p className="mt-3 text-sm leading-6 whitespace-pre-wrap">{latestEvent.message}</p>
               <p className="mt-2 text-xs text-slate-600">
                 Updated {formatDate(latestEvent.occurredAt)}
               </p>

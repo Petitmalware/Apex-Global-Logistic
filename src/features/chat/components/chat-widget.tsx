@@ -395,7 +395,7 @@ export function ChatWidget({ surface = "public", variant = "floating" }: ChatWid
   }
 
   return (
-    <div className={isPage ? "w-full" : "fixed bottom-4 right-4 z-50"}>
+    <div className={isPage ? "w-full" : "fixed right-4 bottom-4 z-50"}>
       {isOpen ? (
         <section
           className={

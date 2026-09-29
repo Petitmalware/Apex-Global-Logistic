@@ -9,7 +9,7 @@ type ShipmentWorkflowGuideProps = {
 export function ShipmentWorkflowGuide({ steps, title }: ShipmentWorkflowGuideProps) {
   return (
     <section aria-label={title} className="border-border bg-surface rounded-lg border p-4 sm:p-5">
-      <p className="text-muted-foreground text-xs font-semibold uppercase tracking-[0.14em]">
+      <p className="text-muted-foreground text-xs font-semibold tracking-[0.14em] uppercase">
         {title}
       </p>
       <ol className="mt-4 grid gap-4 md:grid-cols-3">

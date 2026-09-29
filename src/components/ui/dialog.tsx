@@ -80,7 +80,7 @@ function DialogFooter({ className, ...props }: React.ComponentProps<"div">) {
 function DialogCloseButton({ onClick }: { onClick: () => void }) {
   return (
     <Button
-      className="absolute right-3 top-3"
+      className="absolute top-3 right-3"
       onClick={onClick}
       size="icon"
       type="button"

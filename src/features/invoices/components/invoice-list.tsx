@@ -120,7 +120,7 @@ export function InvoiceList({ invoices }: { invoices: Invoice[] }) {
       {/* Toolbar */}
       <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <div className="relative w-full sm:max-w-md">
-          <Search className="text-muted-foreground absolute left-2.5 top-2.5 h-4 w-4" />
+          <Search className="text-muted-foreground absolute top-2.5 left-2.5 h-4 w-4" />
           <Input
             type="search"
             placeholder="Search invoices..."

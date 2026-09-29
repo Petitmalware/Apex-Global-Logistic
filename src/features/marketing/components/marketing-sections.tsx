@@ -84,13 +84,13 @@ export function HomeHero() {
         src={marketingImages.hero.src}
       />
       {/* Aurora/gradient overlays */}
-      <div className="from-background via-background/80 to-background/10 bg-linear-to-r absolute inset-0 -z-10" />
-      <div className="from-background bg-linear-to-t absolute inset-x-0 bottom-0 -z-10 h-40 to-transparent" />
+      <div className="from-background via-background/80 to-background/10 absolute inset-0 -z-10 bg-linear-to-r" />
+      <div className="from-background absolute inset-x-0 bottom-0 -z-10 h-40 bg-linear-to-t to-transparent" />
 
       {/* Animated orbs */}
       <div
         aria-hidden="true"
-        className="animate-aurora absolute -right-40 -top-40 -z-10 h-[600px] w-[600px] rounded-full opacity-30"
+        className="animate-aurora absolute -top-40 -right-40 -z-10 h-[600px] w-[600px] rounded-full opacity-30"
         style={{
           background:
             "radial-gradient(circle at center, oklch(0.84 0.16 83.68), oklch(0.56 0.17 250), transparent 70%)",
@@ -114,7 +114,7 @@ export function HomeHero() {
                 <span className="bg-accent absolute inline-flex h-full w-full animate-ping rounded-full opacity-75" />
                 <span className="bg-accent relative inline-flex h-2 w-2 rounded-full" />
               </span>
-              <span className="text-accent text-xs font-semibold uppercase tracking-wide">
+              <span className="text-accent text-xs font-semibold tracking-wide uppercase">
                 AI-Powered Logistics
               </span>
             </div>
@@ -242,7 +242,7 @@ export function HomeHero() {
               ðŸ“¦ Real-time Tracking
             </div>
             <div
-              className="bg-background/80 absolute -left-2 top-16 rounded-lg border border-green-400/30 px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur-sm"
+              className="bg-background/80 absolute top-16 -left-2 rounded-lg border border-green-400/30 px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur-sm"
               style={{ animationDelay: "2s" }}
             >
               ðŸ¾ Pet Safe Transport
@@ -423,7 +423,7 @@ export function CustomerJourneySection() {
                 <p className="text-muted-foreground text-xs font-semibold uppercase">
                   {card.label}
                 </p>
-                <p className="mt-2 text-sm font-semibold leading-6">{card.value}</p>
+                <p className="mt-2 text-sm leading-6 font-semibold">{card.value}</p>
               </div>
             ))}
           </div>
@@ -571,14 +571,14 @@ export function PageHero({
         sizes="100vw"
         src={image.src}
       />
-      <div className="bg-linear-to-r from-black/78 via-black/56 to-black/18 absolute inset-0 -z-10" />
-      <div className="from-background bg-linear-to-t absolute inset-x-0 bottom-0 -z-10 h-28 to-transparent" />
-      <div className="lg:py-18 mx-auto flex min-h-[560px] w-full max-w-7xl items-end px-4 py-14 sm:px-6">
+      <div className="absolute inset-0 -z-10 bg-linear-to-r from-black/78 via-black/56 to-black/18" />
+      <div className="from-background absolute inset-x-0 bottom-0 -z-10 h-28 bg-linear-to-t to-transparent" />
+      <div className="mx-auto flex min-h-[560px] w-full max-w-7xl items-end px-4 py-14 sm:px-6 lg:py-18">
         <div className="animate-fade-up max-w-3xl">
           {badge ? <Badge variant="accent">{badge}</Badge> : null}
           <Kicker className={cn("text-white/72", badge ? "mt-6" : undefined)}>{eyebrow}</Kicker>
           <Display className="mt-4 max-w-4xl text-white">{title}</Display>
-          <p className="text-white/82 mt-5 max-w-2xl text-base leading-8">{description}</p>
+          <p className="mt-5 max-w-2xl text-base leading-8 text-white/82">{description}</p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Button asChild variant="accent">
               <Link href={primaryHref as Route}>
@@ -648,7 +648,7 @@ export function PetTransportPartnerSection() {
         <div>
           <div className="border-accent/40 bg-accent/10 inline-flex items-center gap-2 rounded-full border px-3 py-1.5">
             <Handshake aria-hidden="true" className="text-accent size-4" />
-            <span className="text-accent text-xs font-semibold uppercase tracking-wide">
+            <span className="text-accent text-xs font-semibold tracking-wide uppercase">
               Certified Pet Transport Partner
             </span>
           </div>
@@ -795,7 +795,7 @@ export function PetServicesShowcase() {
       {/* Section header */}
       <div className="mx-auto max-w-3xl text-center">
         <div className="border-accent/40 bg-accent/10 mb-4 inline-flex items-center gap-2 rounded-full border px-4 py-1.5">
-          <span className="text-accent text-xs font-bold uppercase tracking-widest">
+          <span className="text-accent text-xs font-bold tracking-widest uppercase">
             ðŸ¾ Pet Transport Services
           </span>
         </div>
@@ -824,9 +824,9 @@ export function PetServicesShowcase() {
                 width={600}
               />
               {/* Gradient overlay on image */}
-              <div className="bg-linear-to-t absolute inset-0 from-black/50 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+              <div className="absolute inset-0 bg-linear-to-t from-black/50 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
               {/* Badge */}
-              <div className="absolute left-3 top-3">
+              <div className="absolute top-3 left-3">
                 <span className="bg-accent text-accent-foreground inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold shadow-sm">
                   {service.badge}
                 </span>
@@ -1135,7 +1135,7 @@ export function FinalCta() {
         {/* Aurora orbs */}
         <div
           aria-hidden="true"
-          className="animate-aurora absolute -right-20 -top-20 h-64 w-64 rounded-full opacity-40"
+          className="animate-aurora absolute -top-20 -right-20 h-64 w-64 rounded-full opacity-40"
           style={{
             background: "radial-gradient(circle, oklch(0.84 0.16 83.68), transparent 70%)",
           }}
@@ -1156,7 +1156,7 @@ export function FinalCta() {
                 <span className="bg-accent absolute inline-flex h-full w-full animate-ping rounded-full opacity-75" />
                 <span className="bg-accent relative inline-flex h-2 w-2 rounded-full" />
               </span>
-              <span className="text-accent text-xs font-semibold uppercase tracking-wide">
+              <span className="text-accent text-xs font-semibold tracking-wide uppercase">
                 Ready when you are
               </span>
             </div>
@@ -1368,7 +1368,7 @@ export function AiPoweredSection() {
         {/* Header */}
         <div className="mx-auto max-w-3xl text-center">
           <div className="border-accent/40 bg-accent/10 inline-flex items-center gap-2 rounded-full border px-4 py-1.5">
-            <span className="text-accent text-xs font-bold uppercase tracking-widest">
+            <span className="text-accent text-xs font-bold tracking-widest uppercase">
               âœ¦ AI-Powered Platform
             </span>
           </div>
@@ -1405,7 +1405,7 @@ export function AiPoweredSection() {
 
                 {/* Highlight badge */}
                 <div className="bg-accent/10 mt-4 inline-flex items-center rounded-full px-2.5 py-0.5">
-                  <span className="text-accent text-[10px] font-bold uppercase tracking-wider">
+                  <span className="text-accent text-[10px] font-bold tracking-wider uppercase">
                     {feature.highlight}
                   </span>
                 </div>

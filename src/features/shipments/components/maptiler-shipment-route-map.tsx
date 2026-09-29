@@ -294,7 +294,7 @@ export function MapTilerShipmentRouteMap({ route, shipmentNumber }: MapTilerShip
         ref={mapElement}
         role="application"
       />
-      <div className="absolute left-3 top-3 z-10 flex max-w-[calc(100%-6rem)] items-center gap-2">
+      <div className="absolute top-3 left-3 z-10 flex max-w-[calc(100%-6rem)] items-center gap-2">
         {styleOptions.length > 1 ? (
           <Select
             aria-label="Map style"

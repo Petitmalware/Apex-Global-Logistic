@@ -61,7 +61,7 @@ export default async function AccountSettingsPage() {
               </div>
               <div>
                 <p className="text-muted-foreground text-xs font-semibold uppercase">Email</p>
-                <p className="mt-1 break-all text-sm font-semibold">{user.email}</p>
+                <p className="mt-1 text-sm font-semibold break-all">{user.email}</p>
               </div>
               <div>
                 <p className="text-muted-foreground text-xs font-semibold uppercase">Access</p>

@@ -43,7 +43,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
         <div className="mt-5">
           <SideNavigation items={primaryItems} />
         </div>
-        <div className="border-border bg-surface absolute bottom-4 left-4 right-4 rounded-lg border p-4">
+        <div className="border-border bg-surface absolute right-4 bottom-4 left-4 rounded-lg border p-4">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold">Network health</p>

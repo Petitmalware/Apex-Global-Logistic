@@ -112,7 +112,7 @@ function AnalyticsHero({ data }: { data: AnalyticsDashboardData }) {
             <ChartNoAxesCombined aria-hidden="true" className="size-3.5" />
             {data.periodLabel}
           </Badge>
-          <h2 className="mt-4 max-w-3xl text-3xl font-semibold leading-tight tracking-normal md:text-4xl">
+          <h2 className="mt-4 max-w-3xl text-3xl leading-tight font-semibold tracking-normal md:text-4xl">
             Executive analytics for network growth, performance, and operational risk
           </h2>
           <p className="text-muted-foreground mt-3 max-w-2xl text-sm leading-6">

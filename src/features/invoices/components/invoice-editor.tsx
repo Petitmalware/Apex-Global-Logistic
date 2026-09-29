@@ -110,7 +110,7 @@ export function InvoiceEditor({ invoice }: InvoiceEditorProps) {
               <div className="space-y-2">
                 <label className="text-sm font-medium">Billing Address</label>
                 <textarea
-                  className="border-input placeholder:text-muted-foreground focus-visible:ring-ring flex min-h-[80px] w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="border-input placeholder:text-muted-foreground focus-visible:ring-ring flex min-h-[80px] w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:ring-1 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                   placeholder="123 Business Rd..."
                   value={billingAddress}
                   onChange={(e) => setBillingAddress(e.target.value)}
@@ -207,7 +207,7 @@ export function InvoiceEditor({ invoice }: InvoiceEditorProps) {
             <div className="space-y-2">
               <label className="text-sm font-medium">Notes</label>
               <textarea
-                className="border-input placeholder:text-muted-foreground focus-visible:ring-ring flex min-h-[80px] w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1"
+                className="border-input placeholder:text-muted-foreground focus-visible:ring-ring flex min-h-[80px] w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:ring-1 focus-visible:outline-none"
                 placeholder="Thanks for your business..."
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
@@ -240,7 +240,7 @@ export function InvoiceEditor({ invoice }: InvoiceEditorProps) {
               <div className="mb-8 flex items-start justify-between border-b pb-8">
                 <div>
                   <div className="mb-2 flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-bl-xl rounded-tr-xl bg-blue-600 text-xl font-bold text-white">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-tr-xl rounded-bl-xl bg-blue-600 text-xl font-bold text-white">
                       A
                     </div>
                     <h1 className="text-2xl font-bold tracking-tight text-slate-900">
@@ -255,7 +255,7 @@ export function InvoiceEditor({ invoice }: InvoiceEditorProps) {
                   </div>
                 </div>
                 <div className="text-right">
-                  <h2 className="mb-4 text-4xl font-light uppercase tracking-widest text-slate-300">
+                  <h2 className="mb-4 text-4xl font-light tracking-widest text-slate-300 uppercase">
                     Invoice
                   </h2>
                   <p className="text-lg font-medium text-slate-800">
@@ -267,13 +267,13 @@ export function InvoiceEditor({ invoice }: InvoiceEditorProps) {
               {/* Info row */}
               <div className="mb-8 flex items-start justify-between">
                 <div className="w-1/2">
-                  <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+                  <h3 className="mb-2 text-xs font-bold tracking-wider text-slate-400 uppercase">
                     Bill To
                   </h3>
                   <p className="font-medium text-slate-800">{customerName || "Customer Name"}</p>
                   {customerEmail && <p className="text-sm text-slate-600">{customerEmail}</p>}
                   {billingAddress && (
-                    <p className="mt-1 whitespace-pre-wrap text-sm text-slate-600">
+                    <p className="mt-1 text-sm whitespace-pre-wrap text-slate-600">
                       {billingAddress}
                     </p>
                   )}
@@ -348,10 +348,10 @@ export function InvoiceEditor({ invoice }: InvoiceEditorProps) {
               <div className="border-t border-slate-200 pt-8">
                 {notes && (
                   <div className="mb-6">
-                    <h4 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+                    <h4 className="mb-2 text-xs font-bold tracking-wider text-slate-400 uppercase">
                       Notes
                     </h4>
-                    <p className="whitespace-pre-wrap text-sm text-slate-600">{notes}</p>
+                    <p className="text-sm whitespace-pre-wrap text-slate-600">{notes}</p>
                   </div>
                 )}
                 <div className="text-center text-xs font-medium tracking-wide text-slate-400">

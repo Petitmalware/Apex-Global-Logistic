@@ -37,7 +37,7 @@ function DetailRow({ label, value }: { label: string; value?: string | null }) {
   return (
     <div className="grid grid-cols-[92px_1fr] gap-2 py-1 text-[11px] leading-4">
       <dt className="font-semibold text-slate-600">{label}</dt>
-      <dd className="min-w-0 break-words text-right font-medium text-slate-950">{value}</dd>
+      <dd className="min-w-0 text-right font-medium break-words text-slate-950">{value}</dd>
     </div>
   );
 }
@@ -213,7 +213,7 @@ export function CompactShipmentReceipt({
           {officeDetails?.comments || shipment.notes ? (
             <section className="border-t border-dashed border-slate-400 py-3">
               <h2 className="text-xs font-black uppercase">Shipment notes</h2>
-              <p className="mt-2 whitespace-pre-wrap text-[10px] leading-4">
+              <p className="mt-2 text-[10px] leading-4 whitespace-pre-wrap">
                 {officeDetails?.comments ?? shipment.notes}
               </p>
             </section>

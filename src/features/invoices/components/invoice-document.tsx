@@ -67,7 +67,7 @@ function BillTo({ invoice }: { invoice: InvoiceDetail }) {
 
   return (
     <div>
-      <p className="text-xs font-bold uppercase tracking-[0.24em] text-slate-500">Bill to</p>
+      <p className="text-xs font-bold tracking-[0.24em] text-slate-500 uppercase">Bill to</p>
       <div className="mt-3 text-sm leading-6">
         <p className="font-bold">{billToName}</p>
         {invoice.customerEmail ? <p>{invoice.customerEmail}</p> : null}
@@ -101,7 +101,7 @@ function InvoiceMeta({ invoice }: { invoice: InvoiceDetail }) {
         .filter((item): item is { label: string; value: string } => Boolean(item))
         .map((item) => (
           <div className="rounded-md border border-slate-300 p-3 print:p-2" key={item.label}>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500 print:text-[8px]">
+            <p className="text-xs font-bold tracking-[0.18em] text-slate-500 uppercase print:text-[8px]">
               {item.label}
             </p>
             <p className="mt-2 font-bold">{item.value}</p>
@@ -199,7 +199,7 @@ export function InvoiceDocument({
           <header className="grid gap-8 border-b border-slate-300 pb-8 md:grid-cols-[1fr_300px] print:grid-cols-[1fr_64mm] print:gap-4 print:pb-4">
             <CompanyBlock profile={profile} />
             <div className="md:text-right">
-              <p className="text-xs font-bold uppercase tracking-[0.32em] text-slate-500">
+              <p className="text-xs font-bold tracking-[0.32em] text-slate-500 uppercase">
                 Authorized transportation billing document
               </p>
               <h1 className="mt-2 text-4xl font-black tracking-normal print:text-2xl">Invoice</h1>
@@ -219,7 +219,7 @@ export function InvoiceDocument({
             <div className="grid gap-4 border-b border-slate-300 py-8 sm:grid-cols-3 print:grid-cols-3 print:gap-2 print:py-4">
               {shipmentDetails.map((item) => (
                 <div className="rounded-md border border-slate-300 p-4 print:p-2" key={item.label}>
-                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500 print:text-[8px]">
+                  <p className="text-xs font-bold tracking-[0.18em] text-slate-500 uppercase print:text-[8px]">
                     {item.label}
                   </p>
                   <p className="mt-2 font-bold">{item.value}</p>
@@ -301,7 +301,7 @@ export function InvoiceDocument({
                 transportation services for the shipment or account listed above.
               </p>
               <div className="mt-4 border-t border-slate-300 pt-3">
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">
+                <p className="text-xs font-bold tracking-[0.18em] text-slate-500 uppercase">
                   Authorized by
                 </p>
                 <p className="mt-2 font-semibold text-slate-950">Apex Global Logistics</p>
