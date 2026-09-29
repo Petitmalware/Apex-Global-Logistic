@@ -6,6 +6,7 @@ import nodemailer from "nodemailer";
 import { env } from "@/config/env.server";
 
 type SendEmailInput = {
+  cc?: string[];
   html: string;
   recipientEmail: string;
   recipientName?: string | null;
@@ -127,6 +128,7 @@ async function sendWithResend(input: SendEmailInput): Promise<SendEmailResult> {
   const response = await fetch("https://api.resend.com/emails", {
     body: JSON.stringify({
       from: getSenderAddress(input),
+      cc: input.cc?.length ? input.cc : undefined,
       html: input.html,
       reply_to: input.replyTo ?? env.SUPPORT_EMAIL,
       subject: input.subject,
@@ -164,6 +166,7 @@ async function sendWithBrevo(input: SendEmailInput): Promise<SendEmailResult> {
   const response = await fetch("https://api.brevo.com/v3/smtp/email", {
     body: JSON.stringify({
       htmlContent: input.html,
+      cc: input.cc?.length ? input.cc.map(email => ({ email })) : undefined,
       replyTo: {
         email: input.replyTo ?? env.SUPPORT_EMAIL,
       },
@@ -206,6 +209,7 @@ async function sendWithSmtp(input: SendEmailInput): Promise<SendEmailResult> {
 
   try {
     info = await transporter.sendMail({
+      cc: input.cc?.length ? input.cc : undefined,
       from: {
         address: senderAddress,
         name: input.senderName ?? "Apex Global Logistics",

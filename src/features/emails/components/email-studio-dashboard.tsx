@@ -4,13 +4,15 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Mail, 
-  Send, 
-  History, 
-  LayoutTemplate, 
-  CheckCircle2, 
-  XCircle, 
+import type { EmailProviderHealth } from '@/features/emails/services/email-provider.service';
+import type { getEmailStudioOverview } from '@/features/emails/queries/email.queries';
+import {
+  Mail,
+  Send,
+  History,
+  LayoutTemplate,
+  CheckCircle2,
+  XCircle,
   AlertCircle,
   Eye,
   PenTool,
@@ -21,21 +23,17 @@ import {
 } from 'lucide-react';
 
 export type EmailStudioDashboardProps = {
-  emailHealth: { healthy: boolean; provider: string; lastChecked: Date | null };
-  overview: { 
-    totalSent: number; 
-    totalFailed: number; 
-    recentEmails: Array<{ id: string; to: string; subject: string; status: string; sentAt: Date; template: string | null }> 
-  } | null;
+  emailHealth: EmailProviderHealth;
+  overview: Awaited<ReturnType<typeof getEmailStudioOverview>> | null;
 };
 
 const TEMPLATE_OPTIONS = [
-  'Custom (blank)', 
-  'Shipment Update', 
-  'Payment Received', 
-  'Delivery Confirmation', 
-  'Pet Transport Update', 
-  'Account Welcome', 
+  'Custom (blank)',
+  'Shipment Update',
+  'Payment Received',
+  'Delivery Confirmation',
+  'Pet Transport Update',
+  'Account Welcome',
   'Action Required'
 ] as const;
 
@@ -43,29 +41,29 @@ type TemplateType = typeof TEMPLATE_OPTIONS[number];
 
 const TEMPLATE_PRESETS: Record<TemplateType, { subject: string; body: string }> = {
   'Custom (blank)': { subject: '', body: '' },
-  'Shipment Update': { 
-    subject: 'Update on your Apex Global Logistics shipment', 
-    body: 'Dear Customer,\n\nThere is an update regarding your recent shipment.\n\nCurrent Status: [Status]\nLocation: [Location]\n\nPlease log in to your dashboard for more details.\n\nBest regards,\nApex Global Logistics Team' 
+  'Shipment Update': {
+    subject: 'Update on your Apex Global Logistics shipment',
+    body: 'Dear Customer,\n\nThere is an update regarding your recent shipment.\n\nCurrent Status: [Status]\nLocation: [Location]\n\nPlease log in to your dashboard for more details.\n\nBest regards,\nApex Global Logistics Team'
   },
-  'Payment Received': { 
-    subject: 'Payment Confirmation - Apex Global Logistics', 
-    body: 'Dear Customer,\n\nWe have successfully received your payment of [Amount] for invoice #[InvoiceID].\n\nThank you for choosing Apex Global Logistics.\n\nBest regards,\nApex Global Logistics Team' 
+  'Payment Received': {
+    subject: 'Payment Confirmation - Apex Global Logistics',
+    body: 'Dear Customer,\n\nWe have successfully received your payment of [Amount] for invoice #[InvoiceID].\n\nThank you for choosing Apex Global Logistics.\n\nBest regards,\nApex Global Logistics Team'
   },
-  'Delivery Confirmation': { 
-    subject: 'Your shipment has been delivered!', 
-    body: 'Dear Customer,\n\nGreat news! Your shipment #[ShipmentID] was successfully delivered on [Date/Time].\n\nThank you for trusting Apex Global Logistics.\n\nBest regards,\nApex Global Logistics Team' 
+  'Delivery Confirmation': {
+    subject: 'Your shipment has been delivered!',
+    body: 'Dear Customer,\n\nGreat news! Your shipment #[ShipmentID] was successfully delivered on [Date/Time].\n\nThank you for trusting Apex Global Logistics.\n\nBest regards,\nApex Global Logistics Team'
   },
-  'Pet Transport Update': { 
-    subject: 'Update on your pet\'s journey 🐾', 
-    body: 'Dear [Name],\n\nWe wanted to give you a quick update on your furry friend\'s journey.\n\nStatus: Resting comfortably / In transit\nNotes: [Notes]\n\nThey are in good hands with our specialized pet transport team.\n\nBest regards,\nApex Global Logistics Pet Care Team' 
+  'Pet Transport Update': {
+    subject: 'Update on your pet\'s journey 🐾',
+    body: 'Dear [Name],\n\nWe wanted to give you a quick update on your furry friend\'s journey.\n\nStatus: Resting comfortably / In transit\nNotes: [Notes]\n\nThey are in good hands with our specialized pet transport team.\n\nBest regards,\nApex Global Logistics Pet Care Team'
   },
-  'Account Welcome': { 
-    subject: 'Welcome to Apex Global Logistics!', 
-    body: 'Hi [Name],\n\nWelcome to Apex Global Logistics! We are thrilled to have you on board.\n\nWith our platform, you can seamlessly track shipments, manage invoices, and book specialized transport services.\n\nLog in now to get started.\n\nBest regards,\nThe Apex Global Logistics Team' 
+  'Account Welcome': {
+    subject: 'Welcome to Apex Global Logistics!',
+    body: 'Hi [Name],\n\nWelcome to Apex Global Logistics! We are thrilled to have you on board.\n\nWith our platform, you can seamlessly track shipments, manage invoices, and book specialized transport services.\n\nLog in now to get started.\n\nBest regards,\nThe Apex Global Logistics Team'
   },
-  'Action Required': { 
-    subject: 'Action Required: Missing Information for Shipment', 
-    body: 'Dear Customer,\n\nWe are currently processing your shipment #[ShipmentID], but we are missing some critical information required for customs clearance.\n\nPlease provide [Required Document/Info] at your earliest convenience to avoid delays.\n\nBest regards,\nApex Global Logistics Team' 
+  'Action Required': {
+    subject: 'Action Required: Missing Information for Shipment',
+    body: 'Dear Customer,\n\nWe are currently processing your shipment #[ShipmentID], but we are missing some critical information required for customs clearance.\n\nPlease provide [Required Document/Info] at your earliest convenience to avoid delays.\n\nBest regards,\nApex Global Logistics Team'
   },
 };
 
@@ -109,7 +107,7 @@ export function EmailStudioDashboard({ emailHealth, overview }: EmailStudioDashb
     const selectedText = body.substring(start, end);
     const newText = body.substring(0, start) + prefix + selectedText + suffix + body.substring(end);
     setBody(newText);
-    
+
     setTimeout(() => {
       textarea.focus();
       textarea.setSelectionRange(start + prefix.length, end + prefix.length);
@@ -140,7 +138,7 @@ export function EmailStudioDashboard({ emailHealth, overview }: EmailStudioDashb
         setShowPreview(false);
       } else {
         const error = await response.json();
-        setSendResult({ success: false, message: error.message || 'Failed to send email.' });
+        setSendResult({ success: false, message: error.message || error.error || 'Failed to send email.' });
       }
     } catch {
       setSendResult({ success: false, message: 'A network error occurred.' });
@@ -161,7 +159,7 @@ export function EmailStudioDashboard({ emailHealth, overview }: EmailStudioDashb
         </div>
         <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-900 p-3 rounded-lg border">
           <div className="flex items-center gap-2">
-            {emailHealth.healthy ? (
+            {emailHealth.status === 'ready' ? (
               <CheckCircle2 className="h-5 w-5 text-emerald-500" />
             ) : (
               <AlertCircle className="h-5 w-5 text-red-500" />
@@ -173,8 +171,8 @@ export function EmailStudioDashboard({ emailHealth, overview }: EmailStudioDashb
           </div>
           <div className="h-8 w-px bg-slate-200 dark:bg-slate-800"></div>
           <div className="text-sm">
-            <p className="font-medium">{overview?.totalSent.toLocaleString() ?? 0} Sent</p>
-            <p className="text-slate-500 text-xs">This month</p>
+            <p className="font-medium">{overview?.sentCount.toLocaleString() ?? 0} Sent</p>
+            <p className="text-slate-500 text-xs">All time</p>
           </div>
         </div>
       </div>
@@ -218,7 +216,7 @@ export function EmailStudioDashboard({ emailHealth, overview }: EmailStudioDashb
 
       {/* Tab Content */}
       <div className="mt-6">
-        
+
         {/* COMPOSE TAB */}
         {activeTab === 'compose' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -231,7 +229,7 @@ export function EmailStudioDashboard({ emailHealth, overview }: EmailStudioDashb
                 <CardDescription>Draft and send an email directly to a customer.</CardDescription>
               </CardHeader>
               <CardContent className="p-6">
-                
+
                 {sendResult && (
                   <div className={`mb-6 p-4 rounded-md flex items-start gap-3 ${sendResult.success ? 'bg-emerald-50 text-emerald-900 border border-emerald-200' : 'bg-red-50 text-red-900 border border-red-200'}`}>
                     {sendResult.success ? <CheckCircle2 className="h-5 w-5 mt-0.5 text-emerald-600" /> : <XCircle className="h-5 w-5 mt-0.5 text-red-600" />}
@@ -317,9 +315,9 @@ export function EmailStudioDashboard({ emailHealth, overview }: EmailStudioDashb
                   <div className="flex flex-col space-y-1.5 pt-2">
                     <div className="flex items-center justify-between mb-1">
                       <label htmlFor="email-body-textarea" className="text-sm font-medium">Message Body</label>
-                      <button 
-                        type="button" 
-                        onClick={() => setShowPreview(!showPreview)} 
+                      <button
+                        type="button"
+                        onClick={() => setShowPreview(!showPreview)}
                         className="text-xs flex items-center gap-1 text-slate-600 bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded-md transition-colors dark:bg-slate-800 dark:text-slate-300"
                       >
                         {showPreview ? <PenTool className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
@@ -398,16 +396,16 @@ export function EmailStudioDashboard({ emailHealth, overview }: EmailStudioDashb
                 </CardHeader>
                 <CardContent className="p-0">
                   <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {overview?.recentEmails.slice(0, 3).map((email, idx) => (
-                      <div key={idx} className="p-4 text-sm flex justify-between items-center hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors cursor-pointer" onClick={() => setTo(email.to)}>
+                    {overview?.recentLogs.slice(0, 3).map((email, idx) => (
+                      <div key={idx} className="p-4 text-sm flex justify-between items-center hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors cursor-pointer" onClick={() => setTo(email.recipientEmail)}>
                         <div className="truncate pr-4">
-                          <p className="font-medium truncate">{email.to}</p>
+                          <p className="font-medium truncate">{email.recipientEmail}</p>
                           <p className="text-slate-500 text-xs truncate mt-0.5">{email.subject}</p>
                         </div>
                         <Button variant="ghost" size="sm" className="h-7 text-xs shrink-0">Use</Button>
                       </div>
                     ))}
-                    {(!overview?.recentEmails || overview.recentEmails.length === 0) && (
+                    {(!overview?.recentLogs || overview.recentLogs.length === 0) && (
                       <div className="p-4 text-sm text-slate-500 text-center">No recent recipients</div>
                     )}
                   </div>
@@ -438,30 +436,30 @@ export function EmailStudioDashboard({ emailHealth, overview }: EmailStudioDashb
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                    {overview?.recentEmails.map((email) => (
+                    {overview?.recentLogs.map((email) => (
                       <tr key={email.id} className="bg-white dark:bg-slate-950 hover:bg-slate-50 dark:hover:bg-slate-900/80 transition-colors">
-                        <td className="px-6 py-4 font-medium text-slate-900 dark:text-slate-100">{email.to}</td>
+                        <td className="px-6 py-4 font-medium text-slate-900 dark:text-slate-100">{email.recipientEmail}</td>
                         <td className="px-6 py-4 text-slate-600 dark:text-slate-400 truncate max-w-[200px]">{email.subject}</td>
                         <td className="px-6 py-4">
                           <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                            {email.template || 'Custom'}
+                            {email.templateName || 'Custom'}
                           </span>
                         </td>
                         <td className="px-6 py-4">
-                          <Badge variant={email.status === 'Delivered' ? 'default' : email.status === 'Bounced' ? 'destructive' : 'secondary'} 
-                            className={email.status === 'Delivered' ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400' : ''}>
+                          <Badge variant={email.status === 'SENT' ? 'default' : email.status === 'FAILED' ? 'destructive' : 'secondary'}
+                            className={email.status === 'SENT' ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400' : ''}>
                             {email.status}
                           </Badge>
                         </td>
                         <td className="px-6 py-4 text-slate-500 whitespace-nowrap">
-                          {new Date(email.sentAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          {email.sentAt ? new Date(email.sentAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Not sent'}
                         </td>
                         <td className="px-6 py-4 text-right">
                           <Button variant="outline" size="sm">View</Button>
                         </td>
                       </tr>
                     ))}
-                    {(!overview?.recentEmails || overview.recentEmails.length === 0) && (
+                    {(!overview?.recentLogs || overview.recentLogs.length === 0) && (
                       <tr>
                         <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
                           No recent emails found.

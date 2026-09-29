@@ -7,26 +7,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Search, Eye, Edit, CheckCircle, Send, FileText } from 'lucide-react';
+import type { InvoiceListItem } from '@/features/invoices/types/invoice.types';
 
-export type Invoice = {
-  id: string;
-  invoiceNumber: string;
-  customerName: string;
-  customerEmail: string;
-  amount: number;
-  currency: string;
-  status: 'DRAFT' | 'SENT' | 'PAID' | 'OVERDUE' | 'CANCELLED';
-  issuedAt: Date;
-  dueAt: Date | null;
-  shipmentId: string | null;
-};
+export type Invoice = InvoiceListItem;
 
 const statusColors: Record<Invoice['status'], string> = {
   DRAFT: 'bg-muted text-muted-foreground',
-  SENT: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+  ISSUED: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+  PARTIALLY_PAID: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
   PAID: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
   OVERDUE: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-  CANCELLED: 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400',
+  VOID: 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400',
+  UNCOLLECTIBLE: 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400',
 };
 
 export function InvoiceList({ invoices }: { invoices: Invoice[] }) {
@@ -39,8 +31,8 @@ export function InvoiceList({ invoices }: { invoices: Invoice[] }) {
     let overdueCount = 0;
 
     invoices.forEach((inv) => {
-      if (inv.status === 'PAID') totalPaid += inv.amount;
-      if (inv.status === 'SENT' || inv.status === 'OVERDUE') totalOutstanding += inv.amount;
+      if (inv.status === 'PAID') totalPaid += Number(inv.total);
+      if (inv.status === 'ISSUED' || inv.status === 'OVERDUE') totalOutstanding += Number(inv.total);
       if (inv.status === 'OVERDUE') overdueCount++;
     });
 
@@ -53,8 +45,8 @@ export function InvoiceList({ invoices }: { invoices: Invoice[] }) {
     return invoices.filter(
       (inv) =>
         inv.invoiceNumber.toLowerCase().includes(lower) ||
-        inv.customerName.toLowerCase().includes(lower) ||
-        inv.customerEmail.toLowerCase().includes(lower)
+        (inv.customerName ?? '').toLowerCase().includes(lower) ||
+        (inv.customerEmail ?? '').toLowerCase().includes(lower)
     );
   }, [invoices, searchTerm]);
 
@@ -62,9 +54,9 @@ export function InvoiceList({ invoices }: { invoices: Invoice[] }) {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount);
   };
 
-  const formatDate = (date: Date | null) => {
+  const formatDate = (date: string | null) => {
     if (!date) return 'N/A';
-    return new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'short', day: 'numeric' }).format(date);
+    return new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'short', day: 'numeric' }).format(new Date(date));
   };
 
   return (
@@ -133,7 +125,7 @@ export function InvoiceList({ invoices }: { invoices: Invoice[] }) {
                 <TableHead>Customer</TableHead>
                 <TableHead>Amount</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Issued</TableHead>
+                <TableHead>Created</TableHead>
                 <TableHead>Due</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -159,16 +151,16 @@ export function InvoiceList({ invoices }: { invoices: Invoice[] }) {
                         <span className="text-xs text-muted-foreground">{inv.customerEmail}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="font-medium">{formatCurrency(inv.amount, inv.currency)}</TableCell>
+                    <TableCell className="font-medium">{formatCurrency(Number(inv.total), inv.currency)}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className={`border-none ${statusColors[inv.status]}`}>
                         {inv.status}
                       </Badge>
                     </TableCell>
-                    <TableCell>{formatDate(inv.issuedAt)}</TableCell>
+                    <TableCell>{formatDate(inv.createdAt)}</TableCell>
                     <TableCell>
                       <span className={inv.status === 'OVERDUE' ? 'text-red-600 dark:text-red-400 font-medium' : ''}>
-                        {formatDate(inv.dueAt)}
+                        {formatDate(inv.dueDate)}
                       </span>
                     </TableCell>
                     <TableCell className="text-right">

@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth/session";
 import { AUTH_ROLES } from "@/lib/auth/constants";
+import { prisma } from "@/lib/db";
 
 export async function PATCH(
   request: NextRequest,
@@ -21,20 +22,13 @@ export async function PATCH(
       );
     }
 
-    let db: { invoice: { update: (args: unknown) => Promise<unknown> } };
-    try {
-      const dbModule = await import("@/lib/db");
-      db = (dbModule.default ?? dbModule) as typeof db;
-    } catch {
-      return NextResponse.json({ success: false, error: "Database not available" }, { status: 503 });
-    }
-
-    const updated = await db.invoice.update({
+    const updated = await prisma.invoice.update({
       where: { id },
       data: {
-        status,
+        status: status === "SENT" ? "ISSUED" : status === "CANCELLED" ? "VOID" : status,
         ...(status === "PAID" ? { paidAt: new Date() } : {}),
-        ...(status === "SENT" ? { sentAt: new Date() } : {}),
+        ...(status === "SENT" ? { issuedAt: new Date() } : {}),
+        ...(status === "CANCELLED" ? { voidedAt: new Date() } : {}),
       },
     });
 

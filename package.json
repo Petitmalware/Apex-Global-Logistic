@@ -31,7 +31,7 @@
     "postinstall": "prisma generate",
     "prepare": "husky",
     "start": "next start",
-    "test": "tsx --test src/**/*.test.ts",
+    "test": "node --test scripts/admin-api-regression.test.mjs && tsx --test src/**/*.test.ts",
     "vps:deploy": "bash deploy/scripts/deploy-docker.sh",
     "typecheck": "tsc --noEmit",
     "ui:add": "npx shadcn@latest add"

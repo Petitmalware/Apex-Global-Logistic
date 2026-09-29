@@ -27,16 +27,16 @@ export function InvoiceEditor({ invoice }: InvoiceEditorProps) {
   const [customerEmail, setCustomerEmail] = useState(invoice?.customerEmail || '');
   const [billingAddress, setBillingAddress] = useState(invoice?.billingAddress || '');
   const [issueDate, setIssueDate] = useState(new Date().toISOString().split('T')[0]);
-  
+
   const initialDueDate = invoice?.dueAt ? new Date(invoice.dueAt).toISOString().split('T')[0] : '';
   const [dueDate, setDueDate] = useState(initialDueDate);
-  
+
   const [lineItems, setLineItems] = useState(
-    invoice?.lineItems?.length 
-      ? invoice.lineItems 
+    invoice?.lineItems?.length
+      ? invoice.lineItems
       : [{ description: '', quantity: 1, unitPrice: 0 }]
   );
-  
+
   const [taxRate, setTaxRate] = useState(invoice?.taxRate || 0);
   const [notes, setNotes] = useState(invoice?.notes || '');
 
@@ -50,7 +50,9 @@ export function InvoiceEditor({ invoice }: InvoiceEditorProps) {
 
   const updateLineItem = (index: number, field: string, value: string | number) => {
     const newItems = [...lineItems];
-    newItems[index] = { ...newItems[index], [field]: value };
+    const item = newItems[index];
+    if (!item) return;
+    newItems[index] = { ...item, [field]: value };
     setLineItems(newItems);
   };
 
@@ -75,7 +77,7 @@ export function InvoiceEditor({ invoice }: InvoiceEditorProps) {
             <CardTitle>Invoice Details</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Invoice #</label>
@@ -97,7 +99,7 @@ export function InvoiceEditor({ invoice }: InvoiceEditorProps) {
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Billing Address</label>
-                <textarea 
+                <textarea
                   className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                   placeholder="123 Business Rd..."
                   value={billingAddress}
@@ -119,34 +121,34 @@ export function InvoiceEditor({ invoice }: InvoiceEditorProps) {
 
             <div className="space-y-4">
               <h3 className="text-sm font-semibold border-b pb-2">Line Items</h3>
-              
+
               <div className="space-y-3">
                 {lineItems.map((item, index) => (
                   <div key={index} className="flex gap-2 items-start">
                     <div className="flex-1 space-y-1">
-                      <Input 
-                        placeholder="Description" 
-                        value={item.description} 
-                        onChange={(e) => updateLineItem(index, 'description', e.target.value)} 
+                      <Input
+                        placeholder="Description"
+                        value={item.description}
+                        onChange={(e) => updateLineItem(index, 'description', e.target.value)}
                       />
                     </div>
                     <div className="w-20 space-y-1">
-                      <Input 
-                        type="number" 
-                        min="1" 
-                        placeholder="Qty" 
-                        value={item.quantity} 
-                        onChange={(e) => updateLineItem(index, 'quantity', parseFloat(e.target.value) || 0)} 
+                      <Input
+                        type="number"
+                        min="1"
+                        placeholder="Qty"
+                        value={item.quantity}
+                        onChange={(e) => updateLineItem(index, 'quantity', parseFloat(e.target.value) || 0)}
                       />
                     </div>
                     <div className="w-24 space-y-1">
-                      <Input 
-                        type="number" 
-                        min="0" 
-                        step="0.01" 
-                        placeholder="Price" 
-                        value={item.unitPrice} 
-                        onChange={(e) => updateLineItem(index, 'unitPrice', parseFloat(e.target.value) || 0)} 
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="Price"
+                        value={item.unitPrice}
+                        onChange={(e) => updateLineItem(index, 'unitPrice', parseFloat(e.target.value) || 0)}
                       />
                     </div>
                     <Button variant="ghost" size="icon" className="text-destructive mt-0.5" onClick={() => removeLineItem(index)} disabled={lineItems.length === 1}>
@@ -169,14 +171,14 @@ export function InvoiceEditor({ invoice }: InvoiceEditorProps) {
 
             <div className="space-y-2">
               <label className="text-sm font-medium">Notes</label>
-              <textarea 
+              <textarea
                 className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 placeholder="Thanks for your business..."
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
               />
             </div>
-            
+
           </CardContent>
           <CardFooter className="flex justify-between border-t p-6">
             <Button variant="outline">
@@ -197,10 +199,10 @@ export function InvoiceEditor({ invoice }: InvoiceEditorProps) {
               <Printer className="mr-2 h-4 w-4" /> Print / PDF
             </Button>
           </div>
-          
+
           <Card className="bg-white text-black shadow-lg print:shadow-none print:border-none rounded-none w-full max-w-3xl mx-auto overflow-hidden">
             <CardContent className="p-10 sm:p-12">
-              
+
               {/* Header */}
               <div className="flex justify-between items-start border-b pb-8 mb-8">
                 <div>
