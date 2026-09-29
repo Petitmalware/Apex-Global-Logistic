@@ -320,7 +320,7 @@ export function AuthForm({ mode }: AuthFormProps) {
             />
             <Button
               aria-label={isPasswordVisible ? "Hide password" : "Show password"}
-              className="absolute top-0 right-0"
+              className="absolute right-0 top-0"
               onClick={() => setIsPasswordVisible((visible) => !visible)}
               size="icon"
               type="button"
@@ -359,7 +359,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       ) : null}
 
       {developmentToken ? (
-        <p className="border-border bg-background text-muted-foreground rounded-md border px-3 py-2 text-xs break-all">
+        <p className="border-border bg-background text-muted-foreground break-all rounded-md border px-3 py-2 text-xs">
           Development token: {developmentToken}
         </p>
       ) : null}

@@ -88,7 +88,7 @@ function ResultPanel({
       ) : text ? (
         <div className="space-y-3">
           {providerMeta ? <Badge variant="outline">{providerMeta}</Badge> : null}
-          <p className="text-sm leading-6 whitespace-pre-wrap">{text}</p>
+          <p className="whitespace-pre-wrap text-sm leading-6">{text}</p>
         </div>
       ) : (
         <p className="text-muted-foreground text-sm">No AI output yet.</p>
@@ -154,7 +154,7 @@ function RiskResults({ state }: { state: ToolState }) {
         {score !== null ? <Badge variant="outline">{score}/100</Badge> : null}
         <Badge variant="outline">{getProviderMeta(state.data)}</Badge>
       </div>
-      <p className="text-sm leading-6 whitespace-pre-wrap">{summary}</p>
+      <p className="whitespace-pre-wrap text-sm leading-6">{summary}</p>
       <div className="mt-4 grid gap-4 md:grid-cols-2">
         <div>
           <p className="text-sm font-semibold">Risk factors</p>

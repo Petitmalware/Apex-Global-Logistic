@@ -26,7 +26,7 @@ function Brand() {
         AG
       </div>
       <div className="min-w-0">
-        <p className="text-foreground text-sm leading-none font-semibold">Apex Global Logistics</p>
+        <p className="text-foreground text-sm font-semibold leading-none">Apex Global Logistics</p>
         <p className="text-muted-foreground mt-1 text-xs">Global delivery network</p>
       </div>
     </Link>
@@ -61,7 +61,7 @@ function MobileMenuSection({
 export function MarketingHeader() {
   return (
     <header className="border-border bg-background/88 sticky top-0 z-50 border-b backdrop-blur-xl">
-      <div className="mx-auto flex min-h-18 w-full max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+      <div className="min-h-18 mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
         <Brand />
         <nav aria-label="Primary" className="hidden items-center gap-1 lg:flex">
           {primaryMarketingNavItems.map((item) => (
@@ -91,7 +91,7 @@ export function MarketingHeader() {
             <Menu aria-hidden="true" className="size-5" />
             <span className="sr-only">Open menu</span>
           </summary>
-          <div className="border-border bg-popover text-popover-foreground shadow-panel absolute top-12 right-0 w-72 max-w-[calc(100vw-2rem)] space-y-4 rounded-lg border p-3">
+          <div className="border-border bg-popover text-popover-foreground shadow-panel absolute right-0 top-12 w-72 max-w-[calc(100vw-2rem)] space-y-4 rounded-lg border p-3">
             <MobileMenuSection items={primaryMarketingNavItems} title="Navigation" />
             <div className="border-border mt-3 grid gap-2 border-t pt-3">
               <div className="flex items-center justify-between px-3 py-1">

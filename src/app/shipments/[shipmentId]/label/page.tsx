@@ -25,7 +25,7 @@ export const metadata: Metadata = {
 function AddressBlock({ address, title }: { address: ShipmentDetail["origin"]; title: string }) {
   return (
     <div>
-      <p className="text-xs font-bold tracking-[0.24em] text-slate-500 uppercase">{title}</p>
+      <p className="text-xs font-bold uppercase tracking-[0.24em] text-slate-500">{title}</p>
       <div className="mt-3 text-sm leading-6">
         <p className="text-base font-bold text-slate-950">{address.name ?? address.city}</p>
         <p>{address.line1}</p>
@@ -52,7 +52,7 @@ function BarcodeMark({ value }: { value: string }) {
           />
         ))}
       </div>
-      <p className="mt-2 font-mono text-xs tracking-[0.22em] break-all text-slate-700">{value}</p>
+      <p className="mt-2 break-all font-mono text-xs tracking-[0.22em] text-slate-700">{value}</p>
     </div>
   );
 }
@@ -110,13 +110,13 @@ export default async function ShipmentLabelPage({ params }: ShipmentLabelPagePro
         <section className="shipping-label-sheet border-border shadow-panel rounded-lg border bg-white p-8 print:rounded-none print:border-0 print:p-0 print:text-[11px] print:shadow-none">
           <div className="flex flex-wrap items-start justify-between gap-6 border-b-4 border-slate-950 pb-6">
             <div>
-              <p className="text-sm font-bold tracking-[0.32em] text-slate-500 uppercase">
+              <p className="text-sm font-bold uppercase tracking-[0.32em] text-slate-500">
                 Apex Global Logistics authorized transport label
               </p>
               <h1 className="mt-2 text-4xl font-black tracking-normal">Shipping Label</h1>
             </div>
             <div className="text-right">
-              <p className="text-xs font-bold tracking-[0.24em] text-slate-500 uppercase">
+              <p className="text-xs font-bold uppercase tracking-[0.24em] text-slate-500">
                 Tracking number
               </p>
               <p className="mt-2 font-mono text-xl font-bold">{shipment.shipmentNumber}</p>
@@ -130,7 +130,7 @@ export default async function ShipmentLabelPage({ params }: ShipmentLabelPagePro
 
           <div className="label-compact-block grid gap-8 py-8 md:grid-cols-[1fr_280px] print:gap-4">
             <div>
-              <p className="text-xs font-bold tracking-[0.24em] text-slate-500 uppercase">
+              <p className="text-xs font-bold uppercase tracking-[0.24em] text-slate-500">
                 Service
               </p>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -158,7 +158,7 @@ export default async function ShipmentLabelPage({ params }: ShipmentLabelPagePro
           </div>
 
           <div className="border-t border-slate-300 pt-6 print:pt-4">
-            <p className="text-xs font-bold tracking-[0.24em] text-slate-500 uppercase">
+            <p className="text-xs font-bold uppercase tracking-[0.24em] text-slate-500">
               Package manifest
             </p>
             <div className="mt-4 divide-y divide-slate-200 border border-slate-300">

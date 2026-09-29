@@ -26,7 +26,7 @@ export function SideNavigation({
       {items.map((item) => (
         <Link
           className={cn(
-            "group text-muted-foreground hover:bg-secondary hover:text-foreground flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-all",
+            "text-muted-foreground hover:bg-secondary hover:text-foreground group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-all",
             item.isActive &&
               "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground shadow-sm",
           )}

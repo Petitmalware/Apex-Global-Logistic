@@ -1,28 +1,35 @@
-'use client';
+"use client";
 
-import React, { useState, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Search, Eye, Edit, CheckCircle, Send, FileText } from 'lucide-react';
-import type { InvoiceListItem } from '@/features/invoices/types/invoice.types';
+import React, { useState, useMemo } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Search, Eye, Edit, CheckCircle, Send, FileText } from "lucide-react";
+import type { InvoiceListItem } from "@/features/invoices/types/invoice.types";
 
 export type Invoice = InvoiceListItem;
 
-const statusColors: Record<Invoice['status'], string> = {
-  DRAFT: 'bg-muted text-muted-foreground',
-  ISSUED: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-  PARTIALLY_PAID: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-  PAID: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-  OVERDUE: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-  VOID: 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400',
-  UNCOLLECTIBLE: 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400',
+const statusColors: Record<Invoice["status"], string> = {
+  DRAFT: "bg-muted text-muted-foreground",
+  ISSUED: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+  PARTIALLY_PAID: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+  PAID: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+  OVERDUE: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+  VOID: "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400",
+  UNCOLLECTIBLE: "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400",
 };
 
 export function InvoiceList({ invoices }: { invoices: Invoice[] }) {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
 
   const stats = useMemo(() => {
     const totalInvoices = invoices.length;
@@ -31,9 +38,10 @@ export function InvoiceList({ invoices }: { invoices: Invoice[] }) {
     let overdueCount = 0;
 
     invoices.forEach((inv) => {
-      if (inv.status === 'PAID') totalPaid += Number(inv.total);
-      if (inv.status === 'ISSUED' || inv.status === 'OVERDUE') totalOutstanding += Number(inv.total);
-      if (inv.status === 'OVERDUE') overdueCount++;
+      if (inv.status === "PAID") totalPaid += Number(inv.total);
+      if (inv.status === "ISSUED" || inv.status === "OVERDUE")
+        totalOutstanding += Number(inv.total);
+      if (inv.status === "OVERDUE") overdueCount++;
     });
 
     return { totalInvoices, totalPaid, totalOutstanding, overdueCount };
@@ -45,27 +53,33 @@ export function InvoiceList({ invoices }: { invoices: Invoice[] }) {
     return invoices.filter(
       (inv) =>
         inv.invoiceNumber.toLowerCase().includes(lower) ||
-        (inv.customerName ?? '').toLowerCase().includes(lower) ||
-        (inv.customerEmail ?? '').toLowerCase().includes(lower)
+        (inv.customerName ?? "").toLowerCase().includes(lower) ||
+        (inv.customerEmail ?? "").toLowerCase().includes(lower),
     );
   }, [invoices, searchTerm]);
 
   const formatCurrency = (amount: number, currency: string) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount);
+    return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(amount);
   };
 
   const formatDate = (date: string | null) => {
-    if (!date) return 'N/A';
-    return new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'short', day: 'numeric' }).format(new Date(date));
+    if (!date) return "N/A";
+    return new Intl.DateTimeFormat("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    }).format(new Date(date));
   };
 
   return (
-    <div className="space-y-6 w-full">
+    <div className="w-full space-y-6">
       {/* Stats Row */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Invoices</CardTitle>
+            <CardTitle className="text-muted-foreground text-sm font-medium">
+              Total Invoices
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalInvoices}</div>
@@ -73,38 +87,44 @@ export function InvoiceList({ invoices }: { invoices: Invoice[] }) {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Paid</CardTitle>
+            <CardTitle className="text-muted-foreground text-sm font-medium">Total Paid</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(stats.totalPaid, 'USD')}</div>
+            <div className="text-2xl font-bold">{formatCurrency(stats.totalPaid, "USD")}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Outstanding</CardTitle>
+            <CardTitle className="text-muted-foreground text-sm font-medium">
+              Total Outstanding
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(stats.totalOutstanding, 'USD')}</div>
+            <div className="text-2xl font-bold">
+              {formatCurrency(stats.totalOutstanding, "USD")}
+            </div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Overdue</CardTitle>
+            <CardTitle className="text-muted-foreground text-sm font-medium">Overdue</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600 dark:text-red-400">{stats.overdueCount}</div>
+            <div className="text-2xl font-bold text-red-600 dark:text-red-400">
+              {stats.overdueCount}
+            </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <div className="relative w-full sm:max-w-md">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Search className="text-muted-foreground absolute left-2.5 top-2.5 h-4 w-4" />
           <Input
             type="search"
             placeholder="Search invoices..."
-            className="pl-8 w-full"
+            className="w-full pl-8"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -133,9 +153,9 @@ export function InvoiceList({ invoices }: { invoices: Invoice[] }) {
             <TableBody>
               {filteredInvoices.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
+                  <TableCell colSpan={7} className="text-muted-foreground h-32 text-center">
                     <div className="flex flex-col items-center justify-center">
-                      <FileText className="h-8 w-8 mb-2 opacity-50" />
+                      <FileText className="mb-2 h-8 w-8 opacity-50" />
                       <p>No invoices found.</p>
                       <p className="text-sm">Try adjusting your search or create a new invoice.</p>
                     </div>
@@ -148,34 +168,45 @@ export function InvoiceList({ invoices }: { invoices: Invoice[] }) {
                     <TableCell>
                       <div className="flex flex-col">
                         <span className="font-medium">{inv.customerName}</span>
-                        <span className="text-xs text-muted-foreground">{inv.customerEmail}</span>
+                        <span className="text-muted-foreground text-xs">{inv.customerEmail}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="font-medium">{formatCurrency(Number(inv.total), inv.currency)}</TableCell>
+                    <TableCell className="font-medium">
+                      {formatCurrency(Number(inv.total), inv.currency)}
+                    </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className={`border-none ${statusColors[inv.status]}`}>
+                      <Badge
+                        variant="outline"
+                        className={`border-none ${statusColors[inv.status]}`}
+                      >
                         {inv.status}
                       </Badge>
                     </TableCell>
                     <TableCell>{formatDate(inv.createdAt)}</TableCell>
                     <TableCell>
-                      <span className={inv.status === 'OVERDUE' ? 'text-red-600 dark:text-red-400 font-medium' : ''}>
+                      <span
+                        className={
+                          inv.status === "OVERDUE"
+                            ? "font-medium text-red-600 dark:text-red-400"
+                            : ""
+                        }
+                      >
                         {formatDate(inv.dueDate)}
                       </span>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Button variant="ghost" size="icon" title="View/Print">
-                          <Eye className="h-4 w-4 text-muted-foreground" />
+                          <Eye className="text-muted-foreground h-4 w-4" />
                         </Button>
                         <Button variant="ghost" size="icon" title="Edit">
-                          <Edit className="h-4 w-4 text-muted-foreground" />
+                          <Edit className="text-muted-foreground h-4 w-4" />
                         </Button>
                         <Button variant="ghost" size="icon" title="Mark as Paid">
-                          <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                          <CheckCircle className="text-muted-foreground h-4 w-4" />
                         </Button>
                         <Button variant="ghost" size="icon" title="Send Email">
-                          <Send className="h-4 w-4 text-muted-foreground" />
+                          <Send className="text-muted-foreground h-4 w-4" />
                         </Button>
                       </div>
                     </TableCell>

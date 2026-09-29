@@ -82,7 +82,7 @@ function RoleHero({ config, user }: { config: DashboardConfig; user: AuthSession
           <Badge className="border-primary-foreground/20 bg-primary-foreground/10 text-primary-foreground">
             {config.badge}
           </Badge>
-          <h2 className="mt-5 max-w-3xl text-3xl leading-tight font-semibold tracking-normal md:text-4xl">
+          <h2 className="mt-5 max-w-3xl text-3xl font-semibold leading-tight tracking-normal md:text-4xl">
             {config.title}
           </h2>
           <p className="text-primary-foreground/72 mt-4 max-w-2xl text-sm leading-6 md:text-base">

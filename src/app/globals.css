@@ -242,7 +242,8 @@
 }
 
 @keyframes float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0px) rotate(0deg);
   }
   33% {
@@ -254,7 +255,8 @@
 }
 
 @keyframes float-slow {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0px);
   }
   50% {
@@ -263,7 +265,8 @@
 }
 
 @keyframes gradient-shift {
-  0%, 100% {
+  0%,
+  100% {
     background-position: 0% 50%;
   }
   50% {
@@ -287,11 +290,16 @@
 }
 
 @keyframes glow-pulse {
-  0%, 100% {
-    box-shadow: 0 0 20px oklch(0.84 0.16 83.68 / 30%), 0 0 60px oklch(0.84 0.16 83.68 / 15%);
+  0%,
+  100% {
+    box-shadow:
+      0 0 20px oklch(0.84 0.16 83.68 / 30%),
+      0 0 60px oklch(0.84 0.16 83.68 / 15%);
   }
   50% {
-    box-shadow: 0 0 40px oklch(0.84 0.16 83.68 / 50%), 0 0 100px oklch(0.84 0.16 83.68 / 25%);
+    box-shadow:
+      0 0 40px oklch(0.84 0.16 83.68 / 50%),
+      0 0 100px oklch(0.84 0.16 83.68 / 25%);
   }
 }
 
@@ -345,7 +353,8 @@
 }
 
 @keyframes bounce-subtle {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0);
     animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
   }
@@ -356,7 +365,8 @@
 }
 
 @keyframes morph {
-  0%, 100% {
+  0%,
+  100% {
     border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
   }
   50% {
@@ -398,7 +408,7 @@
 
 @layer utilities {
   .skip-link {
-    @apply bg-primary text-primary-foreground focus:ring-ring fixed top-3 left-3 z-[100] -translate-y-20 rounded-md px-4 py-2 text-sm font-semibold shadow-lg transition-transform focus:translate-y-0 focus:ring-2 focus:outline-none;
+    @apply bg-primary text-primary-foreground focus:ring-ring fixed left-3 top-3 z-[100] -translate-y-20 rounded-md px-4 py-2 text-sm font-semibold shadow-lg transition-transform focus:translate-y-0 focus:outline-none focus:ring-2;
   }
 
   .animate-fade-up {
@@ -472,7 +482,9 @@
   }
 
   .shadow-glow {
-    box-shadow: 0 0 30px oklch(0.84 0.16 83.68 / 35%), 0 0 80px oklch(0.84 0.16 83.68 / 18%);
+    box-shadow:
+      0 0 30px oklch(0.84 0.16 83.68 / 35%),
+      0 0 80px oklch(0.84 0.16 83.68 / 18%);
   }
 
   .page-gutter {
@@ -519,7 +531,8 @@
   /* Neon border glow */
   .border-glow {
     border-color: oklch(0.84 0.16 83.68 / 60%);
-    box-shadow: 0 0 0 1px oklch(0.84 0.16 83.68 / 30%), inset 0 0 0 1px oklch(0.84 0.16 83.68 / 10%);
+    box-shadow:
+      0 0 0 1px oklch(0.84 0.16 83.68 / 30%),
+      inset 0 0 0 1px oklch(0.84 0.16 83.68 / 10%);
   }
 }
-

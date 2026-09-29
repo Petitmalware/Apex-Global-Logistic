@@ -3,22 +3,21 @@ import { requireRole } from "@/lib/auth/session";
 import { AUTH_ROLES } from "@/lib/auth/constants";
 import { prisma } from "@/lib/db";
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await requireRole([AUTH_ROLES.ADMIN, AUTH_ROLES.SUPER_ADMIN]);
 
     const { id } = await params;
-    const body = await request.json() as { status: "PAID" | "SENT" | "OVERDUE" | "CANCELLED" | "DRAFT" };
+    const body = (await request.json()) as {
+      status: "PAID" | "SENT" | "OVERDUE" | "CANCELLED" | "DRAFT";
+    };
     const { status } = body;
 
     const validStatuses = ["DRAFT", "SENT", "PAID", "OVERDUE", "CANCELLED"];
     if (!status || !validStatuses.includes(status)) {
       return NextResponse.json(
         { success: false, error: `Invalid status. Must be one of: ${validStatuses.join(", ")}` },
-        { status: 400 }
+        { status: 400 },
       );
     }
 

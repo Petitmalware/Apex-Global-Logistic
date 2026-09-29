@@ -60,7 +60,7 @@ function WorkspaceBrand() {
         AG
       </div>
       <div className="min-w-0">
-        <p className="truncate text-sm leading-none font-semibold">Apex Global</p>
+        <p className="truncate text-sm font-semibold leading-none">Apex Global</p>
         <p className="text-muted-foreground mt-1 text-xs">Logistics OS</p>
       </div>
     </Link>
@@ -84,7 +84,7 @@ function DashboardSearch() {
       </label>
       <Search
         aria-hidden="true"
-        className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2"
+        className="text-muted-foreground pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2"
       />
       <Input
         className="bg-background/80 pl-9"
@@ -112,7 +112,7 @@ function ProfileMenu({ user }: { user: AuthSessionUser }) {
           className="text-muted-foreground size-4 transition-transform group-open:rotate-180"
         />
       </summary>
-      <div className="border-border bg-popover text-popover-foreground shadow-panel absolute top-12 right-0 z-50 w-72 rounded-lg border p-3">
+      <div className="border-border bg-popover text-popover-foreground shadow-panel absolute right-0 top-12 z-50 w-72 rounded-lg border p-3">
         <div className="border-border border-b pb-3">
           <p className="font-semibold">{user.name}</p>
           <p className="text-muted-foreground mt-1 truncate text-sm">{user.email}</p>
@@ -156,7 +156,7 @@ function MobileNavigation({
         <Menu aria-hidden="true" className="size-5" />
         <span className="sr-only">Open dashboard navigation</span>
       </summary>
-      <div className="border-border bg-popover shadow-panel absolute top-12 left-0 z-50 w-80 rounded-lg border p-3">
+      <div className="border-border bg-popover shadow-panel absolute left-0 top-12 z-50 w-80 rounded-lg border p-3">
         <SideNavigation
           items={navItems.map((item) => ({
             ...item,
@@ -196,7 +196,7 @@ export async function ProtectedShell({
         <div className="mt-6">
           <SideNavigation items={sidebarItems} />
         </div>
-        <div className="border-border bg-surface absolute right-4 bottom-4 left-4 rounded-lg border p-4">
+        <div className="border-border bg-surface absolute bottom-4 left-4 right-4 rounded-lg border p-4">
           <div className="flex items-start gap-3">
             <div className="bg-success/10 text-success grid size-10 place-items-center rounded-md">
               <ShieldCheck aria-hidden="true" className="size-5" />

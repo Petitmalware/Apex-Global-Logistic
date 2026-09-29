@@ -43,7 +43,7 @@ function formatDate(value: string | null) {
 function AddressBlock({ address, title }: { address: ShipmentDetail["origin"]; title: string }) {
   return (
     <div>
-      <p className="text-xs font-bold tracking-[0.18em] text-slate-500 uppercase">{title}</p>
+      <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">{title}</p>
       <div className="mt-3 text-sm leading-6">
         <p className="font-bold">{address.name ?? address.city}</p>
         <p>{address.line1}</p>
@@ -120,16 +120,16 @@ export default async function ShipmentReceiptPage({
               </div>
               <div>
                 <p className="text-lg font-black">{companyName}</p>
-                <p className="mt-1 text-xs font-bold tracking-[0.18em] text-slate-500 uppercase">
+                <p className="mt-1 text-xs font-bold uppercase tracking-[0.18em] text-slate-500">
                   Shipment receipt
                 </p>
               </div>
             </div>
             <div className="text-left text-sm sm:text-right">
-              <p className="text-xs font-bold tracking-[0.16em] text-slate-500 uppercase">
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
                 Tracking number
               </p>
-              <p className="mt-2 font-black break-all">{shipment.shipmentNumber}</p>
+              <p className="mt-2 break-all font-black">{shipment.shipmentNumber}</p>
               <p className="mt-1 text-xs text-slate-600">Issued {formatDate(shipment.createdAt)}</p>
             </div>
           </header>
@@ -150,7 +150,7 @@ export default async function ShipmentReceiptPage({
               },
             ].map((item) => (
               <div className="rounded-md border border-slate-300 p-3 print:p-2" key={item.label}>
-                <p className="text-[10px] font-bold tracking-[0.14em] text-slate-500 uppercase">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
                   {item.label}
                 </p>
                 <p className="mt-1.5 text-sm font-bold">{item.value}</p>
@@ -160,7 +160,7 @@ export default async function ShipmentReceiptPage({
 
           {shipment.packages.length ? (
             <section className="border-b border-slate-300 py-5 print:py-3">
-              <h2 className="text-xs font-bold tracking-[0.16em] text-slate-500 uppercase">
+              <h2 className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
                 Contents summary
               </h2>
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -191,10 +191,10 @@ export default async function ShipmentReceiptPage({
 
           {shipmentNote ? (
             <section className="border-b border-slate-300 py-5 print:py-3">
-              <h2 className="text-xs font-bold tracking-[0.16em] text-slate-500 uppercase">
+              <h2 className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
                 Shipment note
               </h2>
-              <p className="mt-2 text-sm leading-6 whitespace-pre-wrap">{shipmentNote}</p>
+              <p className="mt-2 whitespace-pre-wrap text-sm leading-6">{shipmentNote}</p>
             </section>
           ) : null}
 

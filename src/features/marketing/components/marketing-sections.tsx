@@ -84,13 +84,13 @@ export function HomeHero() {
         src={marketingImages.hero.src}
       />
       {/* Aurora/gradient overlays */}
-      <div className="from-background via-background/80 to-background/10 absolute inset-0 -z-10 bg-linear-to-r" />
-      <div className="from-background absolute inset-x-0 bottom-0 -z-10 h-40 bg-linear-to-t to-transparent" />
+      <div className="from-background via-background/80 to-background/10 bg-linear-to-r absolute inset-0 -z-10" />
+      <div className="from-background bg-linear-to-t absolute inset-x-0 bottom-0 -z-10 h-40 to-transparent" />
 
       {/* Animated orbs */}
       <div
         aria-hidden="true"
-        className="animate-aurora absolute -top-40 -right-40 -z-10 h-[600px] w-[600px] rounded-full opacity-30"
+        className="animate-aurora absolute -right-40 -top-40 -z-10 h-[600px] w-[600px] rounded-full opacity-30"
         style={{
           background:
             "radial-gradient(circle at center, oklch(0.84 0.16 83.68), oklch(0.56 0.17 250), transparent 70%)",
@@ -98,10 +98,9 @@ export function HomeHero() {
       />
       <div
         aria-hidden="true"
-        className="animate-float-slow absolute bottom-0 -right-20 -z-10 h-[400px] w-[400px] rounded-full opacity-20"
+        className="animate-float-slow absolute -right-20 bottom-0 -z-10 h-[400px] w-[400px] rounded-full opacity-20"
         style={{
-          background:
-            "radial-gradient(circle at center, oklch(0.68 0.14 241.2), transparent 70%)",
+          background: "radial-gradient(circle at center, oklch(0.68 0.14 241.2), transparent 70%)",
         }}
       />
 
@@ -110,12 +109,12 @@ export function HomeHero() {
           {/* Left: text content */}
           <div className="max-w-3xl">
             {/* AI badge */}
-            <div className="inline-flex items-center gap-2 rounded-full border border-accent/40 bg-accent/10 px-3 py-1 backdrop-blur-sm">
+            <div className="border-accent/40 bg-accent/10 inline-flex items-center gap-2 rounded-full border px-3 py-1 backdrop-blur-sm">
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
+                <span className="bg-accent absolute inline-flex h-full w-full animate-ping rounded-full opacity-75" />
+                <span className="bg-accent relative inline-flex h-2 w-2 rounded-full" />
               </span>
-              <span className="text-accent text-xs font-semibold tracking-wide uppercase">
+              <span className="text-accent text-xs font-semibold uppercase tracking-wide">
                 AI-Powered Logistics
               </span>
             </div>
@@ -147,8 +146,7 @@ export function HomeHero() {
                   className={`border-border/60 rounded-xl border p-3 shadow-sm backdrop-blur-sm transition-transform hover:-translate-y-1 animate-stagger-${Math.min(i + 1, 4) as 1 | 2 | 3 | 4}`}
                   key={item.label}
                   style={{
-                    background:
-                      "linear-gradient(135deg, oklch(1 0 0 / 12%), oklch(1 0 0 / 5%))",
+                    background: "linear-gradient(135deg, oklch(1 0 0 / 12%), oklch(1 0 0 / 5%))",
                   }}
                 >
                   <item.icon aria-hidden="true" className="text-accent size-4" />
@@ -160,7 +158,10 @@ export function HomeHero() {
           </div>
 
           {/* Right: 3D Globe / AI illustration */}
-          <div className="relative hidden lg:flex lg:items-center lg:justify-center" aria-hidden="true">
+          <div
+            className="relative hidden lg:flex lg:items-center lg:justify-center"
+            aria-hidden="true"
+          >
             {/* Outer ring */}
             <div className="animate-spin-slow relative h-72 w-72">
               <svg viewBox="0 0 288 288" className="h-full w-full" fill="none">
@@ -177,7 +178,9 @@ export function HomeHero() {
                   const rad = (angle * Math.PI) / 180;
                   const x = 144 + 136 * Math.cos(rad);
                   const y = 144 + 136 * Math.sin(rad);
-                  return <circle key={angle} cx={x} cy={y} r="3.5" fill="oklch(0.84 0.16 83.68 / 70%)" />;
+                  return (
+                    <circle key={angle} cx={x} cy={y} r="3.5" fill="oklch(0.84 0.16 83.68 / 70%)" />
+                  );
                 })}
               </svg>
             </div>
@@ -197,18 +200,28 @@ export function HomeHero() {
                   const rad = (angle * Math.PI) / 180;
                   const x = 104 + 98 * Math.cos(rad);
                   const y = 104 + 98 * Math.sin(rad);
-                  return <circle key={angle} cx={x} cy={y} r="4" fill="oklch(0.68 0.14 241.2 / 80%)" />;
+                  return (
+                    <circle key={angle} cx={x} cy={y} r="4" fill="oklch(0.68 0.14 241.2 / 80%)" />
+                  );
                 })}
               </svg>
             </div>
 
             {/* Center globe */}
-            <div className="animate-float absolute flex h-32 w-32 items-center justify-center rounded-full shadow-glow animate-glow-pulse"
+            <div
+              className="animate-float shadow-glow animate-glow-pulse absolute flex h-32 w-32 items-center justify-center rounded-full"
               style={{
-                background: "linear-gradient(135deg, oklch(0.84 0.16 83.68 / 90%), oklch(0.56 0.17 250 / 80%))",
+                background:
+                  "linear-gradient(135deg, oklch(0.84 0.16 83.68 / 90%), oklch(0.56 0.17 250 / 80%))",
               }}
             >
-              <svg viewBox="0 0 64 64" className="h-16 w-16 text-white" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <svg
+                viewBox="0 0 64 64"
+                className="h-16 w-16 text-white"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+              >
                 {/* Globe */}
                 <circle cx="32" cy="32" r="26" strokeOpacity="0.8" />
                 <ellipse cx="32" cy="32" rx="10" ry="26" strokeOpacity="0.5" />
@@ -219,13 +232,19 @@ export function HomeHero() {
             </div>
 
             {/* Floating info chips */}
-            <div className="absolute -top-4 right-8 rounded-lg border border-accent/30 bg-background/80 px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur-sm animate-bounce-subtle">
+            <div className="border-accent/30 bg-background/80 animate-bounce-subtle absolute -top-4 right-8 rounded-lg border px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur-sm">
               ðŸŒ 150+ Countries
             </div>
-            <div className="absolute bottom-4 left-4 rounded-lg border border-blue-400/30 bg-background/80 px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur-sm" style={{ animationDelay: "1s" }}>
+            <div
+              className="bg-background/80 absolute bottom-4 left-4 rounded-lg border border-blue-400/30 px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur-sm"
+              style={{ animationDelay: "1s" }}
+            >
               ðŸ“¦ Real-time Tracking
             </div>
-            <div className="absolute top-16 -left-2 rounded-lg border border-green-400/30 bg-background/80 px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur-sm" style={{ animationDelay: "2s" }}>
+            <div
+              className="bg-background/80 absolute -left-2 top-16 rounded-lg border border-green-400/30 px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur-sm"
+              style={{ animationDelay: "2s" }}
+            >
               ðŸ¾ Pet Safe Transport
             </div>
           </div>
@@ -234,8 +253,6 @@ export function HomeHero() {
     </section>
   );
 }
-
-
 
 export function DeliveryProofSection() {
   return (
@@ -406,7 +423,7 @@ export function CustomerJourneySection() {
                 <p className="text-muted-foreground text-xs font-semibold uppercase">
                   {card.label}
                 </p>
-                <p className="mt-2 text-sm leading-6 font-semibold">{card.value}</p>
+                <p className="mt-2 text-sm font-semibold leading-6">{card.value}</p>
               </div>
             ))}
           </div>
@@ -554,14 +571,14 @@ export function PageHero({
         sizes="100vw"
         src={image.src}
       />
-      <div className="absolute inset-0 -z-10 bg-linear-to-r from-black/78 via-black/56 to-black/18" />
-      <div className="from-background absolute inset-x-0 bottom-0 -z-10 h-28 bg-linear-to-t to-transparent" />
-      <div className="mx-auto flex min-h-[560px] w-full max-w-7xl items-end px-4 py-14 sm:px-6 lg:py-18">
+      <div className="bg-linear-to-r from-black/78 via-black/56 to-black/18 absolute inset-0 -z-10" />
+      <div className="from-background bg-linear-to-t absolute inset-x-0 bottom-0 -z-10 h-28 to-transparent" />
+      <div className="lg:py-18 mx-auto flex min-h-[560px] w-full max-w-7xl items-end px-4 py-14 sm:px-6">
         <div className="animate-fade-up max-w-3xl">
           {badge ? <Badge variant="accent">{badge}</Badge> : null}
           <Kicker className={cn("text-white/72", badge ? "mt-6" : undefined)}>{eyebrow}</Kicker>
           <Display className="mt-4 max-w-4xl text-white">{title}</Display>
-          <p className="mt-5 max-w-2xl text-base leading-8 text-white/82">{description}</p>
+          <p className="text-white/82 mt-5 max-w-2xl text-base leading-8">{description}</p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Button asChild variant="accent">
               <Link href={primaryHref as Route}>
@@ -591,7 +608,7 @@ export function ServiceGrid() {
       <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {serviceCards.map((service) => (
           <Link
-            className="group border-border bg-card text-card-foreground shadow-panel hover:border-accent/60 rounded-lg border p-5 transition-all hover:-translate-y-1"
+            className="border-border bg-card text-card-foreground shadow-panel hover:border-accent/60 group rounded-lg border p-5 transition-all hover:-translate-y-1"
             href={service.href as Route}
             key={service.title}
           >
@@ -629,7 +646,7 @@ export function PetTransportPartnerSection() {
     <section className="bg-surface py-16">
       <div className="mx-auto grid w-full max-w-7xl gap-8 px-4 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
         <div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-accent/40 bg-accent/10 px-3 py-1.5">
+          <div className="border-accent/40 bg-accent/10 inline-flex items-center gap-2 rounded-full border px-3 py-1.5">
             <Handshake aria-hidden="true" className="text-accent size-4" />
             <span className="text-accent text-xs font-semibold uppercase tracking-wide">
               Certified Pet Transport Partner
@@ -777,7 +794,7 @@ export function PetServicesShowcase() {
     <section className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6">
       {/* Section header */}
       <div className="mx-auto max-w-3xl text-center">
-        <div className="inline-flex items-center gap-2 rounded-full border border-accent/40 bg-accent/10 px-4 py-1.5 mb-4">
+        <div className="border-accent/40 bg-accent/10 mb-4 inline-flex items-center gap-2 rounded-full border px-4 py-1.5">
           <span className="text-accent text-xs font-bold uppercase tracking-widest">
             ðŸ¾ Pet Transport Services
           </span>
@@ -794,7 +811,7 @@ export function PetServicesShowcase() {
         {petServices.map((service, index) => (
           <article
             key={service.title}
-            className={`group border-border bg-card shadow-panel relative overflow-hidden rounded-2xl border transition-all duration-500 hover:-translate-y-2 hover:shadow-glow animate-stagger-${Math.min(index + 1, 4) as 1 | 2 | 3 | 4}`}
+            className={`border-border bg-card shadow-panel hover:shadow-glow group relative overflow-hidden rounded-2xl border transition-all duration-500 hover:-translate-y-2 animate-stagger-${Math.min(index + 1, 4) as 1 | 2 | 3 | 4}`}
           >
             {/* Image */}
             <div className="relative overflow-hidden">
@@ -807,10 +824,10 @@ export function PetServicesShowcase() {
                 width={600}
               />
               {/* Gradient overlay on image */}
-              <div className="absolute inset-0 bg-linear-to-t from-black/50 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+              <div className="bg-linear-to-t absolute inset-0 from-black/50 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
               {/* Badge */}
-              <div className="absolute top-3 left-3">
-                <span className="inline-flex items-center rounded-full bg-accent px-2.5 py-0.5 text-xs font-semibold text-accent-foreground shadow-sm">
+              <div className="absolute left-3 top-3">
+                <span className="bg-accent text-accent-foreground inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold shadow-sm">
                   {service.badge}
                 </span>
               </div>
@@ -865,8 +882,6 @@ export function PetServicesShowcase() {
     </section>
   );
 }
-
-
 
 export function FeatureBand({
   features,
@@ -1111,7 +1126,7 @@ export function FinalCta() {
   return (
     <section className="px-4 py-16 sm:px-6">
       <div
-        className="shadow-panel mx-auto max-w-7xl overflow-hidden rounded-2xl px-6 py-16 md:px-12 relative"
+        className="shadow-panel relative mx-auto max-w-7xl overflow-hidden rounded-2xl px-6 py-16 md:px-12"
         style={{
           background:
             "linear-gradient(135deg, oklch(0.23 0.045 257.31), oklch(0.3 0.07 260), oklch(0.25 0.06 290))",
@@ -1120,28 +1135,26 @@ export function FinalCta() {
         {/* Aurora orbs */}
         <div
           aria-hidden="true"
-          className="animate-aurora absolute -top-20 -right-20 h-64 w-64 rounded-full opacity-40"
+          className="animate-aurora absolute -right-20 -top-20 h-64 w-64 rounded-full opacity-40"
           style={{
-            background:
-              "radial-gradient(circle, oklch(0.84 0.16 83.68), transparent 70%)",
+            background: "radial-gradient(circle, oklch(0.84 0.16 83.68), transparent 70%)",
           }}
         />
         <div
           aria-hidden="true"
           className="animate-float-slow absolute -bottom-16 -left-16 h-48 w-48 rounded-full opacity-25"
           style={{
-            background:
-              "radial-gradient(circle, oklch(0.68 0.14 241.2), transparent 70%)",
+            background: "radial-gradient(circle, oklch(0.68 0.14 241.2), transparent 70%)",
           }}
         />
 
         <div className="relative grid gap-8 md:grid-cols-[1fr_auto] md:items-center">
           <div>
             {/* Pulsing badge */}
-            <div className="inline-flex items-center gap-2 rounded-full border border-accent/40 bg-accent/10 px-3 py-1 backdrop-blur-sm">
+            <div className="border-accent/40 bg-accent/10 inline-flex items-center gap-2 rounded-full border px-3 py-1 backdrop-blur-sm">
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
+                <span className="bg-accent absolute inline-flex h-full w-full animate-ping rounded-full opacity-75" />
+                <span className="bg-accent relative inline-flex h-2 w-2 rounded-full" />
               </span>
               <span className="text-accent text-xs font-semibold uppercase tracking-wide">
                 Ready when you are
@@ -1152,8 +1165,8 @@ export function FinalCta() {
               Move parcels, pets, and freight with Apex confidence
             </Heading>
             <p className="text-primary-foreground/75 mt-4 max-w-2xl text-base leading-7">
-              Create an account or talk to the operations team to design your next logistics
-              flow â€” powered by intelligent routing and real-time visibility.
+              Create an account or talk to the operations team to design your next logistics flow
+              â€” powered by intelligent routing and real-time visibility.
             </p>
 
             {/* Trust micro-signals */}
@@ -1198,9 +1211,23 @@ export function AiPoweredSection() {
   const aiFeatures = [
     {
       icon: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="size-6">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
-          <path strokeLinecap="round" strokeLinejoin="round" d="M18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" />
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          className="size-6"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"
+          />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z"
+          />
         </svg>
       ),
       title: "Intelligent Route Optimization",
@@ -1210,8 +1237,18 @@ export function AiPoweredSection() {
     },
     {
       icon: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="size-6">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5" />
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          className="size-6"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5"
+          />
         </svg>
       ),
       title: "Predictive Shipment Tracking",
@@ -1221,8 +1258,18 @@ export function AiPoweredSection() {
     },
     {
       icon: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="size-6">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15.182 15.182a4.5 4.5 0 01-6.364 0M21 12a9 9 0 11-18 0 9 9 0 0118 0zM9.75 9.75c0 .414-.168.75-.375.75S9 10.164 9 9.75 9.168 9 9.375 9s.375.336.375.75zm-.375 0h.008v.015h-.008V9.75zm5.625 0c0 .414-.168.75-.375.75s-.375-.336-.375-.75.168-.75.375-.75.375.336.375.75zm-.375 0h.008v.015h-.008V9.75z" />
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          className="size-6"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M15.182 15.182a4.5 4.5 0 01-6.364 0M21 12a9 9 0 11-18 0 9 9 0 0118 0zM9.75 9.75c0 .414-.168.75-.375.75S9 10.164 9 9.75 9.168 9 9.375 9s.375.336.375.75zm-.375 0h.008v.015h-.008V9.75zm5.625 0c0 .414-.168.75-.375.75s-.375-.336-.375-.75.168-.75.375-.75.375.336.375.75zm-.375 0h.008v.015h-.008V9.75z"
+          />
         </svg>
       ),
       title: "Smart Pet Welfare Monitoring",
@@ -1232,8 +1279,18 @@ export function AiPoweredSection() {
     },
     {
       icon: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="size-6">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          className="size-6"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
+          />
         </svg>
       ),
       title: "Automated Documentation",
@@ -1243,8 +1300,18 @@ export function AiPoweredSection() {
     },
     {
       icon: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="size-6">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          className="size-6"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"
+          />
         </svg>
       ),
       title: "Dynamic Pricing Engine",
@@ -1254,8 +1321,18 @@ export function AiPoweredSection() {
     },
     {
       icon: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="size-6">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          className="size-6"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
+          />
         </svg>
       ),
       title: "Compliance & Risk AI",
@@ -1290,17 +1367,15 @@ export function AiPoweredSection() {
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6">
         {/* Header */}
         <div className="mx-auto max-w-3xl text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-accent/40 bg-accent/10 px-4 py-1.5">
+          <div className="border-accent/40 bg-accent/10 inline-flex items-center gap-2 rounded-full border px-4 py-1.5">
             <span className="text-accent text-xs font-bold uppercase tracking-widest">
               âœ¦ AI-Powered Platform
             </span>
           </div>
-          <Heading className="mt-4">
-            Logistics intelligence built for the modern world
-          </Heading>
+          <Heading className="mt-4">Logistics intelligence built for the modern world</Heading>
           <Text className="mt-4">
-            Apex combines machine learning, real-time IoT data, and automated workflows to deliver
-            a logistics experience that is faster, safer, and more transparent than anything
+            Apex combines machine learning, real-time IoT data, and automated workflows to deliver a
+            logistics experience that is faster, safer, and more transparent than anything
             traditional operations can offer.
           </Text>
         </div>
@@ -1310,12 +1385,12 @@ export function AiPoweredSection() {
           {aiFeatures.map((feature, index) => (
             <div
               key={feature.title}
-              className={`group border-border bg-card shadow-panel relative overflow-hidden rounded-2xl border p-6 transition-all duration-300 hover:-translate-y-1 hover:border-glow animate-stagger-${Math.min(index + 1, 4) as 1 | 2 | 3 | 4}`}
+              className={`border-border bg-card shadow-panel hover:border-glow group relative overflow-hidden rounded-2xl border p-6 transition-all duration-300 hover:-translate-y-1 animate-stagger-${Math.min(index + 1, 4) as 1 | 2 | 3 | 4}`}
             >
               {/* Glow effect on hover */}
               <div
                 aria-hidden="true"
-                className="absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100 rounded-2xl"
+                className="absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-500 group-hover:opacity-100"
                 style={{
                   background:
                     "radial-gradient(circle at top left, oklch(0.84 0.16 83.68 / 8%), transparent 60%)",
@@ -1329,15 +1404,13 @@ export function AiPoweredSection() {
                 </div>
 
                 {/* Highlight badge */}
-                <div className="mt-4 inline-flex items-center rounded-full bg-accent/10 px-2.5 py-0.5">
+                <div className="bg-accent/10 mt-4 inline-flex items-center rounded-full px-2.5 py-0.5">
                   <span className="text-accent text-[10px] font-bold uppercase tracking-wider">
                     {feature.highlight}
                   </span>
                 </div>
 
-                <h3 className="mt-3 text-base font-semibold tracking-normal">
-                  {feature.title}
-                </h3>
+                <h3 className="mt-3 text-base font-semibold tracking-normal">{feature.title}</h3>
                 <p className="text-muted-foreground mt-2 text-sm leading-6">
                   {feature.description}
                 </p>
@@ -1364,4 +1437,3 @@ export function AiPoweredSection() {
     </section>
   );
 }
-

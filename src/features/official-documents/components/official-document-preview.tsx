@@ -98,7 +98,7 @@ function CompanyHeader({ profile }: { profile: CompanyProfileInput }) {
         ) : null}
       </div>
       <div className="text-right">
-        <p className="text-xs font-bold tracking-[0.24em] text-slate-500 uppercase">Approved</p>
+        <p className="text-xs font-bold uppercase tracking-[0.24em] text-slate-500">Approved</p>
         <p className="mt-2 text-sm font-bold text-slate-950">Document Control</p>
         <p className="mt-1 text-xs text-slate-600">{formatDate()}</p>
       </div>
@@ -162,7 +162,7 @@ export function OfficialDocumentPreview({
 
           <div className="grid gap-6 border-b border-slate-300 py-6 md:grid-cols-[1fr_260px] print:gap-4 print:py-4">
             <div>
-              <p className="text-xs font-bold tracking-[0.24em] text-slate-500 uppercase">
+              <p className="text-xs font-bold uppercase tracking-[0.24em] text-slate-500">
                 {template.category}
               </p>
               <h1 className="mt-2 text-4xl font-black tracking-normal text-slate-950">
@@ -178,7 +178,7 @@ export function OfficialDocumentPreview({
                 ["Date", values.documentDate],
               ].map(([label, value]) => (
                 <div className="rounded-md border border-slate-300 p-3 print:p-2" key={label}>
-                  <p className="text-xs font-bold tracking-[0.16em] text-slate-500 uppercase print:text-[8px]">
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500 print:text-[8px]">
                     {label}
                   </p>
                   <p className="mt-1 font-bold">{value}</p>
@@ -192,7 +192,7 @@ export function OfficialDocumentPreview({
             <aside className="space-y-3">
               <div className="rounded-md border border-slate-300 p-4 print:p-3">
                 <FileText aria-hidden="true" className="size-5 text-slate-700" />
-                <p className="mt-3 text-xs font-bold tracking-[0.18em] text-slate-500 uppercase">
+                <p className="mt-3 text-xs font-bold uppercase tracking-[0.18em] text-slate-500">
                   Billing summary
                 </p>
                 <p className="mt-2 font-bold">{template.amountLabel || "Document amount"}</p>

@@ -157,7 +157,7 @@ function Detail({ label, value }: { label: string; value: string | null | undefi
   return (
     <div>
       <dt className="text-muted-foreground text-xs font-semibold uppercase">{label}</dt>
-      <dd className="mt-1 font-medium break-words">{value}</dd>
+      <dd className="mt-1 break-words font-medium">{value}</dd>
     </div>
   );
 }
@@ -549,7 +549,7 @@ export function TrackingLookup() {
                   <p className="text-muted-foreground text-xs font-semibold uppercase">
                     Tracking number
                   </p>
-                  <h2 className="mt-2 text-2xl font-semibold tracking-normal break-all sm:text-3xl">
+                  <h2 className="mt-2 break-all text-2xl font-semibold tracking-normal sm:text-3xl">
                     {snapshot.shipmentNumber}
                   </h2>
                   <p className="text-muted-foreground mt-2 text-sm">

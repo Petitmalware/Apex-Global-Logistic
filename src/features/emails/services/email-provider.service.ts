@@ -166,7 +166,7 @@ async function sendWithBrevo(input: SendEmailInput): Promise<SendEmailResult> {
   const response = await fetch("https://api.brevo.com/v3/smtp/email", {
     body: JSON.stringify({
       htmlContent: input.html,
-      cc: input.cc?.length ? input.cc.map(email => ({ email })) : undefined,
+      cc: input.cc?.length ? input.cc.map((email) => ({ email })) : undefined,
       replyTo: {
         email: input.replyTo ?? env.SUPPORT_EMAIL,
       },

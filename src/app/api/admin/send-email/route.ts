@@ -10,9 +10,16 @@ const messageSchema = z.object({
   to: z.string().trim().email(),
   subject: z.string().trim().min(1).max(255),
   body: z.string().trim().min(1),
-  cc: z.string().optional().transform(value =>
-    (value ?? "").split(",").map(address => address.trim()).filter(Boolean)
-  ).pipe(z.array(z.string().email())),
+  cc: z
+    .string()
+    .optional()
+    .transform((value) =>
+      (value ?? "")
+        .split(",")
+        .map((address) => address.trim())
+        .filter(Boolean),
+    )
+    .pipe(z.array(z.string().email())),
 });
 
 export async function POST(request: NextRequest) {
@@ -27,25 +34,45 @@ export async function POST(request: NextRequest) {
   }
 
   const { to, subject, body, cc } = parsed.data;
-  const html = body.replace(/[&<>"']/g, character => ({
-    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
-  })[character]!).replace(/\n/g, "<br>");
+  const html = body
+    .replace(
+      /[&<>"']/g,
+      (character) =>
+        ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#39;",
+        })[character]!,
+    )
+    .replace(/\n/g, "<br>");
 
   try {
     const result = await sendEmailWithConfiguredProvider({
-      recipientEmail: to, subject, text: body, html, cc,
+      recipientEmail: to,
+      subject,
+      text: body,
+      html,
+      cc,
     });
 
     if (result.provider === EmailProvider.CONSOLE) {
       return NextResponse.json(
-        { success: false, error: "Email delivery is not configured. Check the email provider settings." },
+        {
+          success: false,
+          error: "Email delivery is not configured. Check the email provider settings.",
+        },
         { status: 503 },
       );
     }
 
     return NextResponse.json({ success: true, messageId: result.messageId });
   } catch (error) {
-    console.error("[Admin Email API] Delivery failed:", error instanceof Error ? error.message : "Unknown error");
+    console.error(
+      "[Admin Email API] Delivery failed:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
     return NextResponse.json(
       { success: false, error: "Email delivery failed. Check the email provider settings." },
       { status: 502 },

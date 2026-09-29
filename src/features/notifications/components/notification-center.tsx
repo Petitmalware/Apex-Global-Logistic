@@ -90,7 +90,7 @@ function NotificationPreviewItem({
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-3">
-          <p className="line-clamp-2 text-sm leading-5 font-semibold">{notification.title}</p>
+          <p className="line-clamp-2 text-sm font-semibold leading-5">{notification.title}</p>
           {!notification.isRead ? (
             <Circle aria-hidden="true" className="text-accent mt-1 size-2.5 fill-current" />
           ) : null}
@@ -251,14 +251,14 @@ export function NotificationCenter({ initialSnapshot }: NotificationCenterProps)
       >
         <Bell aria-hidden="true" className="size-4" />
         {snapshot.unreadCount > 0 ? (
-          <span className="bg-accent text-accent-foreground absolute -top-1 -right-1 grid min-w-5 place-items-center rounded-full px-1 text-[10px] leading-5 font-bold">
+          <span className="bg-accent text-accent-foreground absolute -right-1 -top-1 grid min-w-5 place-items-center rounded-full px-1 text-[10px] font-bold leading-5">
             {unreadLabel}
           </span>
         ) : null}
         <span className="sr-only">Open notifications</span>
       </button>
       {isOpen ? (
-        <div className="border-border bg-popover text-popover-foreground shadow-panel absolute top-12 right-0 z-50 w-[min(24rem,calc(100vw-2rem))] rounded-lg border">
+        <div className="border-border bg-popover text-popover-foreground shadow-panel absolute right-0 top-12 z-50 w-[min(24rem,calc(100vw-2rem))] rounded-lg border">
           <div className="border-border flex items-start justify-between gap-3 border-b p-4">
             <div>
               <p className="text-sm font-semibold">Notifications</p>
