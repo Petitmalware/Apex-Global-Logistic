@@ -33,7 +33,7 @@ export function InvoiceList({ invoices }: { invoices: Invoice[] }) {
   const [searchTerm, setSearchTerm] = useState('');
 
   const stats = useMemo(() => {
-    let totalInvoices = invoices.length;
+    const totalInvoices = invoices.length;
     let totalPaid = 0;
     let totalOutstanding = 0;
     let overdueCount = 0;
