@@ -142,7 +142,7 @@ export function EmailStudioDashboard({ emailHealth, overview }: EmailStudioDashb
         const error = await response.json();
         setSendResult({ success: false, message: error.message || 'Failed to send email.' });
       }
-    } catch (error) {
+    } catch {
       setSendResult({ success: false, message: 'A network error occurred.' });
     } finally {
       setIsSending(false);
