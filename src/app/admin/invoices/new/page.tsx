@@ -1,23 +1,16 @@
 import type { Metadata } from "next";
 
 import { ProtectedShell } from "@/components/layout/protected-shell";
-import { getCustomerOptionsForStaff } from "@/features/customers/queries/customer.queries";
-import { issueInvoiceAction } from "@/features/invoices/actions/invoice.actions";
-import { InvoiceIssueForm } from "@/features/invoices/components/invoice-issue-form";
-import { getShipmentInvoiceOptionsForAdmin } from "@/features/invoices/queries/invoice.queries";
+import { InvoiceEditor } from "@/features/invoices/components/invoice-editor";
 import { AUTH_ROLES } from "@/lib/auth/constants";
 import { requireRole } from "@/lib/auth/session";
 
 export const metadata: Metadata = {
-  title: "Issue Invoice | Apex Global Logistics",
+  title: "New Invoice | Apex Global Logistics",
 };
 
 export default async function NewInvoicePage() {
   const user = await requireRole([AUTH_ROLES.ADMIN, AUTH_ROLES.SUPER_ADMIN]);
-  const [customerOptions, shipmentOptions] = await Promise.all([
-    getCustomerOptionsForStaff(user),
-    getShipmentInvoiceOptionsForAdmin(user),
-  ]);
 
   return (
     <ProtectedShell
@@ -26,17 +19,13 @@ export default async function NewInvoicePage() {
         { href: "/dashboard", label: "Dashboard" },
         { href: "/admin", label: "Admin" },
         { href: "/admin/invoices", label: "Invoices" },
-        { label: "Issue" },
+        { label: "New Invoice" },
       ]}
-      description="Issue a professional transportation invoice to a registered customer or a manual bill-to recipient."
-      title="Issue Invoice"
+      description="Create a new customized invoice for a customer shipment. Fill in billing details, add line items, preview, and send."
+      title="New Invoice"
       user={user}
     >
-      <InvoiceIssueForm
-        action={issueInvoiceAction}
-        customerOptions={customerOptions}
-        shipmentOptions={shipmentOptions}
-      />
+      <InvoiceEditor invoice={null} />
     </ProtectedShell>
   );
 }
