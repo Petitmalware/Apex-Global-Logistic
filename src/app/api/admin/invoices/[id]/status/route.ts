@@ -21,17 +21,15 @@ export async function PATCH(
       );
     }
 
-    // Dynamic prisma import with path fallback
-    let prisma: { invoice: { update: (args: unknown) => Promise<unknown> } };
+    let db: { invoice: { update: (args: unknown) => Promise<unknown> } };
     try {
-      const prismaModule = await import("@/lib/prisma");
-      prisma = prismaModule.default ?? prismaModule.prisma;
+      const dbModule = await import("@/lib/db");
+      db = (dbModule.default ?? dbModule) as typeof db;
     } catch {
-      const prismaModule = await import("@/lib/db");
-      prisma = prismaModule.default ?? prismaModule.db;
+      return NextResponse.json({ success: false, error: "Database not available" }, { status: 503 });
     }
 
-    const updated = await prisma.invoice.update({
+    const updated = await db.invoice.update({
       where: { id },
       data: {
         status,
