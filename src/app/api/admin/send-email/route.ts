@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
         });
         sent = true;
       }
-    } catch (_serviceError) {
+    } catch {
       // Service not available — try nodemailer fallback
       try {
         const nodemailer = await import("nodemailer");
