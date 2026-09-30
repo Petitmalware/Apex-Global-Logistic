@@ -1,4 +1,4 @@
-import Image from "next/image";
+﻿﻿import Image from "next/image";
 import Link from "next/link";
 import type { Route } from "next";
 import type { LucideIcon } from "lucide-react";
@@ -124,7 +124,7 @@ export function HomeHero() {
             </Display>
             <p className="text-muted-foreground mt-6 max-w-2xl text-base leading-8 sm:text-lg">
               Parcel delivery, pet transportation, freight coordination, and transparent shipment
-              records â€” powered by intelligent routing and real-time visibility from first mile to
+              records — powered by intelligent routing and real-time visibility from first mile to
               final delivery.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
@@ -233,19 +233,19 @@ export function HomeHero() {
 
             {/* Floating info chips */}
             <div className="border-accent/30 bg-background/80 animate-bounce-subtle absolute -top-4 right-8 rounded-lg border px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur-sm">
-              ðŸŒ 150+ Countries
+              &#127758; 150+ Countries
             </div>
             <div
               className="bg-background/80 absolute bottom-4 left-4 rounded-lg border border-blue-400/30 px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur-sm"
               style={{ animationDelay: "1s" }}
             >
-              ðŸ“¦ Real-time Tracking
+              &#128230; Real-time Tracking
             </div>
             <div
               className="bg-background/80 absolute top-16 -left-2 rounded-lg border border-green-400/30 px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur-sm"
               style={{ animationDelay: "2s" }}
             >
-              ðŸ¾ Pet Safe Transport
+              &#128062; Pet Safe Transport
             </div>
           </div>
         </div>
@@ -667,12 +667,12 @@ export function PetTransportPartnerSection() {
           {/* Pet type badges */}
           <div className="mt-6 flex flex-wrap gap-2">
             {[
-              { emoji: "ðŸ•", label: "Dogs" },
-              { emoji: "ðŸˆ", label: "Cats" },
-              { emoji: "ðŸ¦", label: "Birds" },
-              { emoji: "ðŸ‡", label: "Rabbits" },
-              { emoji: "ðŸ¦Ž", label: "Reptiles" },
-              { emoji: "ðŸ ", label: "Exotic Pets" },
+              { emoji: "&#128021;", label: "Dogs" },
+              { emoji: "&#128008;", label: "Cats" },
+              { emoji: "&#128038;", label: "Birds" },
+              { emoji: "&#128007;", label: "Rabbits" },
+              { emoji: "&#129422;", label: "Reptiles" },
+              { emoji: "&#128032;", label: "Exotic Pets" },
             ].map((pet) => (
               <span
                 key={pet.label}
@@ -717,76 +717,76 @@ export function PetTransportPartnerSection() {
 export function PetServicesShowcase() {
   const petServices = [
     {
-      title: "Door-to-Door Dog Transport",
+      title: "Air Freight & Cargo",
       description:
-        "Premium transport for dogs of all breeds and sizes. Climate-controlled vehicles, GPS tracking, and live photo updates throughout the journey.",
+        "Time-critical air cargo solutions connecting 150+ countries. Priority boarding, customs pre-clearance, and door-to-airport-to-door coordination for parcels and commercial freight.",
       image: {
-        src: "https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=800&q=80",
-        alt: "Happy golden retriever in transport carrier ready for journey",
+        src: "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=800&q=80",
+        alt: "Cargo aircraft on runway with freight being loaded at golden hour",
       },
-      badge: "Most Popular",
+      badge: "Fastest Transit",
       badgeColor: "accent" as const,
-      tags: ["Climate controlled", "GPS tracked", "Photo updates"],
-    },
-    {
-      title: "Cat Relocation Services",
-      description:
-        "Stress-free cat transport with quiet, calming environments. Individual cabins, familiar scent accessories, and certified handlers.",
-      image: {
-        src: "https://images.unsplash.com/photo-1548247416-ec66f4900b2e?w=800&q=80",
-        alt: "Cat in comfortable carrier for safe transport",
-      },
-      badge: "Stress-Free",
-      badgeColor: "outline" as const,
-      tags: ["Calming environment", "Individual cabins", "Certified handlers"],
-    },
-    {
-      title: "Bird & Exotic Pet Transport",
-      description:
-        "Specialized transport for birds, reptiles, and exotic pets with species-appropriate environments, temperature control, and expert handling.",
-      image: {
-        src: "https://images.unsplash.com/photo-1552728089-57bdde30beb3?w=800&q=80",
-        alt: "Colorful parrot in specialized transport container",
-      },
-      badge: "Specialized",
-      badgeColor: "outline" as const,
-      tags: ["Temperature control", "Species-appropriate", "Expert handlers"],
+      tags: ["150+ countries", "Priority boarding", "Same-day dispatch"],
     },
     {
       title: "International Pet Relocation",
       description:
-        "Full-service international pet moves including health certificates, customs clearance, airline coordination, and quarantine management.",
+        "Full-service international pet moves including health certificates, USDA endorsement, airline coordination, customs clearance, and quarantine management in 80+ destinations.",
       image: {
         src: "https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?w=800&q=80",
-        alt: "Pet in airport cargo area prepared for international flight",
+        alt: "Pet carrier at international airport cargo terminal",
       },
-      badge: "International",
-      badgeColor: "outline" as const,
-      tags: ["Health certificates", "Customs clearance", "Quarantine support"],
+      badge: "Most Popular",
+      badgeColor: "accent" as const,
+      tags: ["Health certificates", "Customs clearance", "80+ destinations"],
     },
     {
-      title: "Small Pet & Rabbit Transport",
+      title: "Express Parcel Delivery",
       description:
-        "Gentle transport services for small animals â€” rabbits, guinea pigs, hamsters, and ferrets â€” with padded carriers and minimal stress protocols.",
+        "Next-day and 2-day express courier services for documents, e-commerce, and high-value goods. Real-time tracking, signature confirmation, and tamper-evident packaging.",
       image: {
-        src: "https://images.unsplash.com/photo-1585110396000-c9ffd4e4b308?w=800&q=80",
-        alt: "Cute rabbit in safe padded transport carrier",
+        src: "https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=800&q=80",
+        alt: "Courier van loading express delivery parcels at distribution centre",
       },
-      badge: "Gentle Care",
+      badge: "Next Day",
       badgeColor: "outline" as const,
-      tags: ["Padded carriers", "Minimal stress", "Small animal experts"],
+      tags: ["Real-time tracking", "Signature required", "Tamper-evident"],
     },
     {
-      title: "Large Dog Breed Transport",
+      title: "Maritime & Ocean Freight",
       description:
-        "Spacious, secure transport for large and giant breed dogs. Extra-large crates, orthopedic padding, and handlers trained in large breed handling.",
+        "Full-container and LCL ocean freight from major ports worldwide. Bill of lading, cargo insurance, port handling, and inland delivery coordination included.",
       image: {
-        src: "https://images.unsplash.com/photo-1477884213360-7e9d7dcc1e48?w=800&q=80",
-        alt: "Large german shepherd in spacious transport crate",
+        src: "https://images.unsplash.com/photo-1578575437130-527eed3abbec?w=800&q=80",
+        alt: "Container ship loaded with cargo containers at sea port",
       },
-      badge: "Extra Space",
+      badge: "Ocean Freight",
       badgeColor: "outline" as const,
-      tags: ["XL crates", "Orthopedic padding", "Large breed trained"],
+      tags: ["FCL & LCL", "Cargo insurance", "Port-to-door"],
+    },
+    {
+      title: "Dog & Cat Transport",
+      description:
+        "Climate-controlled domestic and international transport for dogs and cats of all breeds. Certified handlers, GPS-tracked vehicles, and live photo updates throughout the journey.",
+      image: {
+        src: "https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=800&q=80",
+        alt: "Golden retriever in comfortable transport carrier ready for journey",
+      },
+      badge: "Pet Specialist",
+      badgeColor: "outline" as const,
+      tags: ["Climate controlled", "GPS tracked", "Photo updates"],
+    },
+    {
+      title: "Warehouse & Fulfilment",
+      description:
+        "Bonded warehouse storage, pick-and-pack fulfilment, cross-docking, and inventory management. Seamlessly integrated with your e-commerce or commercial supply chain.",
+      image: {
+        src: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=800&q=80",
+        alt: "Modern warehouse facility with organised shelving and logistics operations",
+      },
+      badge: "B2B",
+      badgeColor: "outline" as const,
+      tags: ["Bonded storage", "Pick & pack", "Cross-docking"],
     },
   ];
 
@@ -796,13 +796,12 @@ export function PetServicesShowcase() {
       <div className="mx-auto max-w-3xl text-center">
         <div className="border-accent/40 bg-accent/10 mb-4 inline-flex items-center gap-2 rounded-full border px-4 py-1.5">
           <span className="text-accent text-xs font-bold tracking-widest uppercase">
-            ðŸ¾ Pet Transport Services
+            &#9993; Global Logistics Services
           </span>
         </div>
-        <Heading className="mt-3">Every pet, transported with care</Heading>
+        <Heading className="mt-3">Every shipment, every mile — delivered right</Heading>
         <Text className="mt-4">
-          From small apartment cats to giant breed dogs, exotic birds to reptiles â€” Apex Global
-          Logistics has a specialized transport solution for every companion animal.
+          Air freight, ocean cargo, express parcels, pet relocation, and warehouse fulfilment — Apex Global Logistics handles every movement with precision and care.
         </Text>
       </div>
 
@@ -853,7 +852,7 @@ export function PetServicesShowcase() {
               {/* CTA */}
               <Link
                 className="text-accent mt-4 inline-flex items-center gap-1.5 text-sm font-semibold transition-all group-hover:gap-2.5"
-                href={"/pet-transportation" as Route}
+                href={"/services" as Route}
               >
                 Learn more
                 <ArrowRight aria-hidden="true" className="size-4" />
@@ -1166,16 +1165,16 @@ export function FinalCta() {
             </Heading>
             <p className="text-primary-foreground/75 mt-4 max-w-2xl text-base leading-7">
               Create an account or talk to the operations team to design your next logistics flow
-              â€” powered by intelligent routing and real-time visibility.
+              — powered by intelligent routing and real-time visibility.
             </p>
 
             {/* Trust micro-signals */}
             <div className="mt-6 flex flex-wrap gap-4">
               {[
-                "âœ“ No setup fees",
-                "âœ“ 24/7 shipment tracking",
-                "âœ“ Pet-certified handlers",
-                "âœ“ Global coverage",
+                "&#10003; No setup fees",
+                "&#10003; 24/7 shipment tracking",
+                "&#10003; Pet-certified handlers",
+                "&#10003; Global coverage",
               ].map((item) => (
                 <span key={item} className="text-primary-foreground/80 text-sm font-medium">
                   {item}
@@ -1295,7 +1294,7 @@ export function AiPoweredSection() {
       ),
       title: "Automated Documentation",
       description:
-        "AI auto-generates health certificates, customs declarations, shipping manifests, and delivery receipts â€” cutting paperwork time by 80% and eliminating manual errors.",
+        "AI auto-generates health certificates, customs declarations, shipping manifests, and delivery receipts — cutting paperwork time by 80% and eliminating manual errors.",
       highlight: "80% less paperwork",
     },
     {
@@ -1316,7 +1315,7 @@ export function AiPoweredSection() {
       ),
       title: "Dynamic Pricing Engine",
       description:
-        "Real-time market analysis delivers instant, transparent pricing that adjusts for seasonal demand, route availability, and shipment complexity â€” no hidden fees.",
+        "Real-time market analysis delivers instant, transparent pricing that adjusts for seasonal demand, route availability, and shipment complexity — no hidden fees.",
       highlight: "Instant quotes",
     },
     {
@@ -1369,7 +1368,7 @@ export function AiPoweredSection() {
         <div className="mx-auto max-w-3xl text-center">
           <div className="border-accent/40 bg-accent/10 inline-flex items-center gap-2 rounded-full border px-4 py-1.5">
             <span className="text-accent text-xs font-bold tracking-widest uppercase">
-              âœ¦ AI-Powered Platform
+              &#10022; AI-Powered Platform
             </span>
           </div>
           <Heading className="mt-4">Logistics intelligence built for the modern world</Heading>
@@ -1424,7 +1423,7 @@ export function AiPoweredSection() {
           {[
             { value: "99.7%", label: "On-time delivery rate" },
             { value: "150+", label: "Countries served" },
-            { value: "4.9â˜…", label: "Average customer rating" },
+            { value: "4.9&#9733;", label: "Average customer rating" },
             { value: "<2 min", label: "AI quote generation" },
           ].map((stat) => (
             <div key={stat.label} className="bg-card p-6 text-center">
@@ -1437,3 +1436,4 @@ export function AiPoweredSection() {
     </section>
   );
 }
+
