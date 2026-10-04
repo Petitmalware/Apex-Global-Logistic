@@ -1,4 +1,4 @@
-﻿﻿import Image from "next/image";
+﻿﻿﻿import Image from "next/image";
 import Link from "next/link";
 import type { Route } from "next";
 import type { LucideIcon } from "lucide-react";
@@ -233,19 +233,19 @@ export function HomeHero() {
 
             {/* Floating info chips */}
             <div className="border-accent/30 bg-background/80 animate-bounce-subtle absolute -top-4 right-8 rounded-lg border px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur-sm">
-              &#127758; 150+ Countries
+              \u{1F30E} 150+ Countries
             </div>
             <div
               className="bg-background/80 absolute bottom-4 left-4 rounded-lg border border-blue-400/30 px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur-sm"
               style={{ animationDelay: "1s" }}
             >
-              &#128230; Real-time Tracking
+              \u{1F4E6} Real-time Tracking
             </div>
             <div
               className="bg-background/80 absolute top-16 -left-2 rounded-lg border border-green-400/30 px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur-sm"
               style={{ animationDelay: "2s" }}
             >
-              &#128062; Pet Safe Transport
+              \u{1F43E} Pet Safe Transport
             </div>
           </div>
         </div>
@@ -448,35 +448,95 @@ export function CustomerJourneySection() {
 
 export function DocumentsAndBillingSection() {
   return (
-    <section className="mx-auto grid w-full max-w-7xl gap-8 px-4 py-16 sm:px-6 lg:grid-cols-[1fr_1fr] lg:items-start">
-      <div>
-        <SectionIntro
-          description="Documents are one of the strongest ways to build trust. Apex records what was created, why it was created, who it belongs to, and how it connects back to the shipment."
-          eyebrow="Documents and billing"
-          title="Clear paperwork before, during, and after delivery"
-        />
-        <div className="border-border bg-card shadow-panel mt-8 rounded-lg border p-5">
-          <h3 className="text-base font-semibold tracking-normal">How official documents help</h3>
-          <p className="text-muted-foreground mt-3 text-sm leading-6">
-            Shipment notices, invoices, receipts, labels, health or care notes, and delivery
-            confirmations can all be prepared from the admin dashboard. This gives customers a
-            consistent paper trail instead of scattered messages.
-          </p>
-          <Button asChild className="mt-5" variant="accent">
-            <Link href={"/services" as Route}>
-              View services
-              <ArrowRight aria-hidden="true" />
-            </Link>
-          </Button>
-        </div>
-      </div>
-      <div className="grid gap-4">
-        {documentTrustItems.map((item) => (
-          <div className="border-border bg-card rounded-lg border p-5" key={item.title}>
-            <h3 className="font-semibold tracking-normal">{item.title}</h3>
-            <p className="text-muted-foreground mt-2 text-sm leading-6">{item.description}</p>
+    <section className="relative overflow-hidden py-16">
+      {/* Subtle grid bg */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 -z-10 opacity-[0.025]"
+        style={{
+          backgroundImage:
+            "linear-gradient(oklch(0.84 0.16 83.68) 1px, transparent 1px), linear-gradient(90deg, oklch(0.84 0.16 83.68) 1px, transparent 1px)",
+          backgroundSize: "48px 48px",
+        }}
+      />
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6">
+        {/* Top: intro + image */}
+        <div className="grid gap-10 lg:grid-cols-[1fr_1fr] lg:items-center">
+          <div>
+            <SectionIntro
+              description="Documents are one of the strongest ways to build trust. Apex records what was created, why it was created, who it belongs to, and how it connects back to the shipment."
+              eyebrow="Documents and billing"
+              title="Clear paperwork before, during, and after delivery"
+            />
+            <div className="border-border bg-card shadow-panel mt-8 rounded-xl border p-6">
+              <h3 className="text-base font-semibold tracking-normal">How official documents help</h3>
+              <p className="text-muted-foreground mt-3 text-sm leading-6">
+                Shipment notices, invoices, email receipts, labels, health or care notes, and delivery
+                confirmations — all prepared from the admin dashboard. Customers get a consistent
+                paper trail instead of scattered messages.
+              </p>
+              <div className="mt-5 flex flex-wrap gap-3">
+                <Button asChild variant="accent">
+                  <Link href={"/services" as Route}>
+                    View services
+                    <ArrowRight aria-hidden="true" />
+                  </Link>
+                </Button>
+                <Button asChild variant="outline">
+                  <Link href={"/contact" as Route}>Request documents</Link>
+                </Button>
+              </div>
+            </div>
           </div>
-        ))}
+
+          {/* Illustration: logistics documents visual */}
+          <div className="relative hidden lg:block">
+            <div
+              aria-hidden="true"
+              className="animate-float absolute -inset-6 rounded-3xl opacity-20"
+              style={{
+                background:
+                  "radial-gradient(circle at 60% 40%, oklch(0.84 0.16 83.68), transparent 70%)",
+              }}
+            />
+            <Image
+              alt="Professional shipping documents, invoices, and paperwork laid out on a logistics desk"
+              className="relative w-full rounded-2xl object-cover shadow-xl"
+              height={480}
+              sizes="(min-width: 1024px) 45vw, 100vw"
+              src="https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=900&q=80"
+              width={720}
+            />
+            {/* Floating document badge */}
+            <div className="border-border bg-background/90 shadow-panel absolute -bottom-4 -left-4 max-w-[220px] rounded-xl border p-4 backdrop-blur-sm">
+              <div className="flex items-center gap-2">
+                <div className="bg-accent/15 text-accent grid size-9 shrink-0 place-items-center rounded-lg">
+                  <Check aria-hidden="true" className="size-5" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold">Email Invoice Sent</p>
+                  <p className="text-muted-foreground text-xs">Delivered to customer inbox</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Document type cards */}
+        <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {documentTrustItems.map((item) => (
+            <div
+              className="border-border bg-card hover:border-accent/50 rounded-xl border p-5 transition-all hover:-translate-y-1"
+              key={item.title}
+            >
+              <div className="bg-accent/10 text-accent mb-3 grid size-10 place-items-center rounded-lg">
+                <Check aria-hidden="true" className="size-4" />
+              </div>
+              <h3 className="font-semibold tracking-normal">{item.title}</h3>
+              <p className="text-muted-foreground mt-2 text-sm leading-6">{item.description}</p>
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -667,12 +727,12 @@ export function PetTransportPartnerSection() {
           {/* Pet type badges */}
           <div className="mt-6 flex flex-wrap gap-2">
             {[
-              { emoji: "&#128021;", label: "Dogs" },
-              { emoji: "&#128008;", label: "Cats" },
-              { emoji: "&#128038;", label: "Birds" },
-              { emoji: "&#128007;", label: "Rabbits" },
-              { emoji: "&#129422;", label: "Reptiles" },
-              { emoji: "&#128032;", label: "Exotic Pets" },
+              { emoji: "\u{1F415}", label: "Dogs" },
+              { emoji: "\u{1F408}", label: "Cats" },
+              { emoji: "\u{1F426}", label: "Birds" },
+              { emoji: "\u{1F407}", label: "Rabbits" },
+              { emoji: "\u{1F98E}", label: "Reptiles" },
+              { emoji: "\u{1F420}", label: "Exotic Pets" },
             ].map((pet) => (
               <span
                 key={pet.label}
@@ -796,7 +856,7 @@ export function PetServicesShowcase() {
       <div className="mx-auto max-w-3xl text-center">
         <div className="border-accent/40 bg-accent/10 mb-4 inline-flex items-center gap-2 rounded-full border px-4 py-1.5">
           <span className="text-accent text-xs font-bold tracking-widest uppercase">
-            &#9993; Global Logistics Services
+            \u2709 Global Logistics Services
           </span>
         </div>
         <Heading className="mt-3">Every shipment, every mile — delivered right</Heading>
@@ -1036,86 +1096,96 @@ export function ContactPanel() {
     {
       description: "Company information, service questions, quotes, and new shipment coordination.",
       email: siteConfig.emails.general,
-      label: "General inquiries",
+      label: "General Inquiries",
       subject: "Apex Global Logistics inquiry",
     },
     {
       description:
         "Active shipment help, account access, verification, password reset, billing, and customer care.",
       email: siteConfig.emails.support,
-      label: "Customer support",
+      label: "Customer Support",
       subject: "Apex customer support request",
     },
   ] as const;
 
+  const contactCards = [
+    {
+      href: "/tracking",
+      icon: PackageSearch,
+      label: "Track a Shipment",
+      description:
+        "Use a tracking number or carrier reference to check live status, location milestones, and delivery confirmation — no account required.",
+    },
+    {
+      href: "/register",
+      icon: Check,
+      label: "Create an Account",
+      description:
+        "Register for full access to shipment history, invoices, documents, email receipts, and account-based support records.",
+    },
+    {
+      href: "/support",
+      icon: MessageCircle,
+      label: "Live Chat & Cases",
+      description:
+        "Open a secure support case with message history, file attachments, and email notifications when Apex replies.",
+    },
+    {
+      href: "/services",
+      icon: Handshake,
+      label: "View All Services",
+      description:
+        "Explore the full range — air freight, ocean cargo, express parcels, pet relocation, customs, and warehouse fulfilment.",
+    },
+  ] as const;
+
   return (
-    <section className="mx-auto grid w-full max-w-7xl gap-8 px-4 py-16 sm:px-6 lg:grid-cols-[0.9fr_1.1fr]">
-      <div>
-        <SectionIntro
-          description="Use the fastest channel for your situation. Customers can track shipments without an account, create an account for documents, or contact operations directly for shipment setup."
-          eyebrow="Contact"
-          title="Reach the right Apex desk"
-        />
-        <p className="text-muted-foreground mt-5 max-w-xl text-sm leading-6">
-          For account verification or password reset issues, use the email address connected to your
-          customer account so support can match the request to the correct record.
-        </p>
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2">
-        {emailChannels.map((channel) => (
-          <a
-            className="border-border bg-card shadow-panel hover:border-accent/60 rounded-lg border p-5 transition-colors"
-            href={`mailto:${channel.email}?subject=${encodeURIComponent(channel.subject)}`}
-            key={channel.email}
-          >
-            <div className="bg-accent/15 text-accent grid size-11 place-items-center rounded-md">
-              <Mail aria-hidden="true" className="size-5" />
-            </div>
-            <h3 className="mt-5 text-lg font-semibold tracking-normal">{channel.label}</h3>
-            <p className="text-muted-foreground mt-2 text-sm leading-6">
-              {channel.description} Write to {channel.email}.
-            </p>
-          </a>
-        ))}
-        <Link
-          className="border-border bg-card shadow-panel hover:border-accent/60 rounded-lg border p-5 transition-colors"
-          href={"/tracking" as Route}
-        >
-          <div className="bg-accent/15 text-accent grid size-11 place-items-center rounded-md">
-            <PackageSearch aria-hidden="true" className="size-5" />
-          </div>
-          <h3 className="mt-5 text-lg font-semibold tracking-normal">Track a shipment</h3>
-          <p className="text-muted-foreground mt-2 text-sm leading-6">
-            Use a tracking number or carrier reference to check public status without creating an
-            account.
-          </p>
-        </Link>
-        <Link
-          className="border-border bg-card shadow-panel hover:border-accent/60 rounded-lg border p-5 transition-colors"
-          href={"/register" as Route}
-        >
-          <div className="bg-accent/15 text-accent grid size-11 place-items-center rounded-md">
-            <Check aria-hidden="true" className="size-5" />
-          </div>
-          <h3 className="mt-5 text-lg font-semibold tracking-normal">Create customer access</h3>
-          <p className="text-muted-foreground mt-2 text-sm leading-6">
-            Register when you need shipment history, invoices, documents, support records, and
-            account-based updates.
-          </p>
-        </Link>
-        <Link
-          className="border-border bg-card shadow-panel hover:border-accent/60 rounded-lg border p-5 transition-colors"
-          href={"/support" as Route}
-        >
-          <div className="bg-accent/15 text-accent grid size-11 place-items-center rounded-md">
-            <MessageCircle aria-hidden="true" className="size-5" />
-          </div>
-          <h3 className="mt-5 text-lg font-semibold tracking-normal">Live chat</h3>
-          <p className="text-muted-foreground mt-2 text-sm leading-6">
-            Open the Support Centre for a secure case with message history, attachments, and email
-            links that return you directly to the conversation.
-          </p>
-        </Link>
+    <section className="bg-surface py-16">
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6">
+        {/* Header */}
+        <div className="mx-auto mb-12 max-w-2xl text-center">
+          <Kicker>Contact</Kicker>
+          <Heading className="mt-3">Reach the right Apex desk</Heading>
+          <Text className="mt-4">
+            Use the fastest channel for your situation. Track a shipment without an account, open a
+            support case with live chat, or email the team directly for quotes and coordination.
+          </Text>
+        </div>
+
+        {/* Email channels — highlighted */}
+        <div className="mb-6 grid gap-4 sm:grid-cols-2">
+          {emailChannels.map((channel) => (
+            <a
+              className="border-border bg-card shadow-panel hover:border-accent/60 group rounded-xl border p-6 transition-all hover:-translate-y-1"
+              href={`mailto:${channel.email}?subject=${encodeURIComponent(channel.subject)}`}
+              key={channel.email}
+            >
+              <div className="bg-accent/15 text-accent grid size-12 place-items-center rounded-xl transition-transform group-hover:scale-110">
+                <Mail aria-hidden="true" className="size-5" />
+              </div>
+              <h3 className="mt-4 text-lg font-semibold tracking-normal">{channel.label}</h3>
+              <p className="text-muted-foreground mt-2 text-sm leading-6">{channel.description}</p>
+              <p className="text-accent mt-3 text-sm font-semibold">{channel.email}</p>
+            </a>
+          ))}
+        </div>
+
+        {/* Action cards */}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {contactCards.map((card) => (
+            <Link
+              className="border-border bg-card shadow-panel hover:border-accent/60 group rounded-xl border p-5 transition-all hover:-translate-y-1"
+              href={card.href as Route}
+              key={card.label}
+            >
+              <div className="bg-accent/15 text-accent grid size-11 place-items-center rounded-lg transition-transform group-hover:scale-110">
+                <card.icon aria-hidden="true" className="size-5" />
+              </div>
+              <h3 className="mt-4 text-base font-semibold tracking-normal">{card.label}</h3>
+              <p className="text-muted-foreground mt-2 text-sm leading-6">{card.description}</p>
+            </Link>
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -1171,10 +1241,10 @@ export function FinalCta() {
             {/* Trust micro-signals */}
             <div className="mt-6 flex flex-wrap gap-4">
               {[
-                "&#10003; No setup fees",
-                "&#10003; 24/7 shipment tracking",
-                "&#10003; Pet-certified handlers",
-                "&#10003; Global coverage",
+                "\u2713 No setup fees",
+                "\u2713 24/7 shipment tracking",
+                "\u2713 Pet-certified handlers",
+                "\u2713 Global coverage",
               ].map((item) => (
                 <span key={item} className="text-primary-foreground/80 text-sm font-medium">
                   {item}
@@ -1368,7 +1438,7 @@ export function AiPoweredSection() {
         <div className="mx-auto max-w-3xl text-center">
           <div className="border-accent/40 bg-accent/10 inline-flex items-center gap-2 rounded-full border px-4 py-1.5">
             <span className="text-accent text-xs font-bold tracking-widest uppercase">
-              &#10022; AI-Powered Platform
+              \u2726 AI-Powered Platform
             </span>
           </div>
           <Heading className="mt-4">Logistics intelligence built for the modern world</Heading>
@@ -1423,7 +1493,7 @@ export function AiPoweredSection() {
           {[
             { value: "99.7%", label: "On-time delivery rate" },
             { value: "150+", label: "Countries served" },
-            { value: "4.9&#9733;", label: "Average customer rating" },
+            { value: "4.9\u2605", label: "Average customer rating" },
             { value: "<2 min", label: "AI quote generation" },
           ].map((stat) => (
             <div key={stat.label} className="bg-card p-6 text-center">
