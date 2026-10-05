@@ -1,19 +1,18 @@
 import type { Metadata } from "next";
-
 import { MarketingShell } from "@/features/marketing/components/marketing-shell";
-import { TrackingLookup } from "@/features/marketing/components/tracking-lookup";
+import { UnifiedTrackingDashboard } from "@/features/marketing/components/unified-tracking-dashboard";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/tracking" },
   description:
-    "Track Apex Global Logistics shipments with clean milestone visibility for parcels, pet transportation, and freight.",
-  title: "Tracking | Apex Global Logistics",
+    "Track any Apex Global Logistics shipment in real-time — parcels, pet transport, air freight, ocean cargo, and ground delivery with live GPS route visibility.",
+  title: "Live Tracking | Apex Global Logistics",
 };
 
 export default function TrackingPage() {
   return (
     <MarketingShell>
-      <TrackingLookup />
+      <UnifiedTrackingDashboard />
     </MarketingShell>
   );
 }
