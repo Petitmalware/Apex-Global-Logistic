@@ -1,11 +1,11 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Printer, Save, Send, CheckCircle, Loader2, Mail } from "lucide-react";
+import { Plus, Trash2, Printer, Save, CheckCircle, Loader2, Mail } from "lucide-react";
 
 export type InvoiceEditorProps = {
   invoice?: {
