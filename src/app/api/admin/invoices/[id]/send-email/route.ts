@@ -187,11 +187,18 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     const user = await requireRole([AUTH_ROLES.ADMIN, AUTH_ROLES.SUPER_ADMIN]);
     const { id } = await params;
 
-    // Fetch invoice
+    // Fetch invoice with line items and relations
     const invoice = await prisma.invoice.findFirst({
       where: {
         id,
         organizationId: user.organizationId ?? undefined,
+      },
+      include: {
+        lineItems: {
+          orderBy: { sortOrder: "asc" },
+        },
+        customer: true,
+        billingAddress: true,
       },
     });
 
@@ -199,29 +206,53 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
       return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
     }
 
-    // Parse lineItems (stored as JSON in DB)
-    let lineItems: Array<{ description: string; quantity: number; unitPrice: number }> = [];
-    if (invoice.lineItems) {
-      lineItems = typeof invoice.lineItems === "string" ? JSON.parse(invoice.lineItems) : (invoice.lineItems as typeof lineItems);
+    const recipientEmail = invoice.customer?.email;
+    if (!recipientEmail) {
+      return NextResponse.json(
+        { error: "Invoice has no associated customer email address" },
+        { status: 400 },
+      );
+    }
+
+    const lineItems = invoice.lineItems.map((item) => ({
+      description: item.description,
+      quantity: Number(item.quantity),
+      unitPrice: Number(item.unitPrice),
+    }));
+
+    const subtotalNum = Number(invoice.subtotal);
+    const taxTotalNum = Number(invoice.taxTotal);
+    const taxRate = subtotalNum > 0 ? (taxTotalNum / subtotalNum) * 100 : 0;
+
+    let addressStr: string | null = null;
+    if (invoice.billingAddress) {
+      const parts = [
+        invoice.billingAddress.line1,
+        invoice.billingAddress.line2,
+        invoice.billingAddress.city,
+        invoice.billingAddress.state,
+        invoice.billingAddress.postalCode,
+        invoice.billingAddress.countryCode,
+      ].filter(Boolean);
+      addressStr = parts.join(", ");
     }
 
     const invoiceData = {
       invoiceNumber: invoice.invoiceNumber,
-      customerName: invoice.customerName,
-      customerEmail: invoice.customerEmail,
-      billingAddress: invoice.billingAddress,
+      customerName: invoice.customer?.name ?? "Valued Customer",
+      customerEmail: recipientEmail,
+      billingAddress: addressStr,
       lineItems,
-      taxRate: Number(invoice.taxRate ?? 0),
+      taxRate: Math.round(taxRate * 10) / 10,
       notes: invoice.notes,
       status: invoice.status,
-      issuedAt: invoice.issuedAt,
-      dueAt: invoice.dueAt,
+      issuedAt: invoice.issuedAt ?? invoice.createdAt,
+      dueAt: invoice.dueDate,
       currency: invoice.currency ?? "USD",
     };
 
     const html = buildInvoiceHtml(invoiceData);
 
-    // Build transporter from env vars
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST ?? "smtp.gmail.com",
       port: Number(process.env.SMTP_PORT ?? 465),
@@ -236,18 +267,17 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
 
     await transporter.sendMail({
       from: fromAddress,
-      to: invoice.customerEmail,
+      to: recipientEmail,
       subject: `Invoice ${invoice.invoiceNumber} from Apex Global Logistics`,
       html,
-      text: `Your invoice ${invoice.invoiceNumber} from Apex Global Logistics is attached. Please view this email in an HTML-capable email client for the full invoice details.`,
+      text: `Your invoice ${invoice.invoiceNumber} from Apex Global Logistics is ready. Amount: ${invoice.total} ${invoice.currency}. Please view in an HTML-enabled email client for full itemized details.`,
     });
 
-    // Mark invoice as SENT if it was DRAFT
     if (invoice.status === "DRAFT") {
       await prisma.invoice.update({ where: { id }, data: { status: "SENT" } });
     }
 
-    return NextResponse.json({ success: true, sentTo: invoice.customerEmail });
+    return NextResponse.json({ success: true, sentTo: recipientEmail });
   } catch (error) {
     console.error("Invoice email send failed", error);
     const message = error instanceof Error ? error.message : "Unknown error";
