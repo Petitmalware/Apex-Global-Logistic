@@ -104,9 +104,15 @@ export function InvoiceEditor({ invoice }: InvoiceEditorProps) {
       body: JSON.stringify(payload),
     });
 
-    const data = await res.json();
+    let data: { success?: boolean; error?: string; message?: string; invoice?: { id?: string } } = {};
+    try {
+      data = await res.json();
+    } catch {
+      throw new Error(`Server returned error status ${res.status}`);
+    }
+
     if (!res.ok || !data.success) {
-      throw new Error(data.error || "Failed to save invoice.");
+      throw new Error(data.error || data.message || `Failed to save invoice (${res.status})`);
     }
 
     const savedId = data.invoice?.id || currentId;
@@ -146,10 +152,21 @@ export function InvoiceEditor({ invoice }: InvoiceEditorProps) {
       }
 
       // Step 2: Send email
-      const res = await fetch(`/api/admin/invoices/${idToUse}/send-email`, { method: "POST" });
-      const data = await res.json();
+      const res = await fetch(`/api/admin/invoices/${idToUse}/send-email`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: customerEmail.trim() }),
+      });
+
+      let data: { success?: boolean; error?: string; message?: string } = {};
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error(`Email server returned status ${res.status}`);
+      }
+
       if (!res.ok || !data.success) {
-        throw new Error(data.error || "Failed to send invoice email.");
+        throw new Error(data.error || data.message || "Failed to send invoice email.");
       }
 
       setSendSuccess(true);
