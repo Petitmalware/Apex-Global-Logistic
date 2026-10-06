@@ -54,10 +54,10 @@ export function DeliveryTruckAnimation() {
         <svg viewBox="0 0 130 55" className="h-20" xmlns="http://www.w3.org/2000/svg">
           {/* Cargo body */}
           <rect x="5" y="8" width="80" height="34" rx="4" fill="#f59e0b" />
-          {/* Paw mark on cargo side */}
-          <text x="28" y="31" fontSize="16" opacity="0.5">
-            &#128062;
-          </text>
+          {/* Paw mark SVG vector on cargo side */}
+          <g transform="translate(35, 15) scale(0.7)" fill="#b45309" opacity="0.8">
+            <path d={PAW_PATH} />
+          </g>
           {/* Cab */}
           <rect x="82" y="4" width="36" height="38" rx="5" fill="#b45309" />
           {/* Windshield */}
