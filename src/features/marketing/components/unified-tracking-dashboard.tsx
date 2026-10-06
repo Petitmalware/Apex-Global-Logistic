@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
@@ -39,9 +39,21 @@ export function UnifiedTrackingDashboard() {
     if (!query.trim()) return;
     setLookupStatus("loading");
     setResult(null);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+
     try {
-      const res = await fetch(`/api/tracking/${encodeURIComponent(query.trim())}`);
-      if (!res.ok) { setLookupStatus("error"); return; }
+      const res = await fetch(`/api/tracking/${encodeURIComponent(query.trim())}`, {
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      if (!res.ok) {
+        setLookupStatus("error");
+        return;
+      }
+
       const data = await res.json();
       setResult({
         shipmentNumber: data.shipmentNumber ?? query,
@@ -50,7 +62,7 @@ export function UnifiedTrackingDashboard() {
         destinationCity: data.destinationCity ?? "—",
         estimatedDelivery: data.deliveryWindowEnd ?? data.deliveryWindowStart ?? null,
         currentLocation: data.timeline?.[0]?.currentLocation ?? null,
-        events: (data.timeline ?? []).slice(0, 5).map((e: {message?: string; currentLocation?: string | null; happenedAt?: string | null}) => ({
+        events: (data.timeline ?? []).slice(0, 5).map((e: { message?: string; currentLocation?: string | null; happenedAt?: string | null }) => ({
           message: e.message ?? "Update",
           location: e.currentLocation ?? null,
           timestamp: e.happenedAt ?? "",
@@ -60,11 +72,12 @@ export function UnifiedTrackingDashboard() {
       });
       setLookupStatus("found");
     } catch {
+      clearTimeout(timeoutId);
       setLookupStatus("error");
     }
   }
 
-  function statusVariant(s: string): "success"|"danger"|"warning"|"accent"|"neutral" {
+  function statusVariant(s: string): "success" | "danger" | "warning" | "accent" | "neutral" {
     if (s === "DELIVERED") return "success";
     if (s === "CANCELLED" || s === "RETURNED") return "danger";
     if (s === "DELAYED" || s === "HELD") return "warning";
@@ -81,8 +94,10 @@ export function UnifiedTrackingDashboard() {
     <div className="w-full">
       {/* ── HERO ── */}
       <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 py-16 sm:py-24">
+        {/* Animated paw prints background */}
         <FloatingPawPrints />
 
+        {/* Subtle grid overlay */}
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 opacity-[0.04]"
@@ -95,6 +110,7 @@ export function UnifiedTrackingDashboard() {
 
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6">
           <div className="grid items-center gap-12 lg:grid-cols-2">
+            {/* Left: Search */}
             <div>
               <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-1.5">
                 <Radio className="h-3.5 w-3.5 animate-pulse text-amber-400" />
@@ -108,6 +124,7 @@ export function UnifiedTrackingDashboard() {
                 Real-time GPS visibility for pet transport, air cargo, ocean freight, and parcel delivery — from booking to your door.
               </p>
 
+              {/* Search form */}
               <form className="mt-8" onSubmit={handleSearch}>
                 <div className="flex gap-3">
                   <div className="relative flex-1">
@@ -125,7 +142,10 @@ export function UnifiedTrackingDashboard() {
                     disabled={lookupStatus === "loading"}
                   >
                     {lookupStatus === "loading" ? (
-                      <span className="flex items-center gap-2"><span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-900 border-t-transparent" /> Searching…</span>
+                      <span className="flex items-center gap-2">
+                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-900 border-t-transparent" />
+                        Searching…
+                      </span>
                     ) : (
                       "Track"
                     )}
@@ -133,9 +153,10 @@ export function UnifiedTrackingDashboard() {
                 </div>
               </form>
 
+              {/* Stat chips */}
               <div className="mt-6 flex flex-wrap gap-3">
                 {[
-                  { icon: "🌎", label: "150+ Countries" },
+                  { icon: "🌍", label: "150+ Countries" },
                   { icon: "📡", label: "Real-time Updates" },
                   { icon: "🐾", label: "Pet Safe Transport" },
                 ].map((chip) => (
@@ -150,6 +171,7 @@ export function UnifiedTrackingDashboard() {
               </div>
             </div>
 
+            {/* Right: truck animation */}
             <div className="hidden lg:block">
               <DeliveryTruckAnimation />
             </div>
@@ -176,8 +198,9 @@ export function UnifiedTrackingDashboard() {
       {lookupStatus === "found" && result && (
         <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
           <div className="grid gap-8 lg:grid-cols-[1fr_1.4fr]">
-
+            {/* Left: Status panel */}
             <div className="space-y-5">
+              {/* Status header */}
               <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
                 <div className="bg-gradient-to-r from-slate-900 to-slate-800 px-6 py-5">
                   <div className="flex items-center justify-between">
@@ -190,6 +213,7 @@ export function UnifiedTrackingDashboard() {
                 </div>
 
                 <div className="p-6">
+                  {/* Origin → Destination */}
                   <div className="flex items-center gap-3">
                     <div className="flex flex-col items-center">
                       <div className="h-3 w-3 rounded-full bg-amber-500" />
@@ -235,6 +259,7 @@ export function UnifiedTrackingDashboard() {
                 </div>
               </div>
 
+              {/* Timeline */}
               {result.events.length > 0 && (
                 <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
                   <h3 className="mb-4 text-sm font-bold tracking-wider text-slate-500 uppercase">Event Timeline</h3>
@@ -259,6 +284,7 @@ export function UnifiedTrackingDashboard() {
               )}
             </div>
 
+            {/* Right: Map */}
             <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
               <div className="flex items-center justify-between border-b border-border px-5 py-4">
                 <div className="flex items-center gap-2">
@@ -289,7 +315,6 @@ export function UnifiedTrackingDashboard() {
                 Map updates automatically as the shipment progresses
               </div>
             </div>
-
           </div>
         </section>
       )}
