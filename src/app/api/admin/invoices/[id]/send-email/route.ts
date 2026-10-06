@@ -50,7 +50,7 @@ function buildInvoiceHtml(inv: {
       ? "#16a34a"
       : inv.status === "OVERDUE"
         ? "#dc2626"
-        : inv.status === "SENT"
+        : inv.status === "ISSUED"
           ? "#2563eb"
           : "#6b7280";
 
@@ -184,15 +184,12 @@ function buildInvoiceHtml(inv: {
 // ─── Route ────────────────────────────────────────────────────────────────────
 export async function POST(request: NextRequest, { params }: RouteContext) {
   try {
-    const user = await requireRole([AUTH_ROLES.ADMIN, AUTH_ROLES.SUPER_ADMIN]);
+    await requireRole([AUTH_ROLES.ADMIN, AUTH_ROLES.SUPER_ADMIN]);
     const { id } = await params;
 
     // Fetch invoice with line items and relations
-    const invoice = await prisma.invoice.findFirst({
-      where: {
-        id,
-        organizationId: user.organizationId ?? undefined,
-      },
+    const invoice = await prisma.invoice.findUnique({
+      where: { id },
       include: {
         lineItems: {
           orderBy: { sortOrder: "asc" },
@@ -274,7 +271,13 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     });
 
     if (invoice.status === "DRAFT") {
-      await prisma.invoice.update({ where: { id }, data: { status: "SENT" } });
+      await prisma.invoice.update({
+        where: { id },
+        data: {
+          status: "ISSUED",
+          issuedAt: invoice.issuedAt ?? new Date(),
+        },
+      });
     }
 
     return NextResponse.json({ success: true, sentTo: recipientEmail });
