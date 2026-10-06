@@ -1,6 +1,9 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import Link from "next/link";
+import type { Route } from "next";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,7 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, Eye, Edit, CheckCircle, Send, FileText } from "lucide-react";
+import { Search, Eye, CheckCircle, Send, FileText, Loader2 } from "lucide-react";
 import type { InvoiceListItem } from "@/features/invoices/types/invoice.types";
 
 export type Invoice = InvoiceListItem;
@@ -28,8 +31,12 @@ const statusColors: Record<Invoice["status"], string> = {
   UNCOLLECTIBLE: "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400",
 };
 
-export function InvoiceList({ invoices }: { invoices: Invoice[] }) {
+export function InvoiceList({ invoices: initialInvoices }: { invoices: Invoice[] }) {
+  const router = useRouter();
+  const [invoices, setInvoices] = useState<Invoice[]>(initialInvoices);
   const [searchTerm, setSearchTerm] = useState("");
+  const [loadingInvoiceId, setLoadingInvoiceId] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   const stats = useMemo(() => {
     const totalInvoices = invoices.length;
@@ -71,8 +78,69 @@ export function InvoiceList({ invoices }: { invoices: Invoice[] }) {
     }).format(new Date(date));
   };
 
+  const handleMarkAsPaid = async (id: string) => {
+    setLoadingInvoiceId(id);
+    setStatusMessage(null);
+    try {
+      const res = await fetch(`/api/admin/invoices/${id}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "PAID" }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to update status");
+      }
+      setInvoices((prev) =>
+        prev.map((inv) => (inv.id === id ? { ...inv, status: "PAID" } : inv)),
+      );
+      setStatusMessage("Invoice marked as paid.");
+      setTimeout(() => setStatusMessage(null), 4000);
+    } catch (err) {
+      setStatusMessage(err instanceof Error ? err.message : "Error updating invoice.");
+    } finally {
+      setLoadingInvoiceId(null);
+    }
+  };
+
+  const handleSendEmail = async (id: string, email: string | null) => {
+    if (!email) {
+      setStatusMessage("Invoice has no customer email address.");
+      return;
+    }
+    setLoadingInvoiceId(id);
+    setStatusMessage(null);
+    try {
+      const res = await fetch(`/api/admin/invoices/${id}/send-email`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to send email");
+      }
+      setInvoices((prev) =>
+        prev.map((inv) =>
+          inv.id === id && inv.status === "DRAFT" ? { ...inv, status: "ISSUED" } : inv,
+        ),
+      );
+      setStatusMessage(`Invoice emailed to ${email}.`);
+      setTimeout(() => setStatusMessage(null), 4000);
+    } catch (err) {
+      setStatusMessage(err instanceof Error ? err.message : "Error sending invoice email.");
+    } finally {
+      setLoadingInvoiceId(null);
+    }
+  };
+
   return (
     <div className="w-full space-y-6">
+      {/* Feedback banner */}
+      {statusMessage && (
+        <div className="border-accent/40 bg-accent/10 text-accent rounded-lg border px-4 py-3 text-sm font-medium">
+          {statusMessage}
+        </div>
+      )}
+
       {/* Stats Row */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
         <Card>
@@ -129,9 +197,11 @@ export function InvoiceList({ invoices }: { invoices: Invoice[] }) {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <Button>
-          <FileText className="mr-2 h-4 w-4" />
-          Create Invoice
+        <Button asChild variant="accent">
+          <Link href={"/admin/invoices/new" as Route}>
+            <FileText className="mr-2 h-4 w-4" />
+            Create Invoice
+          </Link>
         </Button>
       </div>
 
@@ -167,7 +237,7 @@ export function InvoiceList({ invoices }: { invoices: Invoice[] }) {
                     <TableCell className="font-medium">{inv.invoiceNumber}</TableCell>
                     <TableCell>
                       <div className="flex flex-col">
-                        <span className="font-medium">{inv.customerName}</span>
+                        <span className="font-medium">{inv.customerName || "Customer"}</span>
                         <span className="text-muted-foreground text-xs">{inv.customerEmail}</span>
                       </div>
                     </TableCell>
@@ -196,17 +266,48 @@ export function InvoiceList({ invoices }: { invoices: Invoice[] }) {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Button variant="ghost" size="icon" title="View/Print">
-                          <Eye className="text-muted-foreground h-4 w-4" />
+                        {/* View Link */}
+                        <Button
+                          asChild
+                          variant="ghost"
+                          size="icon"
+                          title="View / Print"
+                        >
+                          <Link href={`/invoices/${inv.id}` as Route}>
+                            <Eye className="text-muted-foreground h-4 w-4" />
+                          </Link>
                         </Button>
-                        <Button variant="ghost" size="icon" title="Edit">
-                          <Edit className="text-muted-foreground h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" title="Mark as Paid">
-                          <CheckCircle className="text-muted-foreground h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" title="Send Email">
-                          <Send className="text-muted-foreground h-4 w-4" />
+
+                        {/* Mark as Paid Action */}
+                        {inv.status !== "PAID" && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="Mark as Paid"
+                            disabled={loadingInvoiceId === inv.id}
+                            onClick={() => handleMarkAsPaid(inv.id)}
+                          >
+                            {loadingInvoiceId === inv.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin text-green-600" />
+                            ) : (
+                              <CheckCircle className="h-4 w-4 text-green-600 hover:text-green-700" />
+                            )}
+                          </Button>
+                        )}
+
+                        {/* Send Email Action */}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Send Email Invoice"
+                          disabled={loadingInvoiceId === inv.id}
+                          onClick={() => handleSendEmail(inv.id, inv.customerEmail)}
+                        >
+                          {loadingInvoiceId === inv.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
+                          ) : (
+                            <Send className="text-muted-foreground h-4 w-4 hover:text-amber-500" />
+                          )}
                         </Button>
                       </div>
                     </TableCell>
