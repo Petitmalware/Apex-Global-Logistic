@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
       dueDate && !isNaN(new Date(dueDate).getTime()) ? new Date(dueDate) : null;
 
     // Ensure invoice number is unique for this organization
-    let finalInvoiceNumber = (invoiceNumber || `INV-${Math.floor(Math.random() * 9000) + 1000}`).trim();
+    const finalInvoiceNumber = (invoiceNumber || `INV-${Math.floor(Math.random() * 9000) + 1000}`).trim();
     const existingWithNumber = await prisma.invoice.findFirst({
       where: { organizationId, invoiceNumber: finalInvoiceNumber },
       select: { id: true },
