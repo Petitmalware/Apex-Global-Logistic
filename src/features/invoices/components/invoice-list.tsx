@@ -3,7 +3,6 @@
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import type { Route } from "next";
-import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -32,7 +31,6 @@ const statusColors: Record<Invoice["status"], string> = {
 };
 
 export function InvoiceList({ invoices: initialInvoices }: { invoices: Invoice[] }) {
-  const router = useRouter();
   const [invoices, setInvoices] = useState<Invoice[]>(initialInvoices);
   const [searchTerm, setSearchTerm] = useState("");
   const [loadingInvoiceId, setLoadingInvoiceId] = useState<string | null>(null);
