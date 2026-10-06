@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
@@ -135,9 +135,9 @@ export function UnifiedTrackingDashboard() {
 
               <div className="mt-6 flex flex-wrap gap-3">
                 {[
-                  { icon: "\u{1F30E}", label: "150+ Countries" },
-                  { icon: "\u{1F4E1}", label: "Real-time Updates" },
-                  { icon: "\u{1F43E}", label: "Pet Safe Transport" },
+                  { icon: "🌎", label: "150+ Countries" },
+                  { icon: "📡", label: "Real-time Updates" },
+                  { icon: "🐾", label: "Pet Safe Transport" },
                 ].map((chip) => (
                   <span
                     key={chip.label}
