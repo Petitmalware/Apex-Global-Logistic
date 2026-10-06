@@ -2,7 +2,7 @@
 import Link from "next/link";
 import type { Route } from "next";
 import type { LucideIcon } from "lucide-react";
-import { ArrowRight, Check, Handshake, Mail, MessageCircle, PackageSearch } from "lucide-react";
+import { ArrowRight, Check, Globe, Handshake, Mail, MessageCircle, Package, PackageSearch, PawPrint, ShieldCheck, Sparkles } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -232,20 +232,23 @@ export function HomeHero() {
             </div>
 
             {/* Floating info chips */}
-            <div className="border-accent/30 bg-background/80 animate-bounce-subtle absolute -top-4 right-8 rounded-lg border px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur-sm">
-              🌎 150+ Countries
+            <div className="border-accent/30 bg-background/80 animate-bounce-subtle absolute -top-4 right-8 flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur-sm">
+              <Globe className="text-accent size-3.5" aria-hidden="true" />
+              <span>150+ Countries</span>
             </div>
             <div
-              className="bg-background/80 absolute bottom-4 left-4 rounded-lg border border-blue-400/30 px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur-sm"
+              className="bg-background/80 absolute bottom-4 left-4 flex items-center gap-1.5 rounded-lg border border-blue-400/30 px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur-sm"
               style={{ animationDelay: "1s" }}
             >
-              📦 Real-time Tracking
+              <Package className="size-3.5 text-blue-400" aria-hidden="true" />
+              <span>Real-time Tracking</span>
             </div>
             <div
-              className="bg-background/80 absolute top-16 -left-2 rounded-lg border border-green-400/30 px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur-sm"
+              className="bg-background/80 absolute top-16 -left-2 flex items-center gap-1.5 rounded-lg border border-green-400/30 px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur-sm"
               style={{ animationDelay: "2s" }}
             >
-              🐾 Pet Safe Transport
+              <ShieldCheck className="size-3.5 text-green-400" aria-hidden="true" />
+              <span>Pet Safe Transport</span>
             </div>
           </div>
         </div>
@@ -727,19 +730,19 @@ export function PetTransportPartnerSection() {
           {/* Pet type badges */}
           <div className="mt-6 flex flex-wrap gap-2">
             {[
-              { emoji: "🐕", label: "Dogs" },
-              { emoji: "🐈", label: "Cats" },
-              { emoji: "🐦", label: "Birds" },
-              { emoji: "🐇", label: "Rabbits" },
-              { emoji: "🦎", label: "Reptiles" },
-              { emoji: "🐠", label: "Exotic Pets" },
-            ].map((pet) => (
+              "Dogs",
+              "Cats",
+              "Birds",
+              "Rabbits",
+              "Reptiles",
+              "Exotic Pets",
+            ].map((label) => (
               <span
-                key={pet.label}
+                key={label}
                 className="border-border bg-card inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium shadow-sm"
               >
-                <span>{pet.emoji}</span>
-                {pet.label}
+                <PawPrint className="text-accent size-3.5" aria-hidden="true" />
+                {label}
               </span>
             ))}
           </div>
@@ -856,7 +859,7 @@ export function PetServicesShowcase() {
       <div className="mx-auto max-w-3xl text-center">
         <div className="border-accent/40 bg-accent/10 mb-4 inline-flex items-center gap-2 rounded-full border px-4 py-1.5">
           <span className="text-accent text-xs font-bold tracking-widest uppercase">
-            ✉ Global Logistics Services
+            Global Logistics Services
           </span>
         </div>
         <Heading className="mt-3">Every shipment, every mile — delivered right</Heading>
@@ -1241,12 +1244,13 @@ export function FinalCta() {
             {/* Trust micro-signals */}
             <div className="mt-6 flex flex-wrap gap-4">
               {[
-                "✓ No setup fees",
-                "✓ 24/7 shipment tracking",
-                "✓ Pet-certified handlers",
-                "✓ Global coverage",
+                "No setup fees",
+                "24/7 shipment tracking",
+                "Pet-certified handlers",
+                "Global coverage",
               ].map((item) => (
-                <span key={item} className="text-primary-foreground/80 text-sm font-medium">
+                <span key={item} className="text-primary-foreground/80 flex items-center gap-1.5 text-sm font-medium">
+                  <Check className="text-accent size-4" aria-hidden="true" />
                   {item}
                 </span>
               ))}
@@ -1438,7 +1442,7 @@ export function AiPoweredSection() {
         <div className="mx-auto max-w-3xl text-center">
           <div className="border-accent/40 bg-accent/10 inline-flex items-center gap-2 rounded-full border px-4 py-1.5">
             <span className="text-accent text-xs font-bold tracking-widest uppercase">
-              ✦ AI-Powered Platform
+              AI-Powered Platform
             </span>
           </div>
           <Heading className="mt-4">Logistics intelligence built for the modern world</Heading>
@@ -1493,7 +1497,7 @@ export function AiPoweredSection() {
           {[
             { value: "99.7%", label: "On-time delivery rate" },
             { value: "150+", label: "Countries served" },
-            { value: "4.9★", label: "Average customer rating" },
+            { value: "4.9 / 5", label: "Average customer rating" },
             { value: "<2 min", label: "AI quote generation" },
           ].map((stat) => (
             <div key={stat.label} className="bg-card p-6 text-center">
