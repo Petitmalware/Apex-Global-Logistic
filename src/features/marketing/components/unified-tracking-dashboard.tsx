@@ -4,7 +4,7 @@ import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import type { Route } from "next";
 import {
-  Search, Package, MapPin, CheckCircle2, AlertCircle,
+  Search, Package, MapPin, AlertCircle,
   ArrowRight, PawPrint, Plane, Clock, Radio
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
