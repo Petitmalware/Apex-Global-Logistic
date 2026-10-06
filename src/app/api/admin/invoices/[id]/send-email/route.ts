@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 
-import { requireRole } from "@/lib/auth/session";
+import { getCurrentSessionUser } from "@/lib/auth/session";
 import { AUTH_ROLES } from "@/lib/auth/constants";
 import { prisma } from "@/lib/db";
 
@@ -184,8 +184,20 @@ function buildInvoiceHtml(inv: {
 // ─── Route ────────────────────────────────────────────────────────────────────
 export async function POST(request: NextRequest, { params }: RouteContext) {
   try {
-    await requireRole([AUTH_ROLES.ADMIN, AUTH_ROLES.SUPER_ADMIN]);
+    const user = await getCurrentSessionUser();
+    if (
+      !user ||
+      (!user.roles.includes(AUTH_ROLES.ADMIN) && !user.roles.includes(AUTH_ROLES.SUPER_ADMIN))
+    ) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized. Please re-login." },
+        { status: 401 },
+      );
+    }
+
     const { id } = await params;
+    const body = await request.json().catch(() => null);
+    const directEmail = body?.email ? String(body.email).trim() : null;
 
     // Fetch invoice with line items and relations
     const invoice = await prisma.invoice.findUnique({
@@ -200,13 +212,27 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     });
 
     if (!invoice) {
-      return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
+      return NextResponse.json({ success: false, error: "Invoice not found" }, { status: 404 });
     }
 
-    const recipientEmail = invoice.customer?.email;
+    // Resolve billTo from metadata if customer table relation is empty
+    const billTo =
+      invoice.metadata &&
+      typeof invoice.metadata === "object" &&
+      !Array.isArray(invoice.metadata) &&
+      "billTo" in invoice.metadata &&
+      typeof (invoice.metadata as Record<string, unknown>).billTo === "object"
+        ? ((invoice.metadata as Record<string, unknown>).billTo as {
+            name?: string;
+            email?: string;
+            address?: string;
+          })
+        : null;
+
+    const recipientEmail = directEmail || invoice.customer?.email || billTo?.email || null;
     if (!recipientEmail) {
       return NextResponse.json(
-        { error: "Invoice has no associated customer email address" },
+        { success: false, error: "Invoice has no associated customer email address" },
         { status: 400 },
       );
     }
@@ -232,11 +258,15 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
         invoice.billingAddress.countryCode,
       ].filter(Boolean);
       addressStr = parts.join(", ");
+    } else if (billTo?.address) {
+      addressStr = billTo.address;
     }
+
+    const customerName = invoice.customer?.name || billTo?.name || "Valued Customer";
 
     const invoiceData = {
       invoiceNumber: invoice.invoiceNumber,
-      customerName: invoice.customer?.name ?? "Valued Customer",
+      customerName,
       customerEmail: recipientEmail,
       billingAddress: addressStr,
       lineItems,
