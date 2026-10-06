@@ -233,19 +233,19 @@ export function HomeHero() {
 
             {/* Floating info chips */}
             <div className="border-accent/30 bg-background/80 animate-bounce-subtle absolute -top-4 right-8 rounded-lg border px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur-sm">
-              \u{1F30E} 150+ Countries
+              🌎 150+ Countries
             </div>
             <div
               className="bg-background/80 absolute bottom-4 left-4 rounded-lg border border-blue-400/30 px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur-sm"
               style={{ animationDelay: "1s" }}
             >
-              \u{1F4E6} Real-time Tracking
+              📦 Real-time Tracking
             </div>
             <div
               className="bg-background/80 absolute top-16 -left-2 rounded-lg border border-green-400/30 px-3 py-1.5 text-xs font-semibold shadow-md backdrop-blur-sm"
               style={{ animationDelay: "2s" }}
             >
-              \u{1F43E} Pet Safe Transport
+              🐾 Pet Safe Transport
             </div>
           </div>
         </div>
@@ -727,12 +727,12 @@ export function PetTransportPartnerSection() {
           {/* Pet type badges */}
           <div className="mt-6 flex flex-wrap gap-2">
             {[
-              { emoji: "\u{1F415}", label: "Dogs" },
-              { emoji: "\u{1F408}", label: "Cats" },
-              { emoji: "\u{1F426}", label: "Birds" },
-              { emoji: "\u{1F407}", label: "Rabbits" },
-              { emoji: "\u{1F98E}", label: "Reptiles" },
-              { emoji: "\u{1F420}", label: "Exotic Pets" },
+              { emoji: "🐕", label: "Dogs" },
+              { emoji: "🐈", label: "Cats" },
+              { emoji: "🐦", label: "Birds" },
+              { emoji: "🐇", label: "Rabbits" },
+              { emoji: "🦎", label: "Reptiles" },
+              { emoji: "🐠", label: "Exotic Pets" },
             ].map((pet) => (
               <span
                 key={pet.label}
@@ -856,7 +856,7 @@ export function PetServicesShowcase() {
       <div className="mx-auto max-w-3xl text-center">
         <div className="border-accent/40 bg-accent/10 mb-4 inline-flex items-center gap-2 rounded-full border px-4 py-1.5">
           <span className="text-accent text-xs font-bold tracking-widest uppercase">
-            \u2709 Global Logistics Services
+            ✉ Global Logistics Services
           </span>
         </div>
         <Heading className="mt-3">Every shipment, every mile — delivered right</Heading>
@@ -1241,10 +1241,10 @@ export function FinalCta() {
             {/* Trust micro-signals */}
             <div className="mt-6 flex flex-wrap gap-4">
               {[
-                "\u2713 No setup fees",
-                "\u2713 24/7 shipment tracking",
-                "\u2713 Pet-certified handlers",
-                "\u2713 Global coverage",
+                "✓ No setup fees",
+                "✓ 24/7 shipment tracking",
+                "✓ Pet-certified handlers",
+                "✓ Global coverage",
               ].map((item) => (
                 <span key={item} className="text-primary-foreground/80 text-sm font-medium">
                   {item}
@@ -1438,7 +1438,7 @@ export function AiPoweredSection() {
         <div className="mx-auto max-w-3xl text-center">
           <div className="border-accent/40 bg-accent/10 inline-flex items-center gap-2 rounded-full border px-4 py-1.5">
             <span className="text-accent text-xs font-bold tracking-widest uppercase">
-              \u2726 AI-Powered Platform
+              ✦ AI-Powered Platform
             </span>
           </div>
           <Heading className="mt-4">Logistics intelligence built for the modern world</Heading>
@@ -1493,7 +1493,7 @@ export function AiPoweredSection() {
           {[
             { value: "99.7%", label: "On-time delivery rate" },
             { value: "150+", label: "Countries served" },
-            { value: "4.9\u2605", label: "Average customer rating" },
+            { value: "4.9★", label: "Average customer rating" },
             { value: "<2 min", label: "AI quote generation" },
           ].map((stat) => (
             <div key={stat.label} className="bg-card p-6 text-center">
