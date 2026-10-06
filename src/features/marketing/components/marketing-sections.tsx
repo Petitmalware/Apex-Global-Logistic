@@ -2,7 +2,7 @@
 import Link from "next/link";
 import type { Route } from "next";
 import type { LucideIcon } from "lucide-react";
-import { ArrowRight, Check, Globe, Handshake, Mail, MessageCircle, Package, PackageSearch, PawPrint, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, Check, Globe, Handshake, Mail, MessageCircle, Package, PackageSearch, PawPrint, ShieldCheck } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
