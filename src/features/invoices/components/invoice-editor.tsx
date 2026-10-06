@@ -1,6 +1,7 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +24,8 @@ export type InvoiceEditorProps = {
 };
 
 export function InvoiceEditor({ invoice }: InvoiceEditorProps) {
+  const router = useRouter();
+  const [currentId, setCurrentId] = useState<string | null>(invoice?.id || null);
   const [invoiceNumber, setInvoiceNumber] = useState(
     invoice?.invoiceNumber || `INV-${String(Math.floor(Math.random() * 9000) + 1000)}`,
   );
@@ -40,10 +43,12 @@ export function InvoiceEditor({ invoice }: InvoiceEditorProps) {
   const [taxRate, setTaxRate] = useState(invoice?.taxRate || 0);
   const [notes, setNotes] = useState(invoice?.notes || "");
 
-  // Email sending state
+  // Action states
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [sendSuccess, setSendSuccess] = useState(false);
-  const [sendError, setSendError] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const addLineItem = () => setLineItems([...lineItems, { description: "", quantity: 1, unitPrice: 0 }]);
 
@@ -66,26 +71,94 @@ export function InvoiceEditor({ invoice }: InvoiceEditorProps) {
 
   const handlePrint = () => window.print();
 
+  // Save invoice (create or update)
+  const saveInvoiceToDb = async (newStatus?: string): Promise<string | null> => {
+    if (!invoiceNumber.trim()) {
+      setErrorMessage("Invoice number is required.");
+      return null;
+    }
+    if (!customerEmail.trim()) {
+      setErrorMessage("Customer email is required.");
+      return null;
+    }
+
+    const payload = {
+      invoiceNumber: invoiceNumber.trim(),
+      customerName: customerName.trim(),
+      customerEmail: customerEmail.trim(),
+      billingAddress: billingAddress.trim(),
+      dueDate: dueDate || null,
+      lineItems,
+      taxRate,
+      notes: notes.trim(),
+      status: newStatus || invoice?.status || "DRAFT",
+    };
+
+    const isUpdate = Boolean(currentId);
+    const url = isUpdate ? `/api/admin/invoices/${currentId}` : "/api/admin/invoices";
+    const method = isUpdate ? "PUT" : "POST";
+
+    const res = await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || "Failed to save invoice.");
+    }
+
+    const savedId = data.invoice?.id || currentId;
+    if (savedId) {
+      setCurrentId(savedId);
+    }
+    return savedId;
+  };
+
+  const handleSaveDraft = async () => {
+    setIsSaving(true);
+    setErrorMessage(null);
+    setSaveSuccess(false);
+    try {
+      await saveInvoiceToDb("DRAFT");
+      setSaveSuccess(true);
+      setTimeout(() => {
+        setSaveSuccess(false);
+        router.refresh();
+      }, 3000);
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : "Failed to save draft.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleSendEmailInvoice = async () => {
-    if (!invoice?.id) {
-      setSendError("Save the invoice first before sending.");
-      return;
-    }
-    if (!customerEmail) {
-      setSendError("Customer email is required.");
-      return;
-    }
     setIsSending(true);
-    setSendError(null);
+    setErrorMessage(null);
     setSendSuccess(false);
     try {
-      const res = await fetch(`/api/admin/invoices/${invoice.id}/send-email`, { method: "POST" });
+      // Step 1: Save or ensure invoice exists in DB first
+      const idToUse = await saveInvoiceToDb("ISSUED");
+      if (!idToUse) {
+        throw new Error("Could not determine invoice ID to send.");
+      }
+
+      // Step 2: Send email
+      const res = await fetch(`/api/admin/invoices/${idToUse}/send-email`, { method: "POST" });
       const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || "Failed to send");
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to send invoice email.");
+      }
+
       setSendSuccess(true);
-      setTimeout(() => setSendSuccess(false), 5000);
+      setTimeout(() => {
+        setSendSuccess(false);
+        router.refresh();
+      }, 5000);
     } catch (err) {
-      setSendError(err instanceof Error ? err.message : "Failed to send invoice email.");
+      setErrorMessage(err instanceof Error ? err.message : "Failed to send invoice email.");
     } finally {
       setIsSending(false);
     }
@@ -242,7 +315,7 @@ export function InvoiceEditor({ invoice }: InvoiceEditorProps) {
               className="w-full"
               variant="accent"
               onClick={handleSendEmailInvoice}
-              disabled={isSending || !customerEmail}
+              disabled={isSending || isSaving || !customerEmail}
             >
               {isSending ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -251,7 +324,7 @@ export function InvoiceEditor({ invoice }: InvoiceEditorProps) {
               ) : (
                 <Mail className="mr-2 h-4 w-4" />
               )}
-              {isSending ? "Sending…" : sendSuccess ? "Invoice Sent!" : "Send Email Invoice"}
+              {isSending ? "Saving & Sending…" : sendSuccess ? "Invoice Sent to Customer!" : "Send Email Invoice"}
             </Button>
 
             {sendSuccess && (
@@ -259,14 +332,29 @@ export function InvoiceEditor({ invoice }: InvoiceEditorProps) {
                 Invoice emailed to {customerEmail}
               </p>
             )}
-            {sendError && (
-              <p className="text-destructive w-full text-center text-xs">{sendError}</p>
+            {saveSuccess && (
+              <p className="text-success w-full text-center text-xs font-medium">
+                Draft invoice saved successfully!
+              </p>
+            )}
+            {errorMessage && (
+              <p className="text-destructive w-full text-center text-xs">{errorMessage}</p>
             )}
 
             {/* Secondary actions */}
             <div className="flex w-full gap-3">
-              <Button variant="outline" className="flex-1">
-                <Save className="mr-2 h-4 w-4" /> Save Draft
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={handleSaveDraft}
+                disabled={isSaving || isSending}
+              >
+                {isSaving ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="mr-2 h-4 w-4" />
+                )}
+                {isSaving ? "Saving…" : "Save Draft"}
               </Button>
               <Button variant="outline" className="flex-1" onClick={handlePrint}>
                 <Printer className="mr-2 h-4 w-4" /> Print PDF
