@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import nodemailer from "nodemailer";
-
 import { getCurrentSessionUser } from "@/lib/auth/session";
 import { AUTH_ROLES } from "@/lib/auth/constants";
 import { prisma } from "@/lib/db";
+import { sendEmailWithConfiguredProvider } from "@/features/emails/services/email-provider.service";
+import { EmailLogStatus, EmailTemplateCategory, InvoiceStatus } from "@prisma/client";
 
 export const runtime = "nodejs";
 
@@ -170,7 +170,7 @@ function buildInvoiceHtml(inv: {
             <p style="margin:0 0 4px;font-size:12px;color:#6b7280;">Questions? Contact us at
               <a href="mailto:support@apexgloballogistics.net" style="color:#f59e0b;text-decoration:none;">support@apexgloballogistics.net</a>
             </p>
-            <p style="margin:0;font-size:11px;color:#9ca3af;">Apex Global Logistics &nbsp;·&nbsp; apexgloballogistics.net &nbsp;·&nbsp; Official invoice — retain for your records.</p>
+            <p style="margin:0;font-size:11px;color:#94a3b8;">Apex Global Logistics &nbsp;·&nbsp; apexgloballogistics.net &nbsp;·&nbsp; Official invoice — retain for your records.</p>
           </td>
         </tr>
 
@@ -190,13 +190,13 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
       (!user.roles.includes(AUTH_ROLES.ADMIN) && !user.roles.includes(AUTH_ROLES.SUPER_ADMIN))
     ) {
       return NextResponse.json(
-        { success: false, error: "Unauthorized. Please re-login." },
+        { success: false, error: "Unauthorized. Please log in." },
         { status: 401 },
       );
     }
 
     const { id } = await params;
-    const body = await request.json().catch(() => null);
+    const body = (await request.json().catch(() => null)) as { email?: string } | null;
     const directEmail = body?.email ? String(body.email).trim() : null;
 
     // Fetch invoice with line items and relations
@@ -280,40 +280,62 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
 
     const html = buildInvoiceHtml(invoiceData);
 
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST ?? "smtp.gmail.com",
-      port: Number(process.env.SMTP_PORT ?? 465),
-      secure: Number(process.env.SMTP_PORT ?? 465) === 465,
-      auth: {
-        user: process.env.SMTP_USER ?? process.env.SUPPORT_EMAIL,
-        pass: process.env.SMTP_PASS ?? process.env.SMTP_PASSWORD,
-      },
-    });
-
-    const fromAddress = `"Apex Global Logistics" <${process.env.SMTP_USER ?? process.env.SUPPORT_EMAIL ?? "info@apexgloballogistics.net"}>`;
-
-    await transporter.sendMail({
-      from: fromAddress,
-      to: recipientEmail,
-      subject: `Invoice ${invoice.invoiceNumber} from Apex Global Logistics`,
+    const sendResult = await sendEmailWithConfiguredProvider({
       html,
+      recipientEmail,
+      recipientName: customerName,
+      senderName: "Apex Global Logistics Billing",
+      subject: `Invoice ${invoice.invoiceNumber} from Apex Global Logistics`,
       text: `Your invoice ${invoice.invoiceNumber} from Apex Global Logistics is ready. Amount: ${invoice.total} ${invoice.currency}. Please view in an HTML-enabled email client for full itemized details.`,
     });
 
-    if (invoice.status === "DRAFT") {
-      await prisma.invoice.update({
-        where: { id },
+    // Record invoice delivery in email log
+    try {
+      await prisma.emailLog.create({
         data: {
-          status: "ISSUED",
-          issuedAt: invoice.issuedAt ?? new Date(),
+          bodyHtml: html,
+          bodyText: `Your invoice ${invoice.invoiceNumber} from Apex Global Logistics is ready. Amount: ${invoice.total} ${invoice.currency}.`,
+          category: EmailTemplateCategory.BILLING,
+          metadata: {
+            invoiceId: invoice.id,
+            invoiceNumber: invoice.invoiceNumber,
+            source: "invoice-send-email",
+          },
+          organizationId: invoice.organizationId,
+          provider: sendResult.provider,
+          providerMessageId: sendResult.messageId,
+          recipientEmail,
+          recipientName: customerName,
+          sentAt: new Date(),
+          sentById: user.id,
+          status: EmailLogStatus.SENT,
+          subject: `Invoice ${invoice.invoiceNumber} from Apex Global Logistics`,
         },
+      });
+    } catch (logError) {
+      console.warn("Could not log invoice email:", logError);
+    }
+
+    // Advance draft to issued status
+    if (invoice.status === InvoiceStatus.DRAFT) {
+      await prisma.invoice.update({
+        data: {
+          issuedAt: invoice.issuedAt ?? new Date(),
+          status: InvoiceStatus.ISSUED,
+        },
+        where: { id },
       });
     }
 
-    return NextResponse.json({ success: true, sentTo: recipientEmail });
+    return NextResponse.json({
+      messageId: sendResult.messageId,
+      provider: sendResult.provider,
+      sentTo: recipientEmail,
+      success: true,
+    });
   } catch (error) {
     console.error("Invoice email send failed", error);
-    const message = error instanceof Error ? error.message : "Unknown error";
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Failed to send email";
+    return NextResponse.json({ error: message, success: false }, { status: 500 });
   }
 }
