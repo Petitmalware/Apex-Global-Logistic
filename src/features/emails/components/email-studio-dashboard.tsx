@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import type { EmailProviderHealth } from "@/features/emails/services/email-provider.service";
 import type { getEmailStudioOverview } from "@/features/emails/queries/email.queries";
+import { secureFetch } from "@/lib/security/client-fetch";
 import {
   Mail,
   Send,
@@ -122,7 +123,7 @@ export function EmailStudioDashboard({ emailHealth, overview }: EmailStudioDashb
     setSendResult(null);
 
     try {
-      const response = await fetch("/api/admin/send-email", {
+      const response = await secureFetch("/api/admin/send-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ to, cc: showCc ? cc : undefined, subject, body }),

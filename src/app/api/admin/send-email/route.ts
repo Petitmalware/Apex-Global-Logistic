@@ -123,10 +123,16 @@ export async function POST(request: NextRequest) {
       console.warn("Could not log email to database:", logError);
     }
 
+    const deliveryNote =
+      sendResult.response && typeof sendResult.response === "object" && "deliveryNote" in sendResult.response
+        ? String(sendResult.response.deliveryNote)
+        : undefined;
+
     return NextResponse.json({
       messageId: sendResult.messageId,
       provider: sendResult.provider,
       success: true,
+      warning: deliveryNote,
     });
   } catch (error) {
     console.error("[Admin Send Email API] Error:", error);

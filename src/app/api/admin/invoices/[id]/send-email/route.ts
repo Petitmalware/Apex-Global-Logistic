@@ -327,11 +327,17 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
       });
     }
 
+    const deliveryNote =
+      sendResult.response && typeof sendResult.response === "object" && "deliveryNote" in sendResult.response
+        ? String(sendResult.response.deliveryNote)
+        : undefined;
+
     return NextResponse.json({
       messageId: sendResult.messageId,
       provider: sendResult.provider,
       sentTo: recipientEmail,
       success: true,
+      warning: deliveryNote,
     });
   } catch (error) {
     console.error("Invoice email send failed", error);

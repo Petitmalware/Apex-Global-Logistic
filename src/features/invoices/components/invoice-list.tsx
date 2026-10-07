@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/table";
 import { Search, Eye, CheckCircle, Send, FileText, Loader2 } from "lucide-react";
 import type { InvoiceListItem } from "@/features/invoices/types/invoice.types";
+import { secureFetch } from "@/lib/security/client-fetch";
 
 export type Invoice = InvoiceListItem;
 
@@ -80,7 +81,7 @@ export function InvoiceList({ invoices: initialInvoices }: { invoices: Invoice[]
     setLoadingInvoiceId(id);
     setStatusMessage(null);
     try {
-      const res = await fetch(`/api/admin/invoices/${id}/status`, {
+      const res = await secureFetch(`/api/admin/invoices/${id}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "PAID" }),
@@ -109,7 +110,7 @@ export function InvoiceList({ invoices: initialInvoices }: { invoices: Invoice[]
     setLoadingInvoiceId(id);
     setStatusMessage(null);
     try {
-      const res = await fetch(`/api/admin/invoices/${id}/send-email`, {
+      const res = await secureFetch(`/api/admin/invoices/${id}/send-email`, {
         method: "POST",
       });
       const data = await res.json();

@@ -33,7 +33,7 @@ const adminEmailComposerBaseSchema = z.object({
   recipientUserId: optionalUuidSchema,
   shipmentId: optionalUuidSchema,
   subject: z.string().trim().min(3, "Add a subject.").max(255),
-  templateId: optionalUuidSchema,
+  templateId: z.string().trim().optional(),
   trackingNumber: z.string().trim().max(120).optional(),
   variables: emailVariablesSchema.partial().default({}),
 });

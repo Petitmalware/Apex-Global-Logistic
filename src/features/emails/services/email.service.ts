@@ -30,9 +30,14 @@ import {
   type ShipmentEmailContext,
 } from "@/features/emails/services/email-variables";
 import type { EmailPreview } from "@/features/emails/types";
+import { builtInClientEmailTemplates } from "@/features/emails/data/built-in-client-email-templates";
 import { AUTH_ROLES } from "@/lib/auth/constants";
 import { AuthError } from "@/lib/auth/errors";
 import { prisma } from "@/lib/db";
+
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+}
 
 type PreparedEmail = {
   bodyHtml: string;
@@ -185,14 +190,38 @@ async function getTemplateForInput(input: AdminEmailComposerInput, actor: AuthSe
     return null;
   }
 
+  const rawId = input.templateId.trim();
+  const cleanId = rawId.replace(/^built-in:/, "");
+
+  // Check built-in client email templates first
+  const builtIn = builtInClientEmailTemplates.find(
+    (t) => t.id === cleanId || t.slug === cleanId || t.id === rawId || t.slug === rawId,
+  );
+
+  if (builtIn) {
+    return {
+      bodyHtml: builtIn.bodyHtml,
+      category: builtIn.category,
+      id: builtIn.id,
+      name: builtIn.name,
+      organizationId: null,
+      subject: builtIn.subject,
+    };
+  }
+
+  // Only query Prisma if templateId is a valid UUID
+  if (!isUuid(rawId)) {
+    return null;
+  }
+
   const template = await prisma.emailTemplate.findUnique({
     where: {
-      id: input.templateId,
+      id: rawId,
     },
   });
 
   if (!template || template.deletedAt || !canAccessOrganization(actor, template.organizationId)) {
-    throw new AuthError("Email template not found.", 404, "EMAIL_TEMPLATE_NOT_FOUND");
+    return null;
   }
 
   return template;
@@ -392,6 +421,9 @@ async function queuePreparedEmail({
     assertEmailRateLimit(actor.id);
   }
 
+  const templateUuid =
+    prepared.templateId && isUuid(prepared.templateId) ? prepared.templateId : null;
+
   const emailLog = await prisma.emailLog.create({
     data: {
       bodyHtml: prepared.renderedHtml,
@@ -400,6 +432,7 @@ async function queuePreparedEmail({
       metadata: toJsonValue({
         isTest,
         source: actor ? "admin-email-studio" : "system",
+        templateSlug: prepared.templateId ?? null,
       }),
       organizationId: actor?.organizationId,
       provider: EmailProvider.CONSOLE,
@@ -410,7 +443,7 @@ async function queuePreparedEmail({
       shipmentId: prepared.shipmentId,
       status: EmailLogStatus.QUEUED,
       subject: isTest ? `[Test] ${prepared.subject}` : prepared.subject,
-      templateId: prepared.templateId,
+      templateId: templateUuid,
       trackingNumber: prepared.trackingNumber,
     },
   });
@@ -655,6 +688,9 @@ export async function queueBrandedEmail(input: QueueBrandedEmailInput) {
     subject,
     trackingNumber,
   });
+  const templateUuid =
+    input.templateId && isUuid(input.templateId) ? input.templateId : null;
+
   const emailLog = await prisma.emailLog.create({
     data: {
       bodyHtml: renderedHtml,
@@ -665,6 +701,7 @@ export async function queueBrandedEmail(input: QueueBrandedEmailInput) {
         replyTo: input.replyTo,
         senderAddress: input.senderAddress,
         senderName: input.senderName,
+        templateSlug: input.templateId ?? null,
       }),
       organizationId: input.organizationId,
       provider: EmailProvider.CONSOLE,
@@ -676,7 +713,7 @@ export async function queueBrandedEmail(input: QueueBrandedEmailInput) {
       shipmentId: input.shipmentId,
       status: EmailLogStatus.QUEUED,
       subject,
-      templateId: input.templateId,
+      templateId: templateUuid,
       trackingNumber,
     },
   });
@@ -699,18 +736,31 @@ export async function queueBrandedEmail(input: QueueBrandedEmailInput) {
 }
 
 export async function sendSystemTemplateEmail(input: SendSystemTemplateEmailInput) {
-  const template = input.templateKey
-    ? await prisma.emailTemplate.findFirst({
-        orderBy: {
-          version: "desc",
-        },
-        where: {
-          key: input.templateKey,
-          organizationId: input.organizationId ?? null,
-          status: EmailTemplateStatus.ACTIVE,
-        },
-      })
+  const builtIn = input.templateKey
+    ? builtInClientEmailTemplates.find(
+        (t) => t.slug === input.templateKey || t.id === input.templateKey,
+      )
     : null;
+
+  const template = builtIn
+    ? {
+        bodyHtml: builtIn.bodyHtml,
+        category: builtIn.category,
+        id: builtIn.id,
+        subject: builtIn.subject,
+      }
+    : input.templateKey
+      ? await prisma.emailTemplate.findFirst({
+          orderBy: {
+            version: "desc",
+          },
+          where: {
+            key: input.templateKey,
+            organizationId: input.organizationId ?? null,
+            status: EmailTemplateStatus.ACTIVE,
+          },
+        })
+      : null;
 
   return queueBrandedEmail({
     bodyHtml: input.bodyHtml ?? template?.bodyHtml ?? "<p>You have a new update.</p>",

@@ -116,7 +116,7 @@ export function EmailComposer({
       options.templates.find((item) => item.slug === "custom-manual-email");
 
     setSelectedTemplateId(template?.id ?? "");
-    setTemplateId(template?.source === "email" ? (template.templateId ?? template.id) : "");
+    setTemplateId(template?.templateId ?? template?.id ?? "");
     setPreview(null);
 
     if (template) {
@@ -219,14 +219,6 @@ export function EmailComposer({
   }
 
   async function sendFinalEmail() {
-    if (!preview) {
-      setMessage({
-        text: "Generate and review the preview before final send.",
-        variant: "warning",
-      });
-      return;
-    }
-
     setIsBusy(true);
     setMessage(null);
 

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Printer, Save, CheckCircle, Loader2, Mail } from "lucide-react";
+import { secureFetch } from "@/lib/security/client-fetch";
 
 export type InvoiceEditorProps = {
   invoice?: {
@@ -98,7 +99,7 @@ export function InvoiceEditor({ invoice }: InvoiceEditorProps) {
     const url = isUpdate ? `/api/admin/invoices/${currentId}` : "/api/admin/invoices";
     const method = isUpdate ? "PUT" : "POST";
 
-    const res = await fetch(url, {
+    const res = await secureFetch(url, {
       method,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -152,7 +153,7 @@ export function InvoiceEditor({ invoice }: InvoiceEditorProps) {
       }
 
       // Step 2: Send email
-      const res = await fetch(`/api/admin/invoices/${idToUse}/send-email`, {
+      const res = await secureFetch(`/api/admin/invoices/${idToUse}/send-email`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: customerEmail.trim() }),

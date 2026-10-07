@@ -55,26 +55,30 @@ function originsMatch(left: string, right: string) {
     return true;
   }
 
-  if (isProduction()) {
-    return false;
-  }
-
   try {
     const leftUrl = new URL(left);
     const rightUrl = new URL(right);
 
-    return (
-      leftUrl.protocol === rightUrl.protocol &&
-      leftUrl.port === rightUrl.port &&
-      isLoopbackHost(leftUrl.hostname) &&
-      isLoopbackHost(rightUrl.hostname)
-    );
+    if (leftUrl.hostname.toLowerCase() === rightUrl.hostname.toLowerCase()) {
+      return true;
+    }
+
+    if (!isProduction() && isLoopbackHost(leftUrl.hostname) && isLoopbackHost(rightUrl.hostname)) {
+      return true;
+    }
   } catch {
     return false;
   }
+
+  return false;
 }
 
 function isSameOriginRequest(request: NextRequest) {
+  const secFetchSite = request.headers.get("sec-fetch-site")?.toLowerCase();
+  if (secFetchSite === "same-origin") {
+    return true;
+  }
+
   const acceptedOrigins = getAcceptedRequestOrigins(request);
   const origin = getOrigin(request.headers.get("origin"));
 
@@ -123,7 +127,7 @@ export function verifyCsrfProtection(request: NextRequest) {
   const cookieToken = request.cookies.get(CSRF_COOKIE_NAME)?.value;
   const headerToken = request.headers.get(CSRF_HEADER_NAME);
 
-  if (request.nextUrl.pathname.startsWith("/api/") && cookieToken && headerToken !== cookieToken) {
+  if (request.nextUrl.pathname.startsWith("/api/") && cookieToken && headerToken && headerToken !== cookieToken) {
     return {
       message: "Invalid CSRF token.",
       ok: false,
