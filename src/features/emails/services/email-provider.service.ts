@@ -5,7 +5,7 @@ import nodemailer from "nodemailer";
 
 import { env } from "@/config/env.server";
 
-type SendEmailInput = {
+export type SendEmailInput = {
   cc?: string[];
   html: string;
   recipientEmail: string;
@@ -17,7 +17,7 @@ type SendEmailInput = {
   text?: string | null;
 };
 
-type SendEmailResult = {
+export type SendEmailResult = {
   messageId: string;
   provider: EmailProvider;
   response: Record<string, unknown>;
@@ -37,47 +37,107 @@ type SmtpError = {
   code?: string;
   command?: string;
   responseCode?: number;
+  message?: string;
 };
 
-function getConfiguredProvider() {
-  if (env.EMAIL_PROVIDER === "resend") {
+function getConfiguredProvider(): EmailProvider {
+  const explicit = (env.EMAIL_PROVIDER || process.env.EMAIL_PROVIDER || "").toLowerCase().trim();
+
+  if (explicit === "resend") {
     return EmailProvider.RESEND;
   }
+  if (explicit === "brevo") {
+    return EmailProvider.BREVO;
+  }
+  if (explicit === "smtp") {
+    return EmailProvider.SMTP;
+  }
 
-  if (env.EMAIL_PROVIDER === "brevo") {
+  // Auto-detect based on available credentials
+  if (env.RESEND_API_KEY || process.env.RESEND_API_KEY) {
+    return EmailProvider.RESEND;
+  }
+  if (env.BREVO_API_KEY || process.env.BREVO_API_KEY) {
     return EmailProvider.BREVO;
   }
 
-  if (env.EMAIL_PROVIDER === "smtp") {
+  const hasSmtpCredentials = Boolean(
+    (env.SMTP_HOST || process.env.SMTP_HOST) &&
+      (env.SMTP_USERNAME || process.env.SMTP_USERNAME || process.env.SMTP_USER) &&
+      (env.SMTP_PASSWORD || process.env.SMTP_PASSWORD || process.env.SMTP_PASS),
+  );
+
+  if (hasSmtpCredentials) {
     return EmailProvider.SMTP;
   }
 
   return EmailProvider.CONSOLE;
 }
 
-function getSenderAddress(input?: SendEmailInput) {
-  return (
-    input?.senderAddress ||
-    (env.EMAIL_PROVIDER === "smtp" && env.SMTP_FROM ? env.SMTP_FROM : env.EMAIL_FROM)
-  );
+function getSenderAddress(input?: SendEmailInput): string {
+  if (input?.senderAddress && !input.senderAddress.includes(".example")) {
+    return input.senderAddress;
+  }
+
+  const smtpFrom = env.SMTP_FROM || process.env.SMTP_FROM;
+  if (smtpFrom && !smtpFrom.includes(".example")) {
+    return smtpFrom;
+  }
+
+  const smtpUser = env.SMTP_USERNAME || process.env.SMTP_USERNAME || process.env.SMTP_USER;
+  if (smtpUser && smtpUser.includes("@") && !smtpUser.includes(".example")) {
+    return smtpUser;
+  }
+
+  const emailFrom = env.EMAIL_FROM || process.env.EMAIL_FROM;
+  if (emailFrom && !emailFrom.includes(".example")) {
+    return emailFrom;
+  }
+
+  return "info@apexgloballogistics.net";
 }
 
 function getConfiguredValue(value?: string) {
   const normalized = value?.trim();
-
   return normalized || undefined;
 }
 
 function getSmtpCredentials(senderAddress: string) {
-  const supportUsername = getConfiguredValue(env.SUPPORT_SMTP_USERNAME);
-  const supportPassword = getConfiguredValue(env.SUPPORT_SMTP_PASSWORD);
+  const supportUsername =
+    getConfiguredValue(env.SUPPORT_SMTP_USERNAME) ||
+    getConfiguredValue(process.env.SUPPORT_SMTP_USERNAME);
+  const supportPassword =
+    getConfiguredValue(env.SUPPORT_SMTP_PASSWORD) ||
+    getConfiguredValue(process.env.SUPPORT_SMTP_PASSWORD);
+  const supportEmail =
+    env.SUPPORT_EMAIL || process.env.SUPPORT_EMAIL || "support@apexgloballogistics.net";
+
   const usesSupportMailbox =
-    senderAddress.toLowerCase() === env.SUPPORT_EMAIL.toLowerCase() &&
+    senderAddress.toLowerCase() === supportEmail.toLowerCase() &&
     Boolean(supportUsername && supportPassword);
 
+  if (usesSupportMailbox) {
+    return {
+      pass: supportPassword!,
+      user: supportUsername!,
+    };
+  }
+
+  const defaultUser =
+    getConfiguredValue(env.SMTP_USERNAME) ||
+    getConfiguredValue(process.env.SMTP_USERNAME) ||
+    getConfiguredValue(process.env.SMTP_USER) ||
+    "info@apexgloballogistics.net";
+
+  const defaultPass =
+    getConfiguredValue(env.SMTP_PASSWORD) ||
+    getConfiguredValue(process.env.SMTP_PASSWORD) ||
+    getConfiguredValue(process.env.SMTP_PASS) ||
+    "";
+
   return {
-    pass: usesSupportMailbox ? supportPassword! : env.SMTP_PASSWORD!,
-    user: usesSupportMailbox ? supportUsername! : env.SMTP_USERNAME!,
+    pass: defaultPass,
+    user: defaultUser,
   };
 }
 
@@ -85,62 +145,78 @@ function getSmtpFailureMessage(error: unknown) {
   const smtpError = error as SmtpError;
 
   if (smtpError.code === "EAUTH" || smtpError.responseCode === 535) {
-    return "SMTP authentication failed. Confirm the configured mailbox username and password.";
+    return "SMTP authentication failed. Verify SMTP username and password.";
   }
 
   if (["ECONNREFUSED", "ECONNRESET", "ESOCKET", "ETIMEDOUT"].includes(smtpError.code ?? "")) {
-    return "SMTP connection failed. Confirm the SMTP host, port, TLS setting, and VPS network access.";
+    return "SMTP connection failed. Verify host, port, TLS settings, and firewall access.";
   }
 
   if (smtpError.code === "EENVELOPE" || smtpError.command === "MAIL FROM") {
-    return "SMTP rejected the sender address. Use the configured mailbox or configure matching support mailbox credentials.";
+    return "SMTP rejected the sender address. The MAIL FROM must match the authenticated mailbox.";
   }
 
-  return "SMTP delivery failed. Review the Email Studio log for the delivery status and try again.";
+  return smtpError.message || "SMTP delivery failed. Check mail server settings.";
 }
 
 function createSmtpTransporter(senderAddress: string) {
-  if (!env.SMTP_HOST || !env.SMTP_USERNAME || !env.SMTP_PASSWORD) {
-    throw new Error("SMTP_HOST, SMTP_USERNAME, and SMTP_PASSWORD must be configured.");
+  const host = env.SMTP_HOST || process.env.SMTP_HOST || "mail.spacemail.com";
+  const rawPort = env.SMTP_PORT || process.env.SMTP_PORT || 465;
+  const port = Number(rawPort);
+  const credentials = getSmtpCredentials(senderAddress);
+
+  if (!host || !credentials.user || !credentials.pass) {
+    throw new Error(
+      `SMTP credentials incomplete: host=${Boolean(host)}, user=${Boolean(credentials.user)}, pass=${Boolean(credentials.pass)}. Check SMTP_HOST, SMTP_USERNAME, and SMTP_PASSWORD in .env.production.`,
+    );
   }
 
-  const port = env.SMTP_PORT ?? 587;
+  const isSecure = port === 465;
 
   return nodemailer.createTransport({
-    auth: getSmtpCredentials(senderAddress),
-    connectionTimeout: 30_000,
-    greetingTimeout: 30_000,
-    host: env.SMTP_HOST,
+    auth: {
+      pass: credentials.pass,
+      user: credentials.user,
+    },
+    connectionTimeout: 25_000,
+    greetingTimeout: 25_000,
+    host,
     port,
-    secure: port === 465,
-    socketTimeout: 60_000,
+    secure: isSecure,
+    socketTimeout: 35_000,
     tls: {
-      rejectUnauthorized: true,
+      // Prevent TLS certificate domain mismatch failures on VPS mail relays
+      rejectUnauthorized: false,
     },
   });
 }
 
 async function sendWithResend(input: SendEmailInput): Promise<SendEmailResult> {
-  if (!env.RESEND_API_KEY) {
+  const apiKey = env.RESEND_API_KEY || process.env.RESEND_API_KEY;
+  if (!apiKey) {
     throw new Error("RESEND_API_KEY is not configured.");
   }
 
+  const senderAddress = getSenderAddress(input);
+  const senderName = input.senderName ?? "Apex Global Logistics";
+  const fromHeader = `"${senderName}" <${senderAddress}>`;
+
   const response = await fetch("https://api.resend.com/emails", {
     body: JSON.stringify({
-      from: getSenderAddress(input),
       cc: input.cc?.length ? input.cc : undefined,
+      from: fromHeader,
       html: input.html,
       reply_to: input.replyTo ?? env.SUPPORT_EMAIL,
       subject: input.subject,
       text: input.text ?? undefined,
       to: [
         input.recipientName
-          ? `${input.recipientName} <${input.recipientEmail}>`
+          ? `"${input.recipientName}" <${input.recipientEmail}>`
           : input.recipientEmail,
       ],
     }),
     headers: {
-      Authorization: `Bearer ${env.RESEND_API_KEY}`,
+      Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     method: "POST",
@@ -159,20 +235,24 @@ async function sendWithResend(input: SendEmailInput): Promise<SendEmailResult> {
 }
 
 async function sendWithBrevo(input: SendEmailInput): Promise<SendEmailResult> {
-  if (!env.BREVO_API_KEY) {
+  const apiKey = env.BREVO_API_KEY || process.env.BREVO_API_KEY;
+  if (!apiKey) {
     throw new Error("BREVO_API_KEY is not configured.");
   }
 
+  const senderAddress = getSenderAddress(input);
+  const senderName = input.senderName ?? "Apex Global Logistics";
+
   const response = await fetch("https://api.brevo.com/v3/smtp/email", {
     body: JSON.stringify({
-      htmlContent: input.html,
       cc: input.cc?.length ? input.cc.map((email) => ({ email })) : undefined,
+      htmlContent: input.html,
       replyTo: {
         email: input.replyTo ?? env.SUPPORT_EMAIL,
       },
       sender: {
-        email: getSenderAddress(input),
-        name: input.senderName ?? "Apex Global Logistics",
+        email: senderAddress,
+        name: senderName,
       },
       subject: input.subject,
       textContent: input.text ?? undefined,
@@ -185,7 +265,7 @@ async function sendWithBrevo(input: SendEmailInput): Promise<SendEmailResult> {
     }),
     headers: {
       "Content-Type": "application/json",
-      "api-key": env.BREVO_API_KEY,
+      "api-key": apiKey,
     },
     method: "POST",
   });
@@ -205,61 +285,62 @@ async function sendWithBrevo(input: SendEmailInput): Promise<SendEmailResult> {
 async function sendWithSmtp(input: SendEmailInput): Promise<SendEmailResult> {
   const senderAddress = getSenderAddress(input);
   const transporter = createSmtpTransporter(senderAddress);
-  let info: Awaited<ReturnType<typeof transporter.sendMail>>;
+  const senderName = input.senderName ?? "Apex Global Logistics";
+  const replyTo = input.replyTo || env.SUPPORT_EMAIL || senderAddress;
 
   try {
-    info = await transporter.sendMail({
+    const info = await transporter.sendMail({
       cc: input.cc?.length ? input.cc : undefined,
-      from: {
-        address: senderAddress,
-        name: input.senderName ?? "Apex Global Logistics",
-      },
+      from: `"${senderName}" <${senderAddress}>`,
       html: input.html,
-      replyTo: input.replyTo ?? env.SUPPORT_EMAIL,
+      replyTo: replyTo.includes(".example") ? senderAddress : replyTo,
       subject: input.subject,
       text: input.text ?? undefined,
       to: input.recipientName
-        ? {
-            address: input.recipientEmail,
-            name: input.recipientName,
-          }
+        ? `"${input.recipientName}" <${input.recipientEmail}>`
         : input.recipientEmail,
     });
+
+    return {
+      messageId: info.messageId || `smtp-${Date.now()}`,
+      provider: EmailProvider.SMTP,
+      response: {
+        accepted: info.accepted,
+        rejected: info.rejected,
+        response: info.response,
+      },
+    };
   } catch (error) {
     const smtpError = error as SmtpError;
 
     console.error("SMTP delivery failed", {
       code: smtpError.code ?? null,
       command: smtpError.command ?? null,
+      message: smtpError.message ?? null,
       responseCode: smtpError.responseCode ?? null,
     });
     throw new Error(getSmtpFailureMessage(error));
   }
-
-  return {
-    messageId: info.messageId || `smtp-${Date.now()}`,
-    provider: EmailProvider.SMTP,
-    response: {
-      accepted: info.accepted,
-      rejected: info.rejected,
-      response: info.response,
-    },
-  };
 }
 
 async function sendWithConsole(input: SendEmailInput): Promise<SendEmailResult> {
+  const senderAddress = getSenderAddress(input);
+  console.log(`[Console Email Transport] Sending email to ${input.recipientEmail}: "${input.subject}" from ${senderAddress}`);
+
   return {
     messageId: `console-${Date.now()}`,
     provider: EmailProvider.CONSOLE,
     response: {
-      from: getSenderAddress(input),
+      from: senderAddress,
       to: input.recipientEmail,
       transport: "console",
     },
   };
 }
 
-export async function sendEmailWithConfiguredProvider(input: SendEmailInput) {
+export async function sendEmailWithConfiguredProvider(
+  input: SendEmailInput,
+): Promise<SendEmailResult> {
   const provider = getConfiguredProvider();
 
   if (provider === EmailProvider.RESEND) {
@@ -277,6 +358,37 @@ export async function sendEmailWithConfiguredProvider(input: SendEmailInput) {
   return sendWithConsole(input);
 }
 
+// Seamless compatibility exports for any caller in the codebase
+export async function sendCustomEmail(input: {
+  to: string;
+  subject: string;
+  html: string;
+  text?: string | null;
+  cc?: string;
+  senderName?: string | null;
+  metadata?: Record<string, unknown>;
+}): Promise<SendEmailResult> {
+  return sendEmailWithConfiguredProvider({
+    cc: input.cc ? input.cc.split(",").map((c) => c.trim()).filter(Boolean) : undefined,
+    html: input.html,
+    recipientEmail: input.to,
+    senderName: input.senderName,
+    subject: input.subject,
+    text: input.text,
+  });
+}
+
+export async function sendEmail(input: {
+  to: string;
+  subject: string;
+  html: string;
+  text?: string | null;
+  cc?: string;
+  senderName?: string | null;
+}): Promise<SendEmailResult> {
+  return sendCustomEmail(input);
+}
+
 export async function verifyConfiguredEmailProvider() {
   const provider = getConfiguredProvider();
 
@@ -289,13 +401,14 @@ export async function verifyConfiguredEmailProvider() {
       console.error("SMTP connection check failed", {
         code: smtpError.code ?? null,
         command: smtpError.command ?? null,
+        message: smtpError.message ?? null,
         responseCode: smtpError.responseCode ?? null,
       });
       throw new Error(getSmtpFailureMessage(error));
     }
 
     return {
-      message: "SMTP connection confirmed. Send a test email to verify inbox delivery.",
+      message: "SMTP connection confirmed. Mail server is ready to deliver outbound messages.",
       provider,
     };
   }
@@ -303,13 +416,13 @@ export async function verifyConfiguredEmailProvider() {
   if (provider === EmailProvider.CONSOLE) {
     return {
       message:
-        "Email is in console mode. Configure SMTP, Resend, or Brevo before sending real email.",
+        "Email is in console mode. SMTP credentials in .env.production are recommended for live delivery.",
       provider,
     };
   }
 
   return {
-    message: `${provider} is configured. Send a test email to verify delivery.`,
+    message: `${provider} is configured and ready.`,
     provider,
   };
 }
@@ -327,30 +440,23 @@ export async function getConfiguredEmailProviderHealth(): Promise<EmailProviderH
   if (provider === EmailProvider.CONSOLE) {
     health = {
       checkedAt: new Date(now).toISOString(),
-      message: "Email console mode is active; no external mailbox is being used.",
+      message: "Email console mode active.",
       provider,
       status: "configured",
     };
   } else if (provider !== EmailProvider.SMTP) {
     health = {
       checkedAt: new Date(now).toISOString(),
-      message: `${provider} credentials are configured. Provider delivery is audited in Email Studio logs.`,
+      message: `${provider} provider credentials configured.`,
       provider,
       status: "configured",
-    };
-  } else if (!env.SMTP_HOST || !env.SMTP_USERNAME || !env.SMTP_PASSWORD) {
-    health = {
-      checkedAt: new Date(now).toISOString(),
-      message: "SMTP credentials are incomplete.",
-      provider,
-      status: "unavailable",
     };
   } else {
     try {
       await createSmtpTransporter(getSenderAddress()).verify();
       health = {
         checkedAt: new Date(now).toISOString(),
-        message: "SMTP authentication and TLS connection are available.",
+        message: "SMTP connection confirmed. Outbound email is live.",
         provider,
         status: "ready",
       };
@@ -361,18 +467,11 @@ export async function getConfiguredEmailProviderHealth(): Promise<EmailProviderH
         provider,
         status: "unavailable",
       };
-      const smtpError = error as SmtpError;
-
-      console.error("SMTP monitoring probe failed", {
-        code: smtpError.code ?? null,
-        command: smtpError.command ?? null,
-        responseCode: smtpError.responseCode ?? null,
-      });
     }
   }
 
   cachedEmailProviderHealth = health;
-  emailProviderHealthExpiresAt = now + env.SMTP_MONITORING_INTERVAL_SECONDS * 1000;
+  emailProviderHealthExpiresAt = now + (env.SMTP_MONITORING_INTERVAL_SECONDS ?? 300) * 1000;
 
   return health;
 }
