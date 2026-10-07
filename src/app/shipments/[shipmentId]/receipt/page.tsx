@@ -7,6 +7,7 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getCompanyProfile } from "@/features/settings/queries/company-profile.queries";
 import { CompactShipmentReceipt } from "@/features/shipments/components/compact-shipment-receipt";
+import { EmailReceiptModal } from "@/features/shipments/components/email-receipt-modal";
 import { LiveDocumentRefresh } from "@/features/shipments/components/live-document-refresh";
 import { PrintButton } from "@/features/shipments/components/print-button";
 import { getShipmentForUser } from "@/features/shipments/queries/shipment.queries";
@@ -108,6 +109,12 @@ export default async function ShipmentReceiptPage({
                 Thermal receipt
               </Link>
             </Button>
+            <EmailReceiptModal
+              defaultReceiverEmail={shipment.recipientEmail || shipment.manualRecipient?.email}
+              defaultSenderEmail={shipment.officeDetails?.shipperEmail}
+              shipmentId={shipment.id}
+              shipmentNumber={shipment.shipmentNumber}
+            />
             <PrintButton label="Print receipt" />
           </div>
         </div>

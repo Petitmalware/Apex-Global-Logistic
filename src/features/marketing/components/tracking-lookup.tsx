@@ -35,7 +35,7 @@ import type {
 
 type LookupStatus = "idle" | "loading" | "ready" | "error";
 
-function formatDate(value: string | null) {
+export function formatDate(value: string | null) {
   if (!value) {
     return "Not scheduled";
   }
@@ -46,14 +46,14 @@ function formatDate(value: string | null) {
   }).format(new Date(value));
 }
 
-function formatEnum(value: string) {
+export function formatEnum(value: string) {
   return value
     .replaceAll("_", " ")
     .toLowerCase()
     .replace(/^./, (character) => character.toUpperCase());
 }
 
-function formatDeliveryWindow(snapshot: ShipmentTrackingSnapshot) {
+export function formatDeliveryWindow(snapshot: ShipmentTrackingSnapshot) {
   if (!snapshot.deliveryWindowStart && !snapshot.deliveryWindowEnd) {
     return "Awaiting delivery estimate";
   }
@@ -97,7 +97,7 @@ function formatAddress(address: ShipmentAddressView) {
     .join(", ");
 }
 
-function statusVariant(status: ShipmentTrackingSnapshot["status"]) {
+export function statusVariant(status: ShipmentTrackingSnapshot["status"]) {
   if (status === "DELIVERED") {
     return "success";
   }
@@ -113,7 +113,7 @@ function statusVariant(status: ShipmentTrackingSnapshot["status"]) {
   return "accent";
 }
 
-function getStatusMessage(status: ShipmentTrackingSnapshot["status"]) {
+export function getStatusMessage(status: ShipmentTrackingSnapshot["status"]) {
   const messages = {
     BOOKED: "The shipment is registered and Apex is preparing the next operational step.",
     CANCELLED:
@@ -132,7 +132,7 @@ function getStatusMessage(status: ShipmentTrackingSnapshot["status"]) {
   return messages[status];
 }
 
-function TrackingStatusIcon({ status }: { status: ShipmentTrackingSnapshot["status"] }) {
+export function TrackingStatusIcon({ status }: { status: ShipmentTrackingSnapshot["status"] }) {
   if (status === "DELIVERED") {
     return <CheckCircle2 aria-hidden="true" className="size-5" />;
   }
@@ -184,7 +184,7 @@ function PartyCard({
   );
 }
 
-function ShipmentParties({ snapshot }: { snapshot: ShipmentTrackingSnapshot }) {
+export function ShipmentParties({ snapshot }: { snapshot: ShipmentTrackingSnapshot }) {
   const details = snapshot.publicDetails;
 
   if (snapshot.sensitiveDetailsLocked) {
@@ -334,7 +334,7 @@ function ShipmentParties({ snapshot }: { snapshot: ShipmentTrackingSnapshot }) {
   );
 }
 
-function ShipmentTimeline({ snapshot }: { snapshot: ShipmentTrackingSnapshot }) {
+export function ShipmentTimeline({ snapshot }: { snapshot: ShipmentTrackingSnapshot }) {
   return (
     <section className="border-border bg-card shadow-panel rounded-lg border p-5 sm:p-6">
       <div className="border-border border-b pb-4">

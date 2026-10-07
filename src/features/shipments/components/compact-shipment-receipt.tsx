@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { siteConfig } from "@/config/site";
 import type { CompanyProfileInput } from "@/features/settings/schemas/company-profile.schema";
+import { EmailReceiptModal } from "@/features/shipments/components/email-receipt-modal";
 import { LiveDocumentRefresh } from "@/features/shipments/components/live-document-refresh";
 import { PrintButton } from "@/features/shipments/components/print-button";
 import { formatShipmentStatus } from "@/features/shipments/status-labels";
@@ -146,6 +147,12 @@ export function CompactShipmentReceipt({
             <Button asChild variant="outline">
               <Link href={`/shipments/${shipment.id}/receipt?format=a4` as Route}>A4 receipt</Link>
             </Button>
+            <EmailReceiptModal
+              defaultReceiverEmail={shipment.recipientEmail || shipment.manualRecipient?.email}
+              defaultSenderEmail={officeDetails?.shipperEmail}
+              shipmentId={shipment.id}
+              shipmentNumber={shipment.shipmentNumber}
+            />
             <PrintButton label="Print / save receipt" />
           </div>
         </div>

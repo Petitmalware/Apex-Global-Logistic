@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LocalizedDateTime } from "@/components/ui/localized-date-time";
+import { EmailReceiptModal } from "@/features/shipments/components/email-receipt-modal";
 import { PackagePhotoForm } from "@/features/shipments/components/package-photo-form";
 import { ShipmentDocumentForm } from "@/features/shipments/components/shipment-document-form";
 import { ShipmentStatusBadge } from "@/features/shipments/components/shipment-list";
@@ -353,6 +354,13 @@ function ShipmentOverview({
               Receipt
             </Link>
           </Button>
+          <EmailReceiptModal
+            className="border-primary-foreground/20 bg-primary-foreground/10 text-primary-foreground hover:bg-primary-foreground/15"
+            defaultReceiverEmail={shipment.recipientEmail || shipment.manualRecipient?.email}
+            defaultSenderEmail={shipment.officeDetails?.shipperEmail}
+            shipmentId={shipment.id}
+            shipmentNumber={shipment.shipmentNumber}
+          />
           {canManage ? (
             <Button asChild variant="accent">
               <Link href="#shipment-status-update">

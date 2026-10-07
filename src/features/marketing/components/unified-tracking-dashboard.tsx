@@ -1,103 +1,181 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
-import type { Route } from "next";
+import { useSearchParams } from "next/navigation";
+import type { Route as NextRoute } from "next";
 import {
-  Search, Package, MapPin, AlertCircle,
-  ArrowRight, PawPrint, Plane, Clock, Radio
+  AlertCircle,
+  ArrowRight,
+  ChevronRight,
+  FileText,
+  LockKeyhole,
+  Package,
+  Radio,
+  Search,
+  KeyRound,
 } from "lucide-react";
+
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { ReceiptDownloadButton } from "@/features/shipments/components/receipt-download-button";
+import { ShipmentLiveMap } from "@/features/shipments/components/shipment-live-map";
+import { formatShipmentStatus } from "@/features/shipments/status-labels";
+import type { ShipmentTrackingSnapshot } from "@/features/shipments/types";
 import {
   DeliveryTruckAnimation,
-  PulsingLocationPin,
-  LiveRadarPing,
   FloatingPawPrints,
+  LiveRadarPing,
 } from "./animated-illustrations";
-
-type TrackingResult = {
-  shipmentNumber: string;
-  status: string;
-  originCity: string;
-  destinationCity: string;
-  estimatedDelivery: string | null;
-  currentLocation: string | null;
-  events: Array<{ message: string; location: string | null; timestamp: string }>;
-  lat: number | null;
-  lng: number | null;
-};
+import {
+  ShipmentParties,
+  ShipmentTimeline,
+  TrackingStatusIcon,
+  formatDate,
+  formatDeliveryWindow,
+  formatEnum,
+  getStatusMessage,
+  statusVariant,
+} from "./tracking-lookup";
 
 export function UnifiedTrackingDashboard() {
-  const [query, setQuery] = useState("");
+  const searchParams = useSearchParams();
+  const [query, setQuery] = useState(() => {
+    return (
+      searchParams.get("q") ||
+      searchParams.get("ref") ||
+      searchParams.get("tracking") ||
+      ""
+    );
+  });
+  const [recipientPin, setRecipientPin] = useState("");
   const [lookupStatus, setLookupStatus] = useState<"idle" | "loading" | "found" | "error">("idle");
-  const [result, setResult] = useState<TrackingResult | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [pinError, setPinError] = useState<string | null>(null);
+  const [snapshot, setSnapshot] = useState<ShipmentTrackingSnapshot | null>(null);
+  const [connectionState, setConnectionState] = useState<"idle" | "live" | "reconnecting">("idle");
+  const [showPinInput, setShowPinInput] = useState(false);
 
-  async function handleSearch(e: FormEvent) {
-    e.preventDefault();
-    if (!query.trim()) return;
+  async function performLookup(referenceToFind: string, pinToSubmit?: string) {
+    const cleanRef = referenceToFind.trim();
+    if (!cleanRef) return;
+
     setLookupStatus("loading");
-    setResult(null);
+    setErrorMessage(null);
+    setPinError(null);
+    setConnectionState("idle");
+
+    const pinParam = (pinToSubmit !== undefined ? pinToSubmit : recipientPin).trim();
+    const queryStr = pinParam ? `?pin=${encodeURIComponent(pinParam)}` : "";
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
 
     try {
-      const res = await fetch(`/api/tracking/${encodeURIComponent(query.trim())}`, {
+      const res = await fetch(`/api/tracking/${encodeURIComponent(cleanRef)}${queryStr}`, {
+        cache: "no-store",
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
 
       if (!res.ok) {
+        const payload = (await res.json().catch(() => null)) as { message?: string } | null;
+        setSnapshot(null);
         setLookupStatus("error");
+        setErrorMessage(payload?.message ?? "We could not find a shipment matching that tracking number.");
         return;
       }
 
-      const data = await res.json();
-      setResult({
-        shipmentNumber: data.shipmentNumber ?? query,
-        status: data.status ?? "UNKNOWN",
-        originCity: data.originCity ?? "—",
-        destinationCity: data.destinationCity ?? "—",
-        estimatedDelivery: data.deliveryWindowEnd ?? data.deliveryWindowStart ?? null,
-        currentLocation: data.timeline?.[0]?.currentLocation ?? null,
-        events: (data.timeline ?? []).slice(0, 5).map((e: { message?: string; currentLocation?: string | null; happenedAt?: string | null }) => ({
-          message: e.message ?? "Update",
-          location: e.currentLocation ?? null,
-          timestamp: e.happenedAt ?? "",
-        })),
-        lat: data.route?.currentPosition?.latitude ?? null,
-        lng: data.route?.currentPosition?.longitude ?? null,
-      });
+      const payload = (await res.json()) as {
+        pinError?: string | null;
+        snapshot: ShipmentTrackingSnapshot;
+      };
+
+      if (!payload.snapshot) {
+        setSnapshot(null);
+        setLookupStatus("error");
+        setErrorMessage("We could not find a shipment matching that tracking number.");
+        return;
+      }
+
+      setSnapshot(payload.snapshot);
+      setPinError(payload.pinError ?? null);
+      if (payload.pinError) {
+        setShowPinInput(true);
+      } else if (pinParam) {
+        setRecipientPin("");
+        setShowPinInput(false);
+      }
       setLookupStatus("found");
-    } catch {
+    } catch (err) {
       clearTimeout(timeoutId);
+      setSnapshot(null);
       setLookupStatus("error");
+      setErrorMessage(
+        err instanceof Error && err.name === "AbortError"
+          ? "Tracking lookup timed out. Please check your connection and try again."
+          : "An error occurred while tracking the shipment. Please try again."
+      );
     }
   }
 
-  function statusVariant(s: string): "success" | "danger" | "warning" | "accent" | "neutral" {
-    if (s === "DELIVERED") return "success";
-    if (s === "CANCELLED" || s === "RETURNED") return "danger";
-    if (s === "DELAYED" || s === "HELD") return "warning";
-    if (s === "IN_TRANSIT" || s === "READY_FOR_DISPATCH" || s === "PROCESSING") return "accent";
-    return "neutral";
+  // Auto-search on initial load if query parameter was supplied
+  useEffect(() => {
+    const initialQuery =
+      searchParams.get("q") ||
+      searchParams.get("ref") ||
+      searchParams.get("tracking");
+    if (initialQuery && initialQuery.trim()) {
+      void performLookup(initialQuery);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // SSE stream for real-time tracking updates
+  useEffect(() => {
+    if (!snapshot?.shipmentNumber) {
+      return undefined;
+    }
+
+    const source = new EventSource(`/api/tracking/${encodeURIComponent(snapshot.shipmentNumber)}/stream`);
+
+    source.addEventListener("open", () => setConnectionState("live"));
+    source.addEventListener("snapshot", (event) => {
+      try {
+        const nextSnapshot = JSON.parse((event as MessageEvent).data) as ShipmentTrackingSnapshot;
+        setSnapshot(nextSnapshot);
+        setConnectionState("live");
+      } catch {
+        // Ignore json parse error in sse
+      }
+    });
+    source.addEventListener("error", () => setConnectionState("reconnecting"));
+
+    return () => source.close();
+  }, [snapshot?.shipmentNumber]);
+
+  function handleSearch(e: FormEvent) {
+    e.preventDefault();
+    if (!query.trim()) return;
+    void performLookup(query);
   }
 
-  function formatDate(v: string | null) {
-    if (!v) return "—";
-    return new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" }).format(new Date(v));
+  function handleUnlockPin(e: FormEvent) {
+    e.preventDefault();
+    if (!snapshot || !recipientPin.trim()) return;
+    void performLookup(snapshot.shipmentNumber, recipientPin.trim());
   }
+
+  const latestEvent = snapshot?.timeline[0] ?? null;
 
   return (
     <div className="w-full">
       {/* ── HERO ── */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 py-16 sm:py-24">
-        {/* Animated paw prints background */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 py-14 sm:py-20">
         <FloatingPawPrints />
 
-        {/* Subtle grid overlay */}
+        {/* Subtle grid pattern */}
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 opacity-[0.04]"
@@ -109,28 +187,32 @@ export function UnifiedTrackingDashboard() {
         />
 
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6">
-          <div className="grid items-center gap-12 lg:grid-cols-2">
-            {/* Left: Search */}
+          <div className="grid items-center gap-10 lg:grid-cols-2">
             <div>
               <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-1.5">
                 <Radio className="h-3.5 w-3.5 animate-pulse text-amber-400" />
-                <span className="text-xs font-semibold tracking-wider text-amber-400 uppercase">Live Tracking</span>
+                <span className="text-xs font-semibold tracking-wider text-amber-400 uppercase">
+                  Live Global GPS
+                </span>
               </div>
               <h1 className="text-4xl font-black leading-tight tracking-tight text-white sm:text-5xl">
                 Track Any Shipment.<br />
-                <span className="text-amber-400">Instantly.</span>
+                <span className="text-amber-400">In Real Time.</span>
               </h1>
               <p className="mt-4 max-w-lg text-slate-300 leading-relaxed">
-                Real-time GPS visibility for pet transport, air cargo, ocean freight, and parcel delivery — from booking to your door.
+                Live GPS route visibility for pets, express parcels, air freight, ocean cargo, and overland transport.
               </p>
 
-              {/* Search form */}
-              <form className="mt-8" onSubmit={handleSearch}>
-                <div className="flex gap-3">
+              {/* Search Form */}
+              <form className="mt-8 space-y-3" onSubmit={handleSearch}>
+                <div className="flex flex-col gap-3 sm:flex-row">
                   <div className="relative flex-1">
                     <Input
-                      className="h-14 border-slate-600 bg-slate-800/80 pl-12 pr-4 text-base text-white placeholder:text-slate-400 focus:border-amber-500 focus:ring-amber-500/20"
-                      placeholder="Enter tracking number, shipment ID, or reference…"
+                      autoCapitalize="characters"
+                      autoComplete="off"
+                      className="h-14 border-slate-600 bg-slate-800/90 pl-12 pr-4 text-base font-medium text-white placeholder:text-slate-400 focus:border-amber-500 focus:ring-amber-500/20"
+                      placeholder="Enter tracking number (e.g. AGL-202610-5B2F71BB)"
+                      spellCheck={false}
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
                     />
@@ -138,7 +220,7 @@ export function UnifiedTrackingDashboard() {
                   </div>
                   <Button
                     type="submit"
-                    className="h-14 bg-amber-500 px-6 text-base font-bold text-slate-900 hover:bg-amber-400"
+                    className="h-14 bg-amber-500 px-7 text-base font-bold text-slate-900 transition hover:bg-amber-400 shrink-0"
                     disabled={lookupStatus === "loading"}
                   >
                     {lookupStatus === "loading" ? (
@@ -147,13 +229,40 @@ export function UnifiedTrackingDashboard() {
                         Searching…
                       </span>
                     ) : (
-                      "Track"
+                      "Track Now"
                     )}
                   </Button>
                 </div>
+
+                {/* Optional PIN toggler */}
+                <div className="flex items-center justify-between text-xs text-slate-400">
+                  <button
+                    type="button"
+                    onClick={() => setShowPinInput(!showPinInput)}
+                    className="inline-flex items-center gap-1.5 hover:text-amber-400 transition"
+                  >
+                    <KeyRound className="size-3.5" />
+                    <span>{showPinInput ? "Hide recipient PIN field" : "Have a recipient PIN? Click here"}</span>
+                  </button>
+                  <span>Real-time GPS telemetry</span>
+                </div>
+
+                {showPinInput && (
+                  <div className="mt-2 flex gap-2">
+                    <Input
+                      autoComplete="off"
+                      className="h-10 border-slate-700 bg-slate-800/80 text-sm text-white placeholder:text-slate-500 max-w-xs"
+                      maxLength={12}
+                      placeholder="Enter recipient PIN (optional)"
+                      type="password"
+                      value={recipientPin}
+                      onChange={(e) => setRecipientPin(e.target.value)}
+                    />
+                  </div>
+                )}
               </form>
 
-              {/* Stat chips */}
+              {/* Stat Chips */}
               <div className="mt-6 flex flex-wrap gap-3">
                 {[
                   { icon: "🌍", label: "150+ Countries" },
@@ -162,7 +271,7 @@ export function UnifiedTrackingDashboard() {
                 ].map((chip) => (
                   <span
                     key={chip.label}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-slate-800 px-3 py-1 text-xs font-medium text-slate-300"
+                    className="inline-flex items-center gap-1.5 rounded-full bg-slate-800/90 px-3 py-1 text-xs font-medium text-slate-300"
                   >
                     <span>{chip.icon}</span>
                     {chip.label}
@@ -171,7 +280,7 @@ export function UnifiedTrackingDashboard() {
               </div>
             </div>
 
-            {/* Right: truck animation */}
+            {/* Right: animated illustration */}
             <div className="hidden lg:block">
               <DeliveryTruckAnimation />
             </div>
@@ -181,183 +290,284 @@ export function UnifiedTrackingDashboard() {
 
       {/* ── ERROR STATE ── */}
       {lookupStatus === "error" && (
-        <section className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
-          <div className="flex items-start gap-4 rounded-xl border border-red-500/30 bg-red-500/10 p-6">
-            <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-400" />
+        <section className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
+          <div className="flex items-start gap-4 rounded-xl border border-red-500/30 bg-red-500/10 p-6 text-red-200">
+            <AlertCircle className="mt-0.5 h-6 w-6 shrink-0 text-red-400" />
             <div>
-              <p className="font-semibold text-white">No shipment found</p>
+              <p className="font-semibold text-white">Tracking Reference Not Found</p>
               <p className="mt-1 text-sm text-slate-300">
-                No record found for <strong className="text-white">{query}</strong>. Check the tracking number and try again.
+                {errorMessage || `No record found for "${query}". Please check the tracking number and try again.`}
               </p>
             </div>
           </div>
         </section>
       )}
 
-      {/* ── RESULTS ── */}
-      {lookupStatus === "found" && result && (
-        <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
-          <div className="grid gap-8 lg:grid-cols-[1fr_1.4fr]">
-            {/* Left: Status panel */}
-            <div className="space-y-5">
-              {/* Status header */}
-              <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-                <div className="bg-gradient-to-r from-slate-900 to-slate-800 px-6 py-5">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-bold tracking-wider text-slate-400 uppercase">Shipment</p>
-                    <Badge variant={statusVariant(result.status)}>
-                      {result.status.replace(/_/g, " ")}
-                    </Badge>
-                  </div>
-                  <p className="mt-2 text-lg font-bold text-white">{result.shipmentNumber}</p>
-                </div>
-
-                <div className="p-6">
-                  {/* Origin → Destination */}
-                  <div className="flex items-center gap-3">
-                    <div className="flex flex-col items-center">
-                      <div className="h-3 w-3 rounded-full bg-amber-500" />
-                      <div className="my-1 h-12 w-px border-l-2 border-dashed border-slate-300" />
-                      <div className="h-3 w-3 rounded-full bg-green-500" />
-                    </div>
-                    <div className="flex flex-col gap-8">
-                      <div>
-                        <p className="text-xs text-slate-500">Origin</p>
-                        <p className="font-semibold">{result.originCity}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-slate-500">Destination</p>
-                        <p className="font-semibold">{result.destinationCity}</p>
-                      </div>
-                    </div>
-                    {result.status === "IN_TRANSIT" && (
-                      <div className="ml-auto">
-                        <PulsingLocationPin />
-                      </div>
-                    )}
-                  </div>
-
-                  {result.estimatedDelivery && (
-                    <div className="mt-5 flex items-center gap-2 rounded-lg bg-amber-500/10 px-4 py-3">
-                      <Clock className="h-4 w-4 text-amber-500" />
-                      <div>
-                        <p className="text-xs text-slate-500">Estimated Delivery</p>
-                        <p className="text-sm font-semibold">{formatDate(result.estimatedDelivery)}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {result.currentLocation && (
-                    <div className="mt-3 flex items-center gap-2 rounded-lg bg-slate-100/5 px-4 py-3">
-                      <MapPin className="h-4 w-4 text-slate-400" />
-                      <div>
-                        <p className="text-xs text-slate-500">Current Location</p>
-                        <p className="text-sm font-semibold">{result.currentLocation}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
+      {/* ── RESULTS: RICH COMPLETE TRACKING ── */}
+      {lookupStatus === "found" && snapshot && (
+        <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 space-y-6">
+          {/* Header Card */}
+          <div className="border-border bg-card shadow-panel rounded-xl border p-5 sm:p-7">
+            <div className="border-border flex flex-col gap-4 border-b pb-5 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
+                <p className="text-muted-foreground text-xs font-bold uppercase tracking-wider">
+                  Tracking Number
+                </p>
+                <h2 className="mt-2 text-2xl font-black tracking-normal break-all sm:text-3xl">
+                  {snapshot.shipmentNumber}
+                </h2>
+                <p className="text-muted-foreground mt-2 text-sm">
+                  Last updated {formatDate(snapshot.updatedAt)}
+                </p>
               </div>
 
-              {/* Timeline */}
-              {result.events.length > 0 && (
-                <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-                  <h3 className="mb-4 text-sm font-bold tracking-wider text-slate-500 uppercase">Event Timeline</h3>
-                  <ol className="space-y-4">
-                    {result.events.map((ev, i) => (
-                      <li key={i} className="flex gap-3">
-                        <div className="flex flex-col items-center">
-                          <div className={`h-2.5 w-2.5 rounded-full ${i === 0 ? "bg-amber-500" : "bg-slate-300"}`} />
-                          {i < result.events.length - 1 && <div className="my-1 flex-1 w-px bg-slate-200" />}
-                        </div>
-                        <div className="pb-3 min-w-0">
-                          <p className="text-sm font-medium">{ev.message}</p>
-                          {ev.location && <p className="text-xs text-slate-500">{ev.location}</p>}
-                          {ev.timestamp && (
-                            <p className="mt-0.5 text-xs text-slate-400">{formatDate(ev.timestamp)}</p>
-                          )}
-                        </div>
-                      </li>
-                    ))}
-                  </ol>
-                </div>
-              )}
-            </div>
+              {/* Action Badges & Buttons */}
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant={statusVariant(snapshot.status)}>
+                  {formatShipmentStatus(snapshot.status)}
+                </Badge>
 
-            {/* Right: Map */}
-            <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
-              <div className="flex items-center justify-between border-b border-border px-5 py-4">
-                <div className="flex items-center gap-2">
-                  <LiveRadarPing />
-                  <span className="text-sm font-semibold">Live Route Map</span>
-                </div>
-                <Badge variant="accent">Route Active</Badge>
-              </div>
-              <div className="relative">
-                {result.lat && result.lng ? (
-                  <iframe
-                    allow="fullscreen"
-                    className="h-[480px] w-full border-0"
-                    src={`https://www.openstreetmap.org/export/embed.html?bbox=${result.lng - 0.5},${result.lat - 0.5},${result.lng + 0.5},${result.lat + 0.5}&layer=mapnik&marker=${result.lat},${result.lng}`}
-                    title={`Live map for shipment ${result.shipmentNumber}`}
-                  />
+                <Badge variant={connectionState === "live" ? "success" : "outline"}>
+                  {connectionState === "live" ? (
+                    <Radio aria-hidden="true" className="size-3.5 animate-pulse" />
+                  ) : null}
+                  {connectionState === "live"
+                    ? "Updates connected"
+                    : connectionState === "reconnecting"
+                      ? "Reconnecting"
+                      : "Connecting"}
+                </Badge>
+
+                {snapshot.sensitiveDetailsLocked ? (
+                  <Badge variant="outline">
+                    <LockKeyhole aria-hidden="true" className="size-3.5 mr-1" />
+                    PIN required for receipt
+                  </Badge>
                 ) : (
-                  <div className="flex h-[480px] flex-col items-center justify-center gap-4 bg-slate-50">
-                    <div className="relative">
-                      <div className="h-16 w-16 animate-ping rounded-full bg-amber-400/20" />
-                      <MapPin className="absolute inset-0 m-auto h-8 w-8 text-amber-500" />
-                    </div>
-                    <p className="text-sm text-slate-500">Live GPS coordinates will appear once the shipment is in transit</p>
-                  </div>
+                  <>
+                    <Button asChild size="sm" variant="outline">
+                      <Link
+                        href={
+                          `/tracking/${encodeURIComponent(snapshot.shipmentNumber)}/receipt` as NextRoute
+                        }
+                      >
+                        <FileText aria-hidden="true" className="size-4 mr-1" />
+                        View receipt
+                      </Link>
+                    </Button>
+                    <ReceiptDownloadButton
+                      reference={snapshot.shipmentNumber}
+                      size="sm"
+                      variant="outline"
+                    />
+                  </>
                 )}
               </div>
-              <div className="bg-slate-50 px-5 py-3 text-xs text-slate-500">
-                Map updates automatically as the shipment progresses
+            </div>
+
+            {/* Status explanation alert */}
+            <div className="bg-secondary text-secondary-foreground mt-5 flex items-start gap-3 rounded-lg p-4">
+              <TrackingStatusIcon status={snapshot.status} />
+              <div>
+                <p className="font-bold">{formatShipmentStatus(snapshot.status)}</p>
+                <p className="mt-1 text-sm leading-relaxed">{getStatusMessage(snapshot.status)}</p>
+              </div>
+            </div>
+
+            {/* PIN unlock form if locked */}
+            {snapshot.sensitiveDetailsLocked && (
+              <form
+                onSubmit={handleUnlockPin}
+                className="mt-5 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 sm:p-5"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <p className="text-sm font-bold text-amber-500 flex items-center gap-1.5">
+                      <LockKeyhole className="size-4" />
+                      Recipient Details Protected
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Enter the recipient PIN to view full contact details, pet profile, and download the printable receipt.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      autoComplete="off"
+                      className="h-9 w-40 text-sm"
+                      maxLength={12}
+                      placeholder="Recipient PIN"
+                      type="password"
+                      value={recipientPin}
+                      onChange={(e) => setRecipientPin(e.target.value)}
+                    />
+                    <Button size="sm" type="submit" variant="accent">
+                      Unlock
+                    </Button>
+                  </div>
+                </div>
+                {pinError && (
+                  <p className="mt-2 text-xs font-medium text-red-500">{pinError}</p>
+                )}
+              </form>
+            )}
+
+            {/* Quick Metrics Bar */}
+            <div className="mt-5 grid gap-4 sm:grid-cols-3">
+              <div className="border-border rounded-lg border p-4">
+                <p className="text-muted-foreground text-xs font-semibold uppercase">
+                  Estimated Delivery
+                </p>
+                <p className="mt-2 text-base font-bold">{formatDeliveryWindow(snapshot)}</p>
+              </div>
+              <div className="border-border rounded-lg border p-4">
+                <p className="text-muted-foreground text-xs font-semibold uppercase">
+                  Current Location
+                </p>
+                <p className="mt-2 text-base font-bold">
+                  {latestEvent?.currentLocation ?? "Awaiting checkpoint scan"}
+                </p>
+                <p className="text-muted-foreground mt-1 text-xs">
+                  {latestEvent ? formatDate(latestEvent.occurredAt) : "No location logged yet"}
+                </p>
+              </div>
+              <div className="border-border rounded-lg border p-4">
+                <p className="text-muted-foreground text-xs font-semibold uppercase">
+                  Latest Milestone
+                </p>
+                <p className="mt-2 text-base font-bold">
+                  {latestEvent ? formatShipmentStatus(snapshot.status) : "Shipment Created"}
+                </p>
+                <p className="text-muted-foreground mt-1 text-xs truncate">
+                  {latestEvent?.message ?? getStatusMessage(snapshot.status)}
+                </p>
               </div>
             </div>
           </div>
+
+          {/* ── Interactive Live Map with Real Route & GPS Simulation ── */}
+          <div className="overflow-hidden rounded-xl border border-border bg-card shadow-panel">
+            <div className="flex items-center justify-between border-b border-border px-5 py-4">
+              <div className="flex items-center gap-2">
+                <LiveRadarPing />
+                <span className="text-sm font-bold">Interactive Route GPS Map</span>
+              </div>
+              <Badge variant="accent">Live Network</Badge>
+            </div>
+            <ShipmentLiveMap connectionState={connectionState} snapshot={snapshot} />
+          </div>
+
+          {/* ── Route and Shipment Record ── */}
+          <section className="border-border bg-card shadow-panel rounded-xl border p-5 sm:p-6">
+            <div className="border-border flex flex-wrap items-end justify-between gap-3 border-b pb-4">
+              <div>
+                <h3 className="text-lg font-bold">Route and Manifest Details</h3>
+                <p className="text-muted-foreground mt-1 text-sm">
+                  Origin terminal, current position, and destination.
+                </p>
+              </div>
+              <p className="text-muted-foreground text-xs font-semibold uppercase">
+                {snapshot.timeline.length} Checkpoint{snapshot.timeline.length === 1 ? "" : "s"} Recorded
+              </p>
+            </div>
+
+            <div className="mt-5 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)] lg:items-center">
+              <div className="border-border rounded-lg border p-4">
+                <p className="text-muted-foreground text-xs font-bold uppercase">Origin</p>
+                <p className="mt-2 font-semibold">
+                  {snapshot.originCity}, {snapshot.originCountryCode}
+                </p>
+              </div>
+              <ChevronRight
+                aria-hidden="true"
+                className="text-amber-500 mx-auto hidden size-5 lg:block"
+              />
+              <div className="border-amber-500/40 bg-amber-500/10 rounded-lg border p-4">
+                <p className="text-xs font-bold uppercase text-amber-500">Current Checkpoint</p>
+                <p className="mt-2 font-semibold">
+                  {latestEvent?.currentLocation ?? "Awaiting transit scan"}
+                </p>
+                <p className="text-muted-foreground mt-1 text-xs">
+                  {latestEvent ? formatDate(latestEvent.occurredAt) : "Pending"}
+                </p>
+              </div>
+              <ChevronRight
+                aria-hidden="true"
+                className="text-amber-500 mx-auto hidden size-5 lg:block"
+              />
+              <div className="border-border rounded-lg border p-4">
+                <p className="text-muted-foreground text-xs font-bold uppercase">Destination</p>
+                <p className="mt-2 font-semibold">
+                  {snapshot.destinationCity}, {snapshot.destinationCountryCode}
+                </p>
+              </div>
+            </div>
+
+            <dl className="border-border bg-border mt-5 grid gap-px overflow-hidden rounded-lg border sm:grid-cols-2 xl:grid-cols-4">
+              {[
+                { label: "Service Level", value: snapshot.serviceLevel ?? "Standard Managed Logistics" },
+                { label: "Transport Mode", value: formatEnum(snapshot.mode) },
+                {
+                  label: "Consignment Pieces",
+                  value: snapshot.packageCount
+                    ? `${snapshot.packageCount} piece${snapshot.packageCount === 1 ? "" : "s"}`
+                    : "Standard parcel",
+                },
+                {
+                  label: "Chargeable Weight",
+                  value: snapshot.totalWeightLb ? `${snapshot.totalWeightLb} lb` : "Calculated at facility",
+                },
+              ].map((item) => (
+                <div className="bg-background p-4" key={item.label}>
+                  <dt className="text-muted-foreground text-xs font-bold uppercase">{item.label}</dt>
+                  <dd className="mt-1 text-sm font-semibold">{item.value}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+
+          {/* ── Shipment Parties & Protected Details ── */}
+          <ShipmentParties snapshot={snapshot} />
+
+          {/* ── Checkpoints & Event Timeline ── */}
+          <ShipmentTimeline snapshot={snapshot} />
         </section>
       )}
 
-      {/* ── IDLE: Feature cards ── */}
+      {/* ── IDLE: Feature Cards ── */}
       {lookupStatus === "idle" && (
         <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
           <div className="grid gap-6 sm:grid-cols-3">
             {[
               {
-                icon: MapPin,
-                color: "text-amber-500",
-                bg: "bg-amber-50",
+                icon: "📍",
                 title: "Real-Time GPS Tracking",
                 description:
-                  "Follow your shipment on a live map with route progress, milestone updates, and estimated arrival windows.",
+                  "Follow your shipment on an interactive map with vehicle simulation, route milestones, and live ETA windows.",
               },
               {
-                icon: PawPrint,
-                color: "text-rose-500",
-                bg: "bg-rose-50",
+                icon: "🐾",
                 title: "Pet Transport Monitoring",
                 description:
-                  "Purpose-built welfare check-ins for dogs, cats, birds, reptiles, and exotic animals in transit.",
+                  "Specialized welfare updates, climate logs, hydration schedules, and live status for pets in travel.",
               },
               {
-                icon: Plane,
-                color: "text-blue-500",
-                bg: "bg-blue-50",
-                title: "Multi-Modal Coverage",
+                icon: "✈️",
+                title: "Multi-Modal Freight Coverage",
                 description:
-                  "Air freight, ocean cargo, ground transport, and express parcel tracking in one unified dashboard.",
+                  "Track ocean containers, air waybills, cross-border freight, and door-to-door express parcels in one unified screen.",
               },
             ].map((card) => (
               <div
                 key={card.title}
                 className="group rounded-2xl border border-border bg-card p-6 shadow-sm transition-all hover:-translate-y-1 hover:shadow-md"
               >
-                <div className={`mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl ${card.bg}`}>
-                  <card.icon className={`h-6 w-6 ${card.color}`} />
+                <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-amber-500/10 text-2xl">
+                  {card.icon}
                 </div>
-                <h3 className="font-bold">{card.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-slate-500">{card.description}</p>
+                <h3 className="font-bold text-lg">{card.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                  {card.description}
+                </p>
               </div>
             ))}
           </div>
@@ -369,16 +579,22 @@ export function UnifiedTrackingDashboard() {
         <div className="flex flex-col items-center justify-between gap-6 rounded-2xl bg-gradient-to-r from-slate-900 to-slate-800 px-8 py-10 sm:flex-row">
           <div>
             <h3 className="text-xl font-bold text-white">Ready to ship with Apex?</h3>
-            <p className="mt-1 text-slate-300">Create a shipment in minutes — pets, parcels, freight, and more.</p>
+            <p className="mt-1 text-slate-300">
+              Create a shipment in minutes — pets, parcels, freight, and more.
+            </p>
           </div>
           <div className="flex flex-shrink-0 gap-3">
             <Button asChild className="bg-amber-500 font-bold text-slate-900 hover:bg-amber-400">
-              <Link href={"/shipments/new" as Route}>
+              <Link href={"/shipments/new" as NextRoute}>
                 <Package className="mr-2 h-4 w-4" /> Create Shipment
               </Link>
             </Button>
-            <Button asChild variant="outline" className="border-slate-600 text-white hover:bg-slate-700">
-              <Link href={"/services" as Route}>
+            <Button
+              asChild
+              variant="outline"
+              className="border-slate-600 text-white hover:bg-slate-700"
+            >
+              <Link href={"/services" as NextRoute}>
                 View Services <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>

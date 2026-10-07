@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { MarketingShell } from "@/features/marketing/components/marketing-shell";
 import { UnifiedTrackingDashboard } from "@/features/marketing/components/unified-tracking-dashboard";
@@ -12,7 +13,9 @@ export const metadata: Metadata = {
 export default function TrackingPage() {
   return (
     <MarketingShell>
-      <UnifiedTrackingDashboard />
+      <Suspense fallback={<div className="min-h-[400px]" />}>
+        <UnifiedTrackingDashboard />
+      </Suspense>
     </MarketingShell>
   );
 }
