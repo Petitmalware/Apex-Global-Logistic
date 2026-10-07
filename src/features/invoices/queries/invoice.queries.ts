@@ -1,4 +1,4 @@
-import "server-only";
+﻿import "server-only";
 
 import type { Prisma } from "@prisma/client";
 
@@ -94,10 +94,15 @@ function invoiceWhereForUser(user: AuthSessionUser): Prisma.InvoiceWhereInput {
     };
   }
 
-  if (canManageInvoices(user) && user.organizationId) {
+  if (canManageInvoices(user)) {
+    if (user.organizationId) {
+      return {
+        deletedAt: null,
+        organizationId: user.organizationId,
+      };
+    }
     return {
       deletedAt: null,
-      organizationId: user.organizationId,
     };
   }
 
