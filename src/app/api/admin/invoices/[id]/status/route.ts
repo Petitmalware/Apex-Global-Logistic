@@ -1,45 +1,82 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { requireRole } from "@/lib/auth/session";
+import { getCurrentSessionUser } from "@/lib/auth/session";
 import { AUTH_ROLES } from "@/lib/auth/constants";
 import { prisma } from "@/lib/db";
+import { InvoiceStatus } from "@prisma/client";
 
-export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export const runtime = "nodejs";
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
   try {
-    await requireRole([AUTH_ROLES.ADMIN, AUTH_ROLES.SUPER_ADMIN]);
+    const user = await getCurrentSessionUser();
+    if (
+      !user ||
+      (!user.roles.includes(AUTH_ROLES.ADMIN) && !user.roles.includes(AUTH_ROLES.SUPER_ADMIN))
+    ) {
+      return NextResponse.json(
+        { error: "Unauthorized. Please log in.", success: false },
+        { status: 401 },
+      );
+    }
 
     const { id } = await params;
-    const body = (await request.json()) as {
-      status: "PAID" | "SENT" | "OVERDUE" | "CANCELLED" | "DRAFT";
-    };
-    const { status } = body;
+    const body = (await request.json().catch(() => ({}))) as { status?: string };
+    const rawStatus = (body.status || "").toUpperCase().trim();
 
-    const validStatuses = ["DRAFT", "SENT", "PAID", "OVERDUE", "CANCELLED"];
-    if (!status || !validStatuses.includes(status)) {
+    let targetStatus: InvoiceStatus;
+    if (rawStatus === "PAID") {
+      targetStatus = InvoiceStatus.PAID;
+    } else if (rawStatus === "SENT" || rawStatus === "ISSUED") {
+      targetStatus = InvoiceStatus.ISSUED;
+    } else if (rawStatus === "DRAFT") {
+      targetStatus = InvoiceStatus.DRAFT;
+    } else if (rawStatus === "OVERDUE") {
+      targetStatus = InvoiceStatus.OVERDUE;
+    } else if (rawStatus === "CANCELLED" || rawStatus === "VOID") {
+      targetStatus = InvoiceStatus.VOID;
+    } else if (rawStatus === "PARTIALLY_PAID") {
+      targetStatus = InvoiceStatus.PARTIALLY_PAID;
+    } else if (rawStatus === "UNCOLLECTIBLE") {
+      targetStatus = InvoiceStatus.UNCOLLECTIBLE;
+    } else {
       return NextResponse.json(
-        { success: false, error: `Invalid status. Must be one of: ${validStatuses.join(", ")}` },
+        {
+          error: "Invalid status. Allowed values: DRAFT, ISSUED, PAID, OVERDUE, VOID, PARTIALLY_PAID",
+          success: false,
+        },
         { status: 400 },
       );
     }
 
-    const updated = await prisma.invoice.update({
+    const invoice = await prisma.invoice.findUnique({
       where: { id },
-      data: {
-        status: status === "SENT" ? "ISSUED" : status === "CANCELLED" ? "VOID" : status,
-        ...(status === "PAID" ? { paidAt: new Date() } : {}),
-        ...(status === "SENT" ? { issuedAt: new Date() } : {}),
-        ...(status === "CANCELLED" ? { voidedAt: new Date() } : {}),
-      },
     });
 
-    return NextResponse.json({ success: true, invoice: updated });
+    if (!invoice) {
+      return NextResponse.json({ error: "Invoice not found", success: false }, { status: 404 });
+    }
+
+    const updated = await prisma.invoice.update({
+      data: {
+        ...(targetStatus === InvoiceStatus.PAID
+          ? { amountPaid: invoice.total, paidAt: new Date() }
+          : {}),
+        ...(targetStatus === InvoiceStatus.ISSUED
+          ? { issuedAt: invoice.issuedAt ?? new Date() }
+          : {}),
+        ...(targetStatus === InvoiceStatus.VOID ? { voidedAt: new Date() } : {}),
+        status: targetStatus,
+      },
+      where: { id },
+    });
+
+    return NextResponse.json({ invoice: updated, success: true });
   } catch (error) {
     console.error("[Invoice Status API] Error:", error);
-    if (error instanceof Error && error.message.includes("Unauthorized")) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
-    }
-    if (error instanceof Error && error.message.includes("Record to update not found")) {
-      return NextResponse.json({ success: false, error: "Invoice not found" }, { status: 404 });
-    }
-    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ error: message, success: false }, { status: 500 });
   }
 }
