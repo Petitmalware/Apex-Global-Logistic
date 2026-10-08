@@ -28,7 +28,7 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     const user = await getCurrentSessionUser();
     if (
       !user ||
-      (!hasRole(user, [AUTH_ROLES.ADMIN, AUTH_ROLES.OPERATOR]) &&
+      (!hasRole(user, [AUTH_ROLES.ADMIN, AUTH_ROLES.AGENT]) &&
         !hasPermission(user, PERMISSIONS.SHIPMENTS_MANAGE))
     ) {
       return NextResponse.json({ error: "Unauthorized", success: false }, { status: 401 });
@@ -202,13 +202,14 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
                 shipmentNumber: shipment.shipmentNumber,
                 source: "shipment-thermal-receipt-email",
               },
-              organizationId: shipment.organizationId,
+              organizationId: user.organizationId ?? undefined,
               provider: sendResult.provider,
               providerMessageId: sendResult.messageId,
               recipientEmail: target.email,
               recipientName: target.name,
               sentAt: new Date(),
               sentById: user.id,
+              shipmentId: shipment.id,
               status: EmailLogStatus.SENT,
               subject,
             },
