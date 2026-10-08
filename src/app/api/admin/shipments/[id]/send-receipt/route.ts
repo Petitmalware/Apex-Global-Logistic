@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentSessionUser } from "@/lib/auth/session";
 import { AUTH_ROLES } from "@/lib/auth/constants";
-import { PERMISSIONS, hasPermission } from "@/lib/auth/rbac";
+import { PERMISSIONS, hasPermission, hasRole } from "@/lib/auth/rbac";
 import { getShipmentForUser } from "@/features/shipments/queries/shipment.queries";
 import { getCompanyProfile } from "@/features/settings/queries/company-profile.queries";
 import { sendEmailWithConfiguredProvider } from "@/features/emails/services/email-provider.service";
@@ -28,9 +28,8 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     const user = await getCurrentSessionUser();
     if (
       !user ||
-      (user.role !== AUTH_ROLES.ADMIN &&
-        user.role !== AUTH_ROLES.OPERATOR &&
-        !hasPermission(user.role, PERMISSIONS.SHIPMENTS_MANAGE))
+      (!hasRole(user, [AUTH_ROLES.ADMIN, AUTH_ROLES.OPERATOR]) &&
+        !hasPermission(user, PERMISSIONS.SHIPMENTS_MANAGE))
     ) {
       return NextResponse.json({ error: "Unauthorized", success: false }, { status: 401 });
     }
