@@ -194,7 +194,7 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
             data: {
               bodyHtml: html,
               bodyText: text,
-              category: EmailTemplateCategory.OPERATIONS,
+              category: EmailTemplateCategory.SHIPMENT,
               metadata: {
                 recipientChoice,
                 recipientRole: target.role,
